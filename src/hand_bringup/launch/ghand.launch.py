@@ -1,4 +1,5 @@
 import os
+from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
@@ -37,9 +38,7 @@ def generate_launch_description():
     # Preserve full environment for controller_manager so it can resolve
     # hand_msgs shared libraries while keeping HOME, PATH, etc.
     controller_manager_env = os.environ.copy()
-    hand_msgs_lib = os.path.join(
-        os.path.expanduser("~"), "GHand-Ros2", "install", "hand_msgs", "lib"
-    )
+    hand_msgs_lib = os.path.join(get_package_prefix("hand_msgs"), "lib")
     controller_manager_env["LD_LIBRARY_PATH"] = (
         hand_msgs_lib + ":" + controller_manager_env.get("LD_LIBRARY_PATH", "")
     )
