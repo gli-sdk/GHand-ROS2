@@ -26,7 +26,7 @@ add_library(GHand_hardware_interface SHARED
 )
 target_include_directories(GHand_hardware_interface PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include/GHand_hardware>
+  $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(GHand_hardware_interface PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
@@ -39,7 +39,7 @@ install(TARGETS GHand_hardware_interface
   RUNTIME DESTINATION bin
 )
 
-install(DIRECTORY include/ DESTINATION include/GHand_hardware)
+install(DIRECTORY include/ DESTINATION include)
 
 ament_export_targets(export_GHand_hardware_interface HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})

@@ -2,6 +2,8 @@
 
 #include <vector>
 #include <string>
+#include <limits>
+#include <cmath>
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
