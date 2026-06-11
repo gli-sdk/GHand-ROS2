@@ -47,6 +47,7 @@ def generate_launch_description():
             ),
         ],
         output="both",
+        env={"LD_LIBRARY_PATH": os.environ.get("LD_LIBRARY_PATH", "")},
     )
 
     joint_state_broadcaster_spawner = Node(
