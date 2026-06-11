@@ -34,6 +34,9 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
+    # Preserve full environment for controller_manager so it can resolve
+    # hand_msgs shared libraries while keeping HOME, PATH, etc.
+    controller_manager_env = os.environ.copy()
     controller_manager_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -47,7 +50,7 @@ def generate_launch_description():
             ),
         ],
         output="both",
-        env={"LD_LIBRARY_PATH": os.environ.get("LD_LIBRARY_PATH", "")},
+        env=controller_manager_env,
     )
 
     joint_state_broadcaster_spawner = Node(
