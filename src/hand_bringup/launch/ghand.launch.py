@@ -1,7 +1,7 @@
 import os
 from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -82,17 +82,13 @@ def generate_launch_description():
         arguments=["joint_trajectory_controller", "--controller-manager", "/controller_manager"],
     )
 
-    rviz_node = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=[
-            "-d",
-            PathJoinSubstitution(
-                [FindPackageShare("hand_bringup"), "config", "ghand.rviz"]
-            ),
+    rviz_process = ExecuteProcess(
+        cmd=[
+            "bash",
+            "-c",
+            "export LD_LIBRARY_PATH=/opt/ros/jazzy/opt/rviz_ogre_vendor/lib:$LD_LIBRARY_PATH && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
         ],
         output="both",
-        env=os.environ.copy(),
     )
 
     nodes = [
@@ -103,7 +99,7 @@ def generate_launch_description():
         joint_status_broadcaster_spawner,
         tactile_broadcaster_spawner,
         joint_traj_controller_spawner,
-        rviz_node,
+        rviz_process,
     ]
 
     return LaunchDescription(nodes)
