@@ -51,6 +51,7 @@ def generate_launch_description():
         ],
         output="both",
         env=controller_manager_env,
+        prefix=["bash", "-c", "echo 'DEBUG LD_LIBRARY_PATH='\$LD_LIBRARY_PATH && exec"],
     )
 
     joint_state_broadcaster_spawner = Node(
