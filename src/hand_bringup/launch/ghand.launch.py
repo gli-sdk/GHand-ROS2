@@ -92,6 +92,7 @@ def generate_launch_description():
             ),
         ],
         output="both",
+        env=os.environ.copy(),
     )
 
     nodes = [
