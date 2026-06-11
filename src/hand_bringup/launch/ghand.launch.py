@@ -37,6 +37,12 @@ def generate_launch_description():
     # Preserve full environment for controller_manager so it can resolve
     # hand_msgs shared libraries while keeping HOME, PATH, etc.
     controller_manager_env = os.environ.copy()
+    hand_msgs_lib = os.path.join(
+        os.path.expanduser("~"), "GHand-Ros2", "install", "hand_msgs", "lib"
+    )
+    controller_manager_env["LD_LIBRARY_PATH"] = (
+        hand_msgs_lib + ":" + controller_manager_env.get("LD_LIBRARY_PATH", "")
+    )
     controller_manager_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
@@ -51,7 +57,6 @@ def generate_launch_description():
         ],
         output="both",
         env=controller_manager_env,
-        prefix=["bash", "-c", "echo 'DEBUG LD_LIBRARY_PATH='\$LD_LIBRARY_PATH && exec"],
     )
 
     joint_state_broadcaster_spawner = Node(
