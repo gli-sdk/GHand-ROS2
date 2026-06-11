@@ -39,7 +39,7 @@ controller_interface::CallbackReturn JointStatusBroadcaster::on_deactivate(const
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
-controller_interface::return_type JointStatusBroadcaster::update(const rclcpp::Time & /*time", const rclcpp::Duration & /*period*/)
+controller_interface::return_type JointStatusBroadcaster::update(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   auto msg = hand_msgs::msg::JointStatus();
   // TODO: Fill status from state interfaces

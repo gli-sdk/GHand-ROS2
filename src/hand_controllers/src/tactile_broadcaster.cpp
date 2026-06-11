@@ -36,7 +36,7 @@ controller_interface::CallbackReturn TactileBroadcaster::on_deactivate(const rcl
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
-controller_interface::return_type TactileBroadcaster::update(const rclcpp::Time & /*time", const rclcpp::Duration & /*period*/)
+controller_interface::return_type TactileBroadcaster::update(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   auto msg = hand_msgs::msg::TactileData();
   // TODO: Fill tactile data from hardware
