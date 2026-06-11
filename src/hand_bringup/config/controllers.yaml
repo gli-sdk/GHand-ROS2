@@ -17,25 +17,45 @@ controller_manager:
 joint_trajectory_controller:
   ros__parameters:
     joints:
-      - finger_1_joint_1
-      - finger_1_joint_2
-      - finger_2_joint_1
-      - finger_2_joint_2
-      - finger_3_joint_1
-      - finger_3_joint_2
-      - thumb_joint_1
-      - thumb_joint_2
+      - little_mcp
+      - little_pip
+      - little_dip
+      - ring_mcp
+      - ring_pip
+      - ring_dip
+      - middle_mcp
+      - middle_pip
+      - middle_dip
+      - index_mcp_aa
+      - index_mcp
+      - index_pip
+      - index_dip
+      - thumb_tmc_ps
+      - thumb_tmc_aa
+      - thumb_tmc_fe
+      - thumb_mcp
+      - thumb_dip
     command_interfaces:
       - position
     state_interfaces:
       - position
       - velocity
     gains:
-      finger_1_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
-      finger_1_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
-      finger_2_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
-      finger_2_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
-      finger_3_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
-      finger_3_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
-      thumb_joint_1:    { p: 100.0, i: 0.0, d: 10.0 }
-      thumb_joint_2:    { p: 100.0, i: 0.0, d: 10.0 }
+      little_mcp:       { p: 100.0, i: 0.0, d: 10.0 }
+      little_pip:       { p: 100.0, i: 0.0, d: 10.0 }
+      little_dip:       { p: 100.0, i: 0.0, d: 10.0 }
+      ring_mcp:         { p: 100.0, i: 0.0, d: 10.0 }
+      ring_pip:         { p: 100.0, i: 0.0, d: 10.0 }
+      ring_dip:         { p: 100.0, i: 0.0, d: 10.0 }
+      middle_mcp:       { p: 100.0, i: 0.0, d: 10.0 }
+      middle_pip:       { p: 100.0, i: 0.0, d: 10.0 }
+      middle_dip:       { p: 100.0, i: 0.0, d: 10.0 }
+      index_mcp_aa:     { p: 100.0, i: 0.0, d: 10.0 }
+      index_mcp:        { p: 100.0, i: 0.0, d: 10.0 }
+      index_pip:        { p: 100.0, i: 0.0, d: 10.0 }
+      index_dip:        { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_tmc_ps:     { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_tmc_aa:     { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_tmc_fe:     { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_mcp:        { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_dip:        { p: 100.0, i: 0.0, d: 10.0 }

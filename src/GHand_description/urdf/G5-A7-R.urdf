@@ -547,7 +547,8 @@
 
   <!-- ros2_control -->
   <ros2_control name="GHandHardwareInterface" type="system">
-    <hardware plugin="GHand_hardware/GHandHardwareInterface">
+    <hardware>
+      <plugin>GHand_hardware/GHandHardwareInterface</plugin>
       <param name="example_param">1.0</param>
     </hardware>
     <joint name="little_mcp">
