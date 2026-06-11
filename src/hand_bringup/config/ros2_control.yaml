@@ -1,0 +1,23 @@
+ghand_hardware:
+  ros__parameters:
+    update_rate: 100
+    joints:
+      - finger_1_joint_1
+      - finger_1_joint_2
+      - finger_2_joint_1
+      - finger_2_joint_2
+      - finger_3_joint_1
+      - finger_3_joint_2
+      - thumb_joint_1
+      - thumb_joint_2
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    # TODO: Add EtherCAT/RS485/CANFD parameters
+    ethercat:
+      ifname: "eth0"
+    canfd:
+      channel: 0
+      bitrate: 1000000

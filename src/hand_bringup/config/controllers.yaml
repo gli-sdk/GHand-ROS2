@@ -1,0 +1,41 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+    joint_status_broadcaster:
+      type: hand_controllers/JointStatusBroadcaster
+
+    tactile_broadcaster:
+      type: hand_controllers/TactileBroadcaster
+
+    joint_trajectory_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+joint_trajectory_controller:
+  ros__parameters:
+    joints:
+      - finger_1_joint_1
+      - finger_1_joint_2
+      - finger_2_joint_1
+      - finger_2_joint_2
+      - finger_3_joint_1
+      - finger_3_joint_2
+      - thumb_joint_1
+      - thumb_joint_2
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+    gains:
+      finger_1_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
+      finger_1_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
+      finger_2_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
+      finger_2_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
+      finger_3_joint_1: { p: 100.0, i: 0.0, d: 10.0 }
+      finger_3_joint_2: { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_joint_1:    { p: 100.0, i: 0.0, d: 10.0 }
+      thumb_joint_2:    { p: 100.0, i: 0.0, d: 10.0 }
