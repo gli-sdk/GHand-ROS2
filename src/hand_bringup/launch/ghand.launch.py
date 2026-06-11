@@ -82,6 +82,18 @@ def generate_launch_description():
         arguments=["joint_trajectory_controller", "--controller-manager", "/controller_manager"],
     )
 
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        arguments=[
+            "-d",
+            PathJoinSubstitution(
+                [FindPackageShare("hand_bringup"), "config", "ghand.rviz"]
+            ),
+        ],
+        output="both",
+    )
+
     nodes = [
         use_sim_arg,
         robot_state_pub_node,
@@ -90,6 +102,7 @@ def generate_launch_description():
         joint_status_broadcaster_spawner,
         tactile_broadcaster_spawner,
         joint_traj_controller_spawner,
+        rviz_node,
     ]
 
     return LaunchDescription(nodes)
