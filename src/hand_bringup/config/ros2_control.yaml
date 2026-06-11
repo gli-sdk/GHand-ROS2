@@ -2,14 +2,24 @@ ghand_hardware:
   ros__parameters:
     update_rate: 100
     joints:
-      - finger_1_joint_1
-      - finger_1_joint_2
-      - finger_2_joint_1
-      - finger_2_joint_2
-      - finger_3_joint_1
-      - finger_3_joint_2
-      - thumb_joint_1
-      - thumb_joint_2
+      - little_mcp
+      - little_pip
+      - little_dip
+      - ring_mcp
+      - ring_pip
+      - ring_dip
+      - middle_mcp
+      - middle_pip
+      - middle_dip
+      - index_mcp_aa
+      - index_mcp
+      - index_pip
+      - index_dip
+      - thumb_tmc_ps
+      - thumb_tmc_aa
+      - thumb_tmc_fe
+      - thumb_mcp
+      - thumb_dip
     command_interfaces:
       - position
     state_interfaces:
