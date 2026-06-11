@@ -1,13 +1,20 @@
 import os
 from launch import LaunchDescription
-from launch.actions import RegisterEventHandler
-from launch.event_handlers import OnProcessExit
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
 
 def generate_launch_description():
+    # Launch argument: use_sim
+    use_sim_arg = DeclareLaunchArgument(
+        "use_sim",
+        default_value="false",
+        description="Start robot in Gazebo simulation.",
+    )
+    use_sim = LaunchConfiguration("use_sim")
+
     # Get URDF via xacro
     robot_description_content = Command(
         [
@@ -66,23 +73,14 @@ def generate_launch_description():
         arguments=["joint_trajectory_controller", "--controller-manager", "/controller_manager"],
     )
 
-    # Delay controllers until controller_manager is up
-    delay_controllers = RegisterEventHandler(
-        event_handler=OnProcessExit(
-            target_action=controller_manager_node,
-            on_exit=[
-                joint_state_broadcaster_spawner,
-                joint_status_broadcaster_spawner,
-                tactile_broadcaster_spawner,
-                joint_traj_controller_spawner,
-            ],
-        )
-    )
-
     nodes = [
+        use_sim_arg,
         robot_state_pub_node,
         controller_manager_node,
-        delay_controllers,
+        joint_state_broadcaster_spawner,
+        joint_status_broadcaster_spawner,
+        tactile_broadcaster_spawner,
+        joint_traj_controller_spawner,
     ]
 
     return LaunchDescription(nodes)
