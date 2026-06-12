@@ -1,0 +1,30 @@
+# MoveIt controller configuration — connects to the existing joint_trajectory_controller
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+moveit_simple_controller_manager:
+  controller_names:
+    - joint_trajectory_controller
+
+  joint_trajectory_controller:
+    type: FollowJointTrajectory
+    joints:
+      - index_mcp_aa
+      - index_mcp
+      - index_pip
+      - index_dip
+      - middle_mcp
+      - middle_pip
+      - middle_dip
+      - ring_mcp
+      - ring_pip
+      - ring_dip
+      - little_mcp
+      - little_pip
+      - little_dip
+      - thumb_tmc_ps
+      - thumb_tmc_aa
+      - thumb_tmc_fe
+      - thumb_mcp
+      - thumb_dip
+    action_ns: follow_joint_trajectory
+    default: true

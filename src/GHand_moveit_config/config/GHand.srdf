@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="G5-A7-R">
+  <!--===== 全手规划组（18 关节） =====-->
+  <group name="hand">
+    <link name="base_link"/>
+    <joint name="index_mcp_aa"/>
+    <joint name="index_mcp"/>
+    <joint name="index_pip"/>
+    <joint name="index_dip"/>
+    <joint name="middle_mcp"/>
+    <joint name="middle_pip"/>
+    <joint name="middle_dip"/>
+    <joint name="ring_mcp"/>
+    <joint name="ring_pip"/>
+    <joint name="ring_dip"/>
+    <joint name="little_mcp"/>
+    <joint name="little_pip"/>
+    <joint name="little_dip"/>
+    <joint name="thumb_tmc_ps"/>
+    <joint name="thumb_tmc_aa"/>
+    <joint name="thumb_tmc_fe"/>
+    <joint name="thumb_mcp"/>
+    <joint name="thumb_dip"/>
+  </group>
+
+  <!--===== 单指规划组 =====-->
+  <group name="index_finger">
+    <link name="base_link"/>
+    <joint name="index_mcp_aa"/>
+    <joint name="index_mcp"/>
+    <joint name="index_pip"/>
+    <joint name="index_dip"/>
+  </group>
+
+  <group name="middle_finger">
+    <link name="base_link"/>
+    <joint name="middle_mcp"/>
+    <joint name="middle_pip"/>
+    <joint name="middle_dip"/>
+  </group>
+
+  <group name="ring_finger">
+    <link name="base_link"/>
+    <joint name="ring_mcp"/>
+    <joint name="ring_pip"/>
+    <joint name="ring_dip"/>
+  </group>
+
+  <group name="little_finger">
+    <link name="base_link"/>
+    <joint name="little_mcp"/>
+    <joint name="little_pip"/>
+    <joint name="little_dip"/>
+  </group>
+
+  <group name="thumb">
+    <link name="base_link"/>
+    <joint name="thumb_tmc_ps"/>
+    <joint name="thumb_tmc_aa"/>
+    <joint name="thumb_tmc_fe"/>
+    <joint name="thumb_mcp"/>
+    <joint name="thumb_dip"/>
+  </group>
+
+  <!--===== 预设手势 =====-->
+  <group_state name="open" group="hand">
+    <joint name="index_mcp_aa" value="0.0"/>
+    <joint name="index_mcp" value="0.0"/>
+    <joint name="index_pip" value="0.0"/>
+    <joint name="index_dip" value="0.0"/>
+    <joint name="middle_mcp" value="0.0"/>
+    <joint name="middle_pip" value="0.0"/>
+    <joint name="middle_dip" value="0.0"/>
+    <joint name="ring_mcp" value="0.0"/>
+    <joint name="ring_pip" value="0.0"/>
+    <joint name="ring_dip" value="0.0"/>
+    <joint name="little_mcp" value="0.0"/>
+    <joint name="little_pip" value="0.0"/>
+    <joint name="little_dip" value="0.0"/>
+    <joint name="thumb_tmc_ps" value="0.0"/>
+    <joint name="thumb_tmc_aa" value="0.0"/>
+    <joint name="thumb_tmc_fe" value="0.0"/>
+    <joint name="thumb_mcp" value="0.0"/>
+    <joint name="thumb_dip" value="0.0"/>
+  </group_state>
+
+  <group_state name="fist" group="hand">
+    <joint name="index_mcp_aa" value="0.0"/>
+    <joint name="index_mcp" value="1.5"/>
+    <joint name="index_pip" value="1.5"/>
+    <joint name="index_dip" value="1.5"/>
+    <joint name="middle_mcp" value="1.5"/>
+    <joint name="middle_pip" value="1.5"/>
+    <joint name="middle_dip" value="1.5"/>
+    <joint name="ring_mcp" value="1.5"/>
+    <joint name="ring_pip" value="1.5"/>
+    <joint name="ring_dip" value="1.5"/>
+    <joint name="little_mcp" value="1.5"/>
+    <joint name="little_pip" value="1.5"/>
+    <joint name="little_dip" value="1.5"/>
+    <joint name="thumb_tmc_ps" value="0.5"/>
+    <joint name="thumb_tmc_aa" value="0.0"/>
+    <joint name="thumb_tmc_fe" value="0.8"/>
+    <joint name="thumb_mcp" value="1.0"/>
+    <joint name="thumb_dip" value="1.0"/>
+  </group_state>
+
+  <!--===== 末端执行器 =====-->
+  <end_effector name="ghand_hand" parent_link="base_link" group="hand"/>
+
+  <!--===== 虚拟关节 =====-->
+  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+
+</robot>
