@@ -9,7 +9,7 @@ import os
 
 from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
@@ -103,22 +103,40 @@ def generate_launch_description():
         arguments=["tactile_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
+    # Build env with all library paths (vendor + ROS)
+    mg_env = os.environ.copy()
+    vendor_lib_paths = (
+        "/opt/ros/jazzy/lib:"
+        "/opt/ros/jazzy/opt/gz_ogre_next_vendor/lib:"
+        "/opt/ros/jazzy/opt/gz_math_vendor/lib:"
+        "/opt/ros/jazzy/opt/gz_utils_vendor/lib:"
+        "/opt/ros/jazzy/opt/gz_common_vendor/lib:"
+        "/opt/ros/jazzy/opt/sdformat_vendor/lib"
+    )
+    mg_env["LD_LIBRARY_PATH"] = vendor_lib_paths + ":" + mg_env.get("LD_LIBRARY_PATH", "")
+
     # MoveGroup
     move_group = Node(
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
         parameters=[moveit_config.to_dict()],
-        additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
+        additional_env={
+            "DISPLAY": os.environ.get("DISPLAY", ""),
+            "LD_LIBRARY_PATH": mg_env["LD_LIBRARY_PATH"],
+        },
     )
 
-    # RViz
-    rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        output="log",
-        arguments=["-d", PathJoinSubstitution([FindPackageShare("GHand_moveit_config"), "config", "moveit.rviz"])],
-        parameters=[moveit_config.to_dict()],
+    # RViz — use ExecuteProcess to bypass Node env filtering
+    rviz = ExecuteProcess(
+        cmd=[
+            "bash",
+            "-c",
+            "VENDOR_LIBS=$(find /opt/ros/jazzy/opt -maxdepth 2 -name lib -type d | tr '\\n' ':'); "
+            "export LD_LIBRARY_PATH=\"$VENDOR_LIBS$LD_LIBRARY_PATH\"; "
+            "rviz2 -d $(ros2 pkg prefix GHand_moveit_config)/share/GHand_moveit_config/config/moveit.rviz",
+        ],
+        output="both",
         condition=IfCondition(use_rviz),
     )
 
