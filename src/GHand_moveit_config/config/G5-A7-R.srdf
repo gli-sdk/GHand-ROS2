@@ -44,6 +44,27 @@
     <chain base_link="base_link" tip_link="thumb_dip_link"/>
   </group>
 
+  <!--===== 指尖末端执行器组（只包含指尖 link） =====-->
+  <group name="index_finger_tip">
+    <link name="index_dip_link"/>
+  </group>
+
+  <group name="middle_finger_tip">
+    <link name="middle_dip_link"/>
+  </group>
+
+  <group name="ring_finger_tip">
+    <link name="ring_dip_link"/>
+  </group>
+
+  <group name="little_finger_tip">
+    <link name="little_dip_link"/>
+  </group>
+
+  <group name="thumb_tip">
+    <link name="thumb_dip_link"/>
+  </group>
+
   <!--===== 预设手势 =====-->
   <group_state name="open" group="hand">
     <joint name="index_mcp_aa" value="0.0"/>
@@ -88,12 +109,11 @@
   </group_state>
 
   <!--===== 末端执行器 =====-->
-  <end_effector name="ghand_hand" parent_link="base_link" group="hand"/>
-  <end_effector name="index_finger_tip" parent_link="index_dip_link" group="index_finger"/>
-  <end_effector name="middle_finger_tip" parent_link="middle_dip_link" group="middle_finger"/>
-  <end_effector name="ring_finger_tip" parent_link="ring_dip_link" group="ring_finger"/>
-  <end_effector name="little_finger_tip" parent_link="little_dip_link" group="little_finger"/>
-  <end_effector name="thumb_tip" parent_link="thumb_dip_link" group="thumb"/>
+  <end_effector name="index_finger_tip" parent_link="index_dip_link" group="index_finger_tip" parent_group="index_finger"/>
+  <end_effector name="middle_finger_tip" parent_link="middle_dip_link" group="middle_finger_tip" parent_group="middle_finger"/>
+  <end_effector name="ring_finger_tip" parent_link="ring_dip_link" group="ring_finger_tip" parent_group="ring_finger"/>
+  <end_effector name="little_finger_tip" parent_link="little_dip_link" group="little_finger_tip" parent_group="little_finger"/>
+  <end_effector name="thumb_tip" parent_link="thumb_dip_link" group="thumb_tip" parent_group="thumb"/>
 
   <!--===== 虚拟关节 =====-->
   <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
