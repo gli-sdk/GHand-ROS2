@@ -145,7 +145,6 @@ def generate_launch_description():
             moveit_config.robot_description,
             moveit_config.robot_description_semantic,
             moveit_config.robot_description_kinematics,
-            moveit_config.robot_description_planning,
         ],
         additional_env={
             "LD_LIBRARY_PATH": (
