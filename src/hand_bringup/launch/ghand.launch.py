@@ -86,7 +86,7 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-c",
-            "export LD_LIBRARY_PATH=/opt/ros/jazzy/opt/rviz_ogre_vendor/lib:$LD_LIBRARY_PATH && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
+            "for d in /opt/ros/jazzy/opt/*/lib; do export LD_LIBRARY_PATH=\"$d:$LD_LIBRARY_PATH\"; done && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
         ],
         output="both",
     )
