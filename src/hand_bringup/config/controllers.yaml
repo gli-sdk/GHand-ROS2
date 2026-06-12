@@ -41,6 +41,7 @@ joint_trajectory_controller:
       - position
       - velocity
     open_loop_control: true
+    allow_partial_joints_goal: true
     gains:
       little_mcp:       { p: 100.0, i: 0.0, d: 10.0 }
       little_pip:       { p: 100.0, i: 0.0, d: 10.0 }
