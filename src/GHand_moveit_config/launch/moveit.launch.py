@@ -36,24 +36,25 @@ def generate_launch_description():
     ]
 
     # URDF via xacro with mock/real switching
-    robot_description_content = Command([
+    xacro_cmd = [
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
         PathJoinSubstitution([FindPackageShare("GHand_description"), "urdf", "G5-A7-R.urdf"]),
         " use_mock_hardware:=",
         PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
-    ])
+    ]
+    robot_description_content = Command(xacro_cmd)
 
-    # MoveIt configs
+    # Build MoveIt configs (skip robot_description — inject manually after builder)
     moveit_config = (
         MoveItConfigsBuilder("G5-A7-R", package_name="GHand_moveit_config")
-        .robot_description(moveit_config_dict={"robot_description": robot_description_content})
-        .robot_description_semantic(file_path="config/GHand.srdf")
+        .robot_description_semantic(file_path="config/G5-A7-R.srdf")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .to_moveit_configs()
     )
+    moveit_config.robot_description = {"robot_description": robot_description_content}
 
     # robot_state_publisher
     rsp = Node(
