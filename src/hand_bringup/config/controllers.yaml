@@ -59,3 +59,5 @@ joint_trajectory_controller:
       thumb_tmc_fe:     { p: 100.0, i: 0.0, d: 10.0 }
       thumb_mcp:        { p: 100.0, i: 0.0, d: 10.0 }
       thumb_dip:        { p: 100.0, i: 0.0, d: 10.0 }
+    constraints:
+      goal_time: 2.0
