@@ -103,14 +103,16 @@ def generate_launch_description():
         arguments=["tactile_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
-    # Build env with all library paths (vendor + ROS + multiarch)
-    mg_env = os.environ.copy()
+    # Shared vendor library paths for GUI / MoveIt nodes
     vendor_lib_paths = ":".join(
         os.path.join(root, d)
         for root, dirs, _ in os.walk("/opt/ros/jazzy/opt")
         for d in dirs
         if d == "lib"
     )
+
+    # Build env with all library paths (vendor + ROS + multiarch)
+    mg_env = os.environ.copy()
     mg_env["LD_LIBRARY_PATH"] = (
         "/opt/ros/jazzy/lib:"
         "/opt/ros/jazzy/lib/x86_64-linux-gnu:"
@@ -144,7 +146,13 @@ def generate_launch_description():
             moveit_config.robot_description_semantic,
         ],
         additional_env={
-            "LD_LIBRARY_PATH": "/opt/ros/jazzy/lib/x86_64-linux-gnu:" + os.environ.get("LD_LIBRARY_PATH", ""),
+            "LD_LIBRARY_PATH": (
+                "/opt/ros/jazzy/lib:"
+                "/opt/ros/jazzy/lib/x86_64-linux-gnu:"
+                + vendor_lib_paths
+                + ":"
+                + os.environ.get("LD_LIBRARY_PATH", "")
+            ),
         },
         output="both",
         condition=IfCondition(use_rviz),
