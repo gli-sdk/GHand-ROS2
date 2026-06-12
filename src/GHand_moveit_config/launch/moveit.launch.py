@@ -103,17 +103,21 @@ def generate_launch_description():
         arguments=["tactile_broadcaster", "--controller-manager", "/controller_manager"],
     )
 
-    # Build env with all library paths (vendor + ROS)
+    # Build env with all library paths (vendor + ROS + multiarch)
     mg_env = os.environ.copy()
-    vendor_lib_paths = (
-        "/opt/ros/jazzy/lib:"
-        "/opt/ros/jazzy/opt/gz_ogre_next_vendor/lib:"
-        "/opt/ros/jazzy/opt/gz_math_vendor/lib:"
-        "/opt/ros/jazzy/opt/gz_utils_vendor/lib:"
-        "/opt/ros/jazzy/opt/gz_common_vendor/lib:"
-        "/opt/ros/jazzy/opt/sdformat_vendor/lib"
+    vendor_lib_paths = ":".join(
+        os.path.join(root, d)
+        for root, dirs, _ in os.walk("/opt/ros/jazzy/opt")
+        for d in dirs
+        if d == "lib"
     )
-    mg_env["LD_LIBRARY_PATH"] = vendor_lib_paths + ":" + mg_env.get("LD_LIBRARY_PATH", "")
+    mg_env["LD_LIBRARY_PATH"] = (
+        "/opt/ros/jazzy/lib:"
+        "/opt/ros/jazzy/lib/x86_64-linux-gnu:"
+        + vendor_lib_paths
+        + ":"
+        + mg_env.get("LD_LIBRARY_PATH", "")
+    )
 
     # MoveGroup
     move_group = Node(
@@ -133,7 +137,7 @@ def generate_launch_description():
             "bash",
             "-c",
             "VENDOR_LIBS=$(find /opt/ros/jazzy/opt -maxdepth 2 -name lib -type d | tr '\\n' ':'); "
-            "export LD_LIBRARY_PATH=\"$VENDOR_LIBS$LD_LIBRARY_PATH\"; "
+            "export LD_LIBRARY_PATH=\"/opt/ros/jazzy/lib/x86_64-linux-gnu:${VENDOR_LIBS}${LD_LIBRARY_PATH}\"; "
             "rviz2 -d $(ros2 pkg prefix GHand_moveit_config)/share/GHand_moveit_config/config/moveit.rviz",
         ],
         output="both",
