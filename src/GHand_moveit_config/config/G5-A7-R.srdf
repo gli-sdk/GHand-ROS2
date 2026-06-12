@@ -25,41 +25,23 @@
 
   <!--===== 单指规划组 =====-->
   <group name="index_finger">
-    <link name="base_link"/>
-    <joint name="index_mcp_aa"/>
-    <joint name="index_mcp"/>
-    <joint name="index_pip"/>
-    <joint name="index_dip"/>
+    <chain base_link="base_link" tip_link="index_dip_link"/>
   </group>
 
   <group name="middle_finger">
-    <link name="base_link"/>
-    <joint name="middle_mcp"/>
-    <joint name="middle_pip"/>
-    <joint name="middle_dip"/>
+    <chain base_link="base_link" tip_link="middle_dip_link"/>
   </group>
 
   <group name="ring_finger">
-    <link name="base_link"/>
-    <joint name="ring_mcp"/>
-    <joint name="ring_pip"/>
-    <joint name="ring_dip"/>
+    <chain base_link="base_link" tip_link="ring_dip_link"/>
   </group>
 
   <group name="little_finger">
-    <link name="base_link"/>
-    <joint name="little_mcp"/>
-    <joint name="little_pip"/>
-    <joint name="little_dip"/>
+    <chain base_link="base_link" tip_link="little_dip_link"/>
   </group>
 
   <group name="thumb">
-    <link name="base_link"/>
-    <joint name="thumb_tmc_ps"/>
-    <joint name="thumb_tmc_aa"/>
-    <joint name="thumb_tmc_fe"/>
-    <joint name="thumb_mcp"/>
-    <joint name="thumb_dip"/>
+    <chain base_link="base_link" tip_link="thumb_dip_link"/>
   </group>
 
   <!--===== 预设手势 =====-->
