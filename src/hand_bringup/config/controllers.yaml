@@ -61,3 +61,4 @@ joint_trajectory_controller:
       thumb_dip:        { p: 100.0, i: 0.0, d: 10.0 }
     constraints:
       goal_time: 2.0
+      stopped_velocity_tolerance: 0.01
