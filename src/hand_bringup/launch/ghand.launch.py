@@ -31,7 +31,7 @@ def generate_launch_description():
                 [FindPackageShare("GHand_description"), "urdf", "G5-A7-R.urdf"]
             ),
             " use_mock_hardware:=",
-            PythonExpression(["'true' if ", use_sim, " == 'true' else 'false'"]),
+            PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
         ]
     )
     robot_description = {"robot_description": robot_description_content}
