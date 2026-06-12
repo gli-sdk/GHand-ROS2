@@ -40,6 +40,7 @@ joint_trajectory_controller:
     state_interfaces:
       - position
       - velocity
+    open_loop_control: true
     gains:
       little_mcp:       { p: 100.0, i: 0.0, d: 10.0 }
       little_pip:       { p: 100.0, i: 0.0, d: 10.0 }
