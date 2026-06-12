@@ -131,15 +131,21 @@ def generate_launch_description():
         },
     )
 
-    # RViz — use ExecuteProcess to bypass Node env filtering
-    rviz = ExecuteProcess(
-        cmd=[
-            "bash",
-            "-c",
-            "VENDOR_LIBS=$(find /opt/ros/jazzy/opt -maxdepth 2 -name lib -type d | tr '\\n' ':'); "
-            "export LD_LIBRARY_PATH=\"/opt/ros/jazzy/lib/x86_64-linux-gnu:${VENDOR_LIBS}${LD_LIBRARY_PATH}\"; "
-            "rviz2 -d $(ros2 pkg prefix GHand_moveit_config)/share/GHand_moveit_config/config/moveit.rviz",
+    # RViz — pass robot_description_semantic so MotionPlanning plugin can load SRDF
+    rviz = Node(
+        package="rviz2",
+        executable="rviz2",
+        arguments=[
+            "-d",
+            PathJoinSubstitution([FindPackageShare("GHand_moveit_config"), "config", "moveit.rviz"]),
         ],
+        parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
+        ],
+        additional_env={
+            "LD_LIBRARY_PATH": "/opt/ros/jazzy/lib/x86_64-linux-gnu:" + os.environ.get("LD_LIBRARY_PATH", ""),
+        },
         output="both",
         condition=IfCondition(use_rviz),
     )
