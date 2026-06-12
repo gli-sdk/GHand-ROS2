@@ -2,7 +2,13 @@ import os
 from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess
-from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import (
+    Command,
+    FindExecutable,
+    LaunchConfiguration,
+    PathJoinSubstitution,
+    PythonExpression,
+)
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -16,7 +22,7 @@ def generate_launch_description():
     )
     use_sim = LaunchConfiguration("use_sim")
 
-    # Get URDF via xacro
+    # Get URDF via xacro, switching between mock and real hardware
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -24,6 +30,8 @@ def generate_launch_description():
             PathJoinSubstitution(
                 [FindPackageShare("GHand_description"), "urdf", "G5-A7-R.urdf"]
             ),
+            " use_mock_hardware:=",
+            PythonExpression(["'true' if ", use_sim, " == 'true' else 'false'"]),
         ]
     )
     robot_description = {"robot_description": robot_description_content}
