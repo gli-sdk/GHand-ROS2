@@ -90,6 +90,18 @@ def generate_launch_description():
         arguments=["joint_trajectory_controller", "--controller-manager", "/controller_manager"],
     )
 
+    velocity_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["velocity_controller", "--controller-manager", "/controller_manager", "--inactive"],
+    )
+
+    effort_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["effort_controller", "--controller-manager", "/controller_manager", "--inactive"],
+    )
+
     rviz_process = ExecuteProcess(
         cmd=[
             "bash",
@@ -107,6 +119,8 @@ def generate_launch_description():
         joint_status_broadcaster_spawner,
         tactile_broadcaster_spawner,
         joint_traj_controller_spawner,
+        velocity_controller_spawner,
+        effort_controller_spawner,
         rviz_process,
     ]
 

@@ -28,7 +28,7 @@ ghand_hardware:
       - position
       - velocity
       - effort
-      - status
+      - state
       - error
     # TODO: Add EtherCAT/RS485/CANFD parameters
     ethercat:

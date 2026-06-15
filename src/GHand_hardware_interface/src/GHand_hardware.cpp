@@ -259,12 +259,8 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(const rcl
     if (std::isnan(state.effort)) { state.effort = 0.0; }
   }
 
-  for (auto & command : hw_joint_commands_)
-  {
-    if (std::isnan(command.position)) { command.position = 0.0; }
-    if (std::isnan(command.velocity)) { command.velocity = 0.0; }
-    if (std::isnan(command.effort)) { command.effort = 0.0; }
-  }
+  // Leave command interfaces as NaN so write() can detect which ones the active
+  // controller actually updates and fill the defaults for the current mode.
 
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Successfully activated!");
 
@@ -285,9 +281,18 @@ hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time 
   // For now, mock: position follows command; diagnostics and tactile are zero-filled.
   for (size_t i = 0; i < hw_joint_states_.size(); ++i)
   {
-    hw_joint_states_[i].position = hw_joint_commands_[i].position;
-    hw_joint_states_[i].velocity = hw_joint_commands_[i].velocity;
-    hw_joint_states_[i].effort = hw_joint_commands_[i].effort;
+    if (!std::isnan(hw_joint_commands_[i].position))
+    {
+      hw_joint_states_[i].position = hw_joint_commands_[i].position;
+    }
+    if (!std::isnan(hw_joint_commands_[i].velocity))
+    {
+      hw_joint_states_[i].velocity = hw_joint_commands_[i].velocity;
+    }
+    if (!std::isnan(hw_joint_commands_[i].effort))
+    {
+      hw_joint_states_[i].effort = hw_joint_commands_[i].effort;
+    }
     hw_joint_states_[i].status = 0.0;
     hw_joint_states_[i].error = 0.0;
   }
@@ -310,7 +315,49 @@ hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time 
 
 hardware_interface::return_type GHandHardwareInterface::write(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
-  // TODO: Write commands to hardware via EtherCAT/RS485/CANFD
+  // Fill default values for missing command interfaces according to control mode.
+  // Controllers only write the command interfaces they claim; unclaimed ones stay
+  // NaN, which lets us detect the active mode and apply the required defaults.
+  for (size_t i = 0; i < hw_joint_commands_.size(); ++i)
+  {
+    double & position = hw_joint_commands_[i].position;
+    double & velocity = hw_joint_commands_[i].velocity;
+    double & effort = hw_joint_commands_[i].effort;
+
+    const bool has_position = !std::isnan(position);
+    const bool has_velocity = !std::isnan(velocity);
+    const bool has_effort = !std::isnan(effort);
+
+    if (!has_position && !has_velocity && !has_effort)
+    {
+      // No active command yet: keep the hand idle.
+      position = 0.0;
+      velocity = 0.0;
+      effort = 0.0;
+    }
+    else if (has_position && has_velocity && !has_effort)
+    {
+      // Position + velocity mode: effort defaults to 100%.
+      effort = 100.0;
+    }
+    else if (has_position && has_effort && !has_velocity)
+    {
+      // Position + effort mode: velocity follows effort.
+      velocity = effort;
+    }
+    else if (!has_position && has_velocity && !has_effort)
+    {
+      // Velocity mode: effort defaults to 100%.
+      effort = 100.0;
+    }
+    // Effort-only mode: pass effort through, leave the rest at safe defaults below.
+
+    if (std::isnan(position)) { position = 0.0; }
+    if (std::isnan(velocity)) { velocity = 0.0; }
+    if (std::isnan(effort)) { effort = 0.0; }
+  }
+
+  // TODO: Write hw_joint_commands_ to hardware via EtherCAT/RS485/CANFD
   return hardware_interface::return_type::OK;
 }
 
