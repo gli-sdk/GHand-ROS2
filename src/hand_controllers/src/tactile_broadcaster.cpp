@@ -7,6 +7,21 @@
 #include <limits>
 #include <string>
 
+namespace
+{
+
+double safe_state_value(const hardware_interface::LoanedStateInterface * iface)
+{
+  if (iface == nullptr)
+  {
+    return 0.0;
+  }
+  const double value = iface->get_value();
+  return std::isnan(value) ? 0.0 : value;
+}
+
+}  // namespace
+
 namespace hand_controllers
 {
 
@@ -210,21 +225,6 @@ void TactileBroadcaster::cache_state_interface_pointers()
     finger_states_.push_back(state);
   }
 }
-
-namespace
-{
-
-double safe_state_value(const hardware_interface::LoanedStateInterface * iface)
-{
-  if (iface == nullptr)
-  {
-    return 0.0;
-  }
-  const double value = iface->get_value();
-  return std::isnan(value) ? 0.0 : value;
-}
-
-}  // namespace
 
 }  // namespace hand_controllers
 
