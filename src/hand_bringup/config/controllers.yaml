@@ -86,7 +86,6 @@ joint_trajectory_controller:
     state_interfaces:
       - position
       - velocity
-      - effort
     # true: use planned trajectory values directly as feedforward (no feedback correction).
     # false: use state feedback + PID to correct tracking errors. Recommended for real hardware.
     open_loop_control: true
