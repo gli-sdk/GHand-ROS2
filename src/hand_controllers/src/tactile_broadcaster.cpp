@@ -2,6 +2,7 @@
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
+#include <cmath>
 #include <cstddef>
 #include <limits>
 #include <string>
@@ -116,19 +117,19 @@ controller_interface::return_type TactileBroadcaster::update(
   size_t distributed_offset = 0;
   for (const auto & finger : finger_states_)
   {
-    msg.resultant_force[total_offset + 0] = finger.resultant_force_x ? finger.resultant_force_x->get_value() : 0.0;
-    msg.resultant_force[total_offset + 1] = finger.resultant_force_y ? finger.resultant_force_y->get_value() : 0.0;
-    msg.resultant_force[total_offset + 2] = finger.resultant_force_z ? finger.resultant_force_z->get_value() : 0.0;
+    msg.resultant_force[total_offset + 0] = safe_state_value(finger.resultant_force_x);
+    msg.resultant_force[total_offset + 1] = safe_state_value(finger.resultant_force_y);
+    msg.resultant_force[total_offset + 2] = safe_state_value(finger.resultant_force_z);
     total_offset += 3;
 
     for (size_t j = 0; j < finger.distributed_force_x.size(); ++j)
     {
       msg.distributed_force[distributed_offset + 0] =
-        finger.distributed_force_x[j] ? finger.distributed_force_x[j]->get_value() : 0.0;
+        safe_state_value(finger.distributed_force_x[j]);
       msg.distributed_force[distributed_offset + 1] =
-        finger.distributed_force_y[j] ? finger.distributed_force_y[j]->get_value() : 0.0;
+        safe_state_value(finger.distributed_force_y[j]);
       msg.distributed_force[distributed_offset + 2] =
-        finger.distributed_force_z[j] ? finger.distributed_force_z[j]->get_value() : 0.0;
+        safe_state_value(finger.distributed_force_z[j]);
       distributed_offset += 3;
     }
   }
@@ -209,6 +210,21 @@ void TactileBroadcaster::cache_state_interface_pointers()
     finger_states_.push_back(state);
   }
 }
+
+namespace
+{
+
+double safe_state_value(const hardware_interface::LoanedStateInterface * iface)
+{
+  if (iface == nullptr)
+  {
+    return 0.0;
+  }
+  const double value = iface->get_value();
+  return std::isnan(value) ? 0.0 : value;
+}
+
+}  // namespace
 
 }  // namespace hand_controllers
 

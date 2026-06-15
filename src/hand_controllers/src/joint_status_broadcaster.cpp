@@ -2,6 +2,23 @@
 
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
+#include <cmath>
+
+namespace
+{
+
+int8_t state_to_int8(double value)
+{
+  if (std::isnan(value))
+  {
+    return 0;
+  }
+  const auto int_value = static_cast<int8_t>(value);
+  return int_value;
+}
+
+}  // namespace
+
 namespace hand_controllers
 {
 
@@ -83,11 +100,11 @@ controller_interface::return_type JointStatusBroadcaster::update(const rclcpp::T
     {
       if (si.get_name() == state_name)
       {
-        msg.status[i] = static_cast<int8_t>(si.get_value());
+        msg.status[i] = state_to_int8(si.get_value());
       }
       else if (si.get_name() == error_name)
       {
-        msg.error[i] = static_cast<int8_t>(si.get_value());
+        msg.error[i] = state_to_int8(si.get_value());
       }
     }
   }
