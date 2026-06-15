@@ -1,77 +1,80 @@
-# Joint limits for GHand - derived from URDF
-default_velocity_scaling_factor: 0.1
-default_acceleration_scaling_factor: 0.1
+# Joint limits for GHand.
+# Note: velocity and effort in this project are treated as percentage (0-100),
+# not SI units (rad/s or N*m). The URDF limits are also set to 100.0.
+default_velocity_scaling_factor: 0.5
+
+default_acceleration_scaling_factor: 0.5
 
 joint_limits:
-  index_mcp_aa:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  index_mcp:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  index_pip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  index_dip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  middle_mcp:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  middle_pip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  middle_dip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  ring_mcp:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  ring_pip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  ring_dip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  little_mcp:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  little_pip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
-  little_dip:
-    has_velocity_limits: true
-    max_velocity: 1.0
-    has_acceleration_limits: false
   thumb_tmc_ps:
     has_velocity_limits: true
-    max_velocity: 1.0
+    max_velocity: 100.0
     has_acceleration_limits: false
   thumb_tmc_aa:
     has_velocity_limits: true
-    max_velocity: 1.0
+    max_velocity: 100.0
     has_acceleration_limits: false
   thumb_tmc_fe:
     has_velocity_limits: true
-    max_velocity: 1.0
+    max_velocity: 100.0
     has_acceleration_limits: false
   thumb_mcp:
     has_velocity_limits: true
-    max_velocity: 1.0
+    max_velocity: 100.0
     has_acceleration_limits: false
   thumb_dip:
     has_velocity_limits: true
-    max_velocity: 1.0
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  index_mcp_aa:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  index_mcp:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  index_pip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  index_dip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  middle_mcp:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  middle_pip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  middle_dip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  ring_mcp:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  ring_pip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  ring_dip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  little_mcp:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  little_pip:
+    has_velocity_limits: true
+    max_velocity: 100.0
+    has_acceleration_limits: false
+  little_dip:
+    has_velocity_limits: true
+    max_velocity: 100.0
     has_acceleration_limits: false

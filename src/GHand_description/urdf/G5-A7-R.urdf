@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="G5-A7-R">
-  <link name="base_link">
+<link name="base_link">
     <inertial>
       <origin xyz="-0.00050748 0.0016354 0.051276" rpy="0 0 0" />
       <mass value="0.42244" />
@@ -22,7 +22,7 @@
       </geometry>
     </collision>
   </link>
-  <link name="little_mcp_link">
+<link name="little_mcp_link">
     <inertial>
       <origin xyz="-0.0148714653082719 0.00503228360598384 3.88988564467389E-05" rpy="0 0 0" />
       <mass value="0.0264433801741145" />
@@ -49,9 +49,9 @@
     <parent link="base_link" />
     <child link="little_mcp_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="little_pip_link">
+<link name="little_pip_link">
     <inertial>
       <origin xyz="-0.0097068390207721 -0.00148924633551032 3.25008649219756E-05" rpy="0 0 0" />
       <mass value="0.0106101494180424" />
@@ -78,9 +78,9 @@
     <parent link="little_mcp_link" />
     <child link="little_pip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.65806278939461" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.65806278939461" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="little_dip_link">
+<link name="little_dip_link">
     <inertial>
       <origin xyz="-0.0108225975388941 0.00329558485146861 6.71873393934264E-08" rpy="0 0 0" />
       <mass value="0.0178564975749226" />
@@ -107,9 +107,9 @@
     <parent link="little_pip_link" />
     <child link="little_dip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="ring_mcp_link">
+<link name="ring_mcp_link">
     <inertial>
       <origin xyz="-0.0200154438846792 0.00499783524834638 1.82089110935431E-05" rpy="0 0 0" />
       <mass value="0.0343124145280853" />
@@ -136,9 +136,9 @@
     <parent link="base_link" />
     <child link="ring_mcp_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="ring_pip_link">
+<link name="ring_pip_link">
     <inertial>
       <origin xyz="-0.0129146504315271 -0.00163014139965735 2.91803546564016E-05" rpy="0 0 0" />
       <mass value="0.014440256274874" />
@@ -165,9 +165,9 @@
     <parent link="ring_mcp_link" />
     <child link="ring_pip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.74532925199433" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.74532925199433" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="ring_dip_link">
+<link name="ring_dip_link">
     <inertial>
       <origin xyz="-0.010960500689851 0.00395375609705622 -1.36515418905012E-07" rpy="0 0 0" />
       <mass value="0.0185881209622168" />
@@ -194,9 +194,9 @@
     <parent link="ring_pip_link" />
     <child link="ring_dip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="middle_mcp_link">
+<link name="middle_mcp_link">
     <inertial>
       <origin xyz="-0.020015657132935 0.00499700098081666 1.82312477741663E-05" rpy="0 0 0" />
       <mass value="0.0343123953862461" />
@@ -223,9 +223,9 @@
     <parent link="base_link" />
     <child link="middle_mcp_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="middle_pip_link">
+<link name="middle_pip_link">
     <inertial>
       <origin xyz="-0.0129145853484956 -0.00163067562965549 2.9179567707819E-05" rpy="0 0 0" />
       <mass value="0.014440252492985" />
@@ -252,9 +252,9 @@
     <parent link="middle_mcp_link" />
     <child link="middle_pip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.74532925199433" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.74532925199433" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="middle_dip_link">
+<link name="middle_dip_link">
     <inertial>
       <origin xyz="-0.0109606311312518 0.00395332931435218 -1.59377583372131E-07" rpy="0 0 0" />
       <mass value="0.0185881308582604" />
@@ -281,9 +281,9 @@
     <parent link="middle_pip_link" />
     <child link="middle_dip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="index_mcp_aa_link">
+<link name="index_mcp_aa_link">
     <inertial>
       <origin xyz="-1.61713798380037E-07 -0.000374611814496814 0.00649307088361358" rpy="0 0 0" />
       <mass value="0.00258839121321602" />
@@ -310,9 +310,9 @@
     <parent link="base_link" />
     <child link="index_mcp_aa_link" />
     <axis xyz="0 0 -1" />
-    <limit lower="-0.174532925199433" upper="0.174532925199433" effort="10.0" velocity="1.0" />
+    <limit lower="-0.174532925199433" upper="0.174532925199433" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="index_mcp_link">
+<link name="index_mcp_link">
     <inertial>
       <origin xyz="-0.0203264267049536 0.00517149606041659 1.4901911354611E-05" rpy="0 0 0" />
       <mass value="0.0388429620559521" />
@@ -339,9 +339,9 @@
     <parent link="index_mcp_aa_link" />
     <child link="index_mcp_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="index_pip_link">
+<link name="index_pip_link">
     <inertial>
       <origin xyz="-0.0129209246996119 -0.00157965828614821 2.91720492550246E-05" rpy="0 0 0" />
       <mass value="0.0144402684934038" />
@@ -368,9 +368,9 @@
     <parent link="index_mcp_link" />
     <child link="index_pip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.74532925199433" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.74532925199433" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="index_dip_link">
+<link name="index_dip_link">
     <inertial>
       <origin xyz="-0.0109378103100737 0.00401604755829069 -1.48789861452447E-07" rpy="0 0 0" />
       <mass value="0.0185881017119488" />
@@ -397,9 +397,9 @@
     <parent link="index_pip_link" />
     <child link="index_dip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="thumb_tmc_ps_link">
+<link name="thumb_tmc_ps_link">
     <inertial>
       <origin xyz="-0.00286579384018245 -8.14165588735039E-05 0.00727703884478214" rpy="0 0 0" />
       <mass value="0.050441684617305" />
@@ -426,9 +426,9 @@
     <parent link="base_link" />
     <child link="thumb_tmc_ps_link" />
     <axis xyz="0 0 1" />
-    <limit lower="-0.174532925199433" upper="1.0471975511966" effort="10.0" velocity="1.0" />
+    <limit lower="-0.174532925199433" upper="1.0471975511966" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="thumb_tmc_aa_link">
+<link name="thumb_tmc_aa_link">
     <inertial>
       <origin xyz="0.000429256557170316 -0.0081985809982227 -0.0018889698513071" rpy="0 0 0" />
       <mass value="0.00783292793179758" />
@@ -455,9 +455,9 @@
     <parent link="thumb_tmc_ps_link" />
     <child link="thumb_tmc_aa_link" />
     <axis xyz="0 0 -1" />
-    <limit lower="0.349065850398866" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0.349065850398866" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="thumb_tmc_fe_link">
+<link name="thumb_tmc_fe_link">
     <inertial>
       <origin xyz="-0.00349926354871747 0.0193706933165962 -4.15502449385256E-05" rpy="0 0 0" />
       <mass value="0.0655978679831151" />
@@ -484,9 +484,9 @@
     <parent link="thumb_tmc_aa_link" />
     <child link="thumb_tmc_fe_link" />
     <axis xyz="0 0 -1" />
-    <limit lower="0" upper="0.872664625997165" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="0.872664625997165" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="thumb_mcp_link">
+<link name="thumb_mcp_link">
     <inertial>
       <origin xyz="-0.00189957206408813 -0.0193191656464625 -1.5485936652359E-05" rpy="0 0 0" />
       <mass value="0.0211695183057074" />
@@ -513,9 +513,9 @@
     <parent link="thumb_tmc_fe_link" />
     <child link="thumb_mcp_link" />
     <axis xyz="0 0 -1" />
-    <limit lower="0" upper="1.15191730631626" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.15191730631626" effort="100.0" velocity="100.0" />
   </joint>
-  <link name="thumb_dip_link">
+<link name="thumb_dip_link">
     <inertial>
       <origin xyz="-0.00225412538400287 -0.010722713724769 -4.31535807393843E-05" rpy="0 0 0" />
       <mass value="0.0339937040774307" />
@@ -542,7 +542,7 @@
     <parent link="thumb_mcp_link" />
     <child link="thumb_dip_link" />
     <axis xyz="0 0 1" />
-    <limit lower="0" upper="1.5707963267949" effort="10.0" velocity="1.0" />
+    <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
   </joint>
 
   <!-- ros2_control -->

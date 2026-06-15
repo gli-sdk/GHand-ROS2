@@ -28,7 +28,9 @@ public:
 
 private:
   std::shared_ptr<rclcpp::Publisher<hand_msgs::msg::JointStatus>> publisher_;
-  std::string joints_param_;
+  std::vector<std::string> joint_names_;
+  double publish_rate_ = 100.0;
+  rclcpp::Time last_publish_time_{0, 0, RCL_ROS_TIME};
 };
 
 }  // namespace hand_controllers

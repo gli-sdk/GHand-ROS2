@@ -17,54 +17,125 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardwar
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  hw_positions_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
-  hw_velocities_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
-  hw_commands_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
+  const size_t joint_count = info_.joints.size();
+  hw_joint_states_.resize(joint_count);
+  hw_joint_commands_.resize(joint_count);
+  hw_finger_tactile_data_.resize(info_.sensors.size());
 
   for (const hardware_interface::ComponentInfo & joint : info_.joints)
   {
-    if (joint.command_interfaces.size() != 1)
+    if (joint.command_interfaces.empty())
     {
       RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has %zu command interfaces found. 1 expected.",
-                   joint.name.c_str(), joint.command_interfaces.size());
+                   "Joint '%s' has no command interfaces.",
+                   joint.name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
     }
 
-    if (joint.command_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+    for (const auto & ci : joint.command_interfaces)
+    {
+      if (ci.name != hardware_interface::HW_IF_POSITION &&
+          ci.name != hardware_interface::HW_IF_VELOCITY &&
+          ci.name != hardware_interface::HW_IF_EFFORT)
+      {
+        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+                     "Joint '%s' has unsupported command interface '%s'.",
+                     joint.name.c_str(), ci.name.c_str());
+        return hardware_interface::CallbackReturn::ERROR;
+      }
+    }
+
+    if (joint.state_interfaces.empty())
     {
       RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has %s command interfaces. Expected %s",
-                   joint.name.c_str(), joint.command_interfaces[0].name.c_str(),
-                   hardware_interface::HW_IF_POSITION);
+                   "Joint '%s' has no state interfaces.",
+                   joint.name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
     }
 
-    if (joint.state_interfaces.size() != 2)
+    bool has_position = false;
+    bool has_velocity = false;
+    bool has_effort = false;
+    for (const auto & si : joint.state_interfaces)
+    {
+      if (si.name == hardware_interface::HW_IF_POSITION)
+      {
+        has_position = true;
+      }
+      else if (si.name == hardware_interface::HW_IF_VELOCITY)
+      {
+        has_velocity = true;
+      }
+      else if (si.name == hardware_interface::HW_IF_EFFORT)
+      {
+        has_effort = true;
+      }
+    }
+
+    if (!has_position)
     {
       RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has %zu state interface. 2 expected.",
-                   joint.name.c_str(), joint.state_interfaces.size());
+                   "Joint '%s' is missing required state interface '%s'.",
+                   joint.name.c_str(), hardware_interface::HW_IF_POSITION);
       return hardware_interface::CallbackReturn::ERROR;
     }
 
-    if (joint.state_interfaces[0].name != hardware_interface::HW_IF_POSITION)
+    if (!has_velocity)
     {
       RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has %s state interface. Expected %s",
-                   joint.name.c_str(), joint.state_interfaces[0].name.c_str(),
-                   hardware_interface::HW_IF_POSITION);
+                   "Joint '%s' is missing required state interface '%s'.",
+                   joint.name.c_str(), hardware_interface::HW_IF_VELOCITY);
       return hardware_interface::CallbackReturn::ERROR;
     }
 
-    if (joint.state_interfaces[1].name != hardware_interface::HW_IF_VELOCITY)
+    if (!has_effort)
     {
       RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has %s state interface. Expected %s",
-                   joint.name.c_str(), joint.state_interfaces[1].name.c_str(),
-                   hardware_interface::HW_IF_VELOCITY);
+                   "Joint '%s' is missing required state interface '%s'.",
+                   joint.name.c_str(), hardware_interface::HW_IF_EFFORT);
       return hardware_interface::CallbackReturn::ERROR;
     }
+  }
+
+  for (size_t i = 0; i < info_.sensors.size(); ++i)
+  {
+    const hardware_interface::ComponentInfo & sensor = info_.sensors[i];
+    bool has_resultant_force_x = false;
+    bool has_resultant_force_y = false;
+    bool has_resultant_force_z = false;
+    size_t distributed_point_count = 0;
+
+    for (const auto & si : sensor.state_interfaces)
+    {
+      if (si.name == "resultant_force_x")
+      {
+        has_resultant_force_x = true;
+      }
+      else if (si.name == "resultant_force_y")
+      {
+        has_resultant_force_y = true;
+      }
+      else if (si.name == "resultant_force_z")
+      {
+        has_resultant_force_z = true;
+      }
+      else if (
+        si.name.rfind("distributed_force_", 0) == 0 &&
+        si.name.size() > 2 && si.name.substr(si.name.size() - 2) == "_x")
+      {
+        ++distributed_point_count;
+      }
+    }
+
+    if (!has_resultant_force_x || !has_resultant_force_y || !has_resultant_force_z)
+    {
+      RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+                   "Sensor '%s' is missing required resultant_force state interfaces.",
+                   sensor.name.c_str());
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+
+    hw_finger_tactile_data_[i].distributed_forces.resize(distributed_point_count);
   }
 
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -86,10 +157,61 @@ std::vector<hardware_interface::StateInterface> GHandHardwareInterface::export_s
   std::vector<hardware_interface::StateInterface> state_interfaces;
   for (size_t i = 0; i < info_.joints.size(); ++i)
   {
-    state_interfaces.emplace_back(hardware_interface::StateInterface(
-        info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_positions_[i]));
-    state_interfaces.emplace_back(hardware_interface::StateInterface(
-        info_.joints[i].name, hardware_interface::HW_IF_VELOCITY, &hw_velocities_[i]));
+    for (const auto & si : info_.joints[i].state_interfaces)
+    {
+      if (si.name == hardware_interface::HW_IF_POSITION)
+      {
+        state_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_POSITION,
+            &hw_joint_states_[i].position);
+      }
+      else if (si.name == hardware_interface::HW_IF_VELOCITY)
+      {
+        state_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_VELOCITY,
+            &hw_joint_states_[i].velocity);
+      }
+      else if (si.name == hardware_interface::HW_IF_EFFORT)
+      {
+        state_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_EFFORT,
+            &hw_joint_states_[i].effort);
+      }
+      else if (si.name == "state")
+      {
+        state_interfaces.emplace_back(
+            info_.joints[i].name, "state", &hw_joint_states_[i].status);
+      }
+      else if (si.name == "error")
+      {
+        state_interfaces.emplace_back(
+            info_.joints[i].name, "error", &hw_joint_states_[i].error);
+      }
+    }
+  }
+
+  for (size_t i = 0; i < info_.sensors.size(); ++i)
+  {
+    state_interfaces.emplace_back(
+        info_.sensors[i].name, "resultant_force_x", &hw_finger_tactile_data_[i].resultant_force.x);
+    state_interfaces.emplace_back(
+        info_.sensors[i].name, "resultant_force_y", &hw_finger_tactile_data_[i].resultant_force.y);
+    state_interfaces.emplace_back(
+        info_.sensors[i].name, "resultant_force_z", &hw_finger_tactile_data_[i].resultant_force.z);
+
+    for (size_t j = 0; j < hw_finger_tactile_data_[i].distributed_forces.size(); ++j)
+    {
+      const std::string base_name = "distributed_force_" + std::to_string(j);
+      state_interfaces.emplace_back(
+          info_.sensors[i].name, base_name + "_x",
+          &hw_finger_tactile_data_[i].distributed_forces[j].x);
+      state_interfaces.emplace_back(
+          info_.sensors[i].name, base_name + "_y",
+          &hw_finger_tactile_data_[i].distributed_forces[j].y);
+      state_interfaces.emplace_back(
+          info_.sensors[i].name, base_name + "_z",
+          &hw_finger_tactile_data_[i].distributed_forces[j].z);
+    }
   }
 
   return state_interfaces;
@@ -100,8 +222,27 @@ std::vector<hardware_interface::CommandInterface> GHandHardwareInterface::export
   std::vector<hardware_interface::CommandInterface> command_interfaces;
   for (size_t i = 0; i < info_.joints.size(); ++i)
   {
-    command_interfaces.emplace_back(hardware_interface::CommandInterface(
-        info_.joints[i].name, hardware_interface::HW_IF_POSITION, &hw_commands_[i]));
+    for (const auto & ci : info_.joints[i].command_interfaces)
+    {
+      if (ci.name == hardware_interface::HW_IF_POSITION)
+      {
+        command_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_POSITION,
+            &hw_joint_commands_[i].position);
+      }
+      else if (ci.name == hardware_interface::HW_IF_VELOCITY)
+      {
+        command_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_VELOCITY,
+            &hw_joint_commands_[i].velocity);
+      }
+      else if (ci.name == hardware_interface::HW_IF_EFFORT)
+      {
+        command_interfaces.emplace_back(
+            info_.joints[i].name, hardware_interface::HW_IF_EFFORT,
+            &hw_joint_commands_[i].effort);
+      }
+    }
   }
 
   return command_interfaces;
@@ -111,14 +252,18 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(const rcl
 {
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Activating ...please wait...");
 
-  for (size_t i = 0; i < hw_positions_.size(); ++i)
+  for (auto & state : hw_joint_states_)
   {
-    if (std::isnan(hw_positions_[i]))
-    {
-      hw_positions_[i] = 0.0;
-      hw_velocities_[i] = 0.0;
-      hw_commands_[i] = 0.0;
-    }
+    if (std::isnan(state.position)) { state.position = 0.0; }
+    if (std::isnan(state.velocity)) { state.velocity = 0.0; }
+    if (std::isnan(state.effort)) { state.effort = 0.0; }
+  }
+
+  for (auto & command : hw_joint_commands_)
+  {
+    if (std::isnan(command.position)) { command.position = 0.0; }
+    if (std::isnan(command.velocity)) { command.velocity = 0.0; }
+    if (std::isnan(command.effort)) { command.effort = 0.0; }
   }
 
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Successfully activated!");
@@ -137,11 +282,27 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_deactivate(const r
 hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
 {
   // TODO: Read actual hardware state via EtherCAT/RS485/CANFD
-  // For now, mock: position follows command with simple delay
-  for (size_t i = 0; i < hw_positions_.size(); ++i)
+  // For now, mock: position follows command; diagnostics and tactile are zero-filled.
+  for (size_t i = 0; i < hw_joint_states_.size(); ++i)
   {
-    hw_positions_[i] = hw_commands_[i];
-    hw_velocities_[i] = 0.0;
+    hw_joint_states_[i].position = hw_joint_commands_[i].position;
+    hw_joint_states_[i].velocity = hw_joint_commands_[i].velocity;
+    hw_joint_states_[i].effort = hw_joint_commands_[i].effort;
+    hw_joint_states_[i].status = 0.0;
+    hw_joint_states_[i].error = 0.0;
+  }
+
+  for (auto & finger : hw_finger_tactile_data_)
+  {
+    finger.resultant_force.x = 0.0;
+    finger.resultant_force.y = 0.0;
+    finger.resultant_force.z = 0.0;
+    for (auto & force : finger.distributed_forces)
+    {
+      force.x = 0.0;
+      force.y = 0.0;
+      force.z = 0.0;
+    }
   }
 
   return hardware_interface::return_type::OK;

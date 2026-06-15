@@ -3,6 +3,11 @@
   <!--===== 全手规划组（18 关节） =====-->
   <group name="hand">
     <link name="base_link"/>
+    <joint name="thumb_tmc_ps"/>
+    <joint name="thumb_tmc_aa"/>
+    <joint name="thumb_tmc_fe"/>
+    <joint name="thumb_mcp"/>
+    <joint name="thumb_dip"/>
     <joint name="index_mcp_aa"/>
     <joint name="index_mcp"/>
     <joint name="index_pip"/>
@@ -16,11 +21,6 @@
     <joint name="little_mcp"/>
     <joint name="little_pip"/>
     <joint name="little_dip"/>
-    <joint name="thumb_tmc_ps"/>
-    <joint name="thumb_tmc_aa"/>
-    <joint name="thumb_tmc_fe"/>
-    <joint name="thumb_mcp"/>
-    <joint name="thumb_dip"/>
   </group>
 
   <!--===== 单指规划组 =====-->
@@ -67,6 +67,11 @@
 
   <!--===== 预设手势 =====-->
   <group_state name="open" group="hand">
+    <joint name="thumb_tmc_ps" value="0.0"/>
+    <joint name="thumb_tmc_aa" value="0.0"/>
+    <joint name="thumb_tmc_fe" value="0.0"/>
+    <joint name="thumb_mcp" value="0.0"/>
+    <joint name="thumb_dip" value="0.0"/>
     <joint name="index_mcp_aa" value="0.0"/>
     <joint name="index_mcp" value="0.0"/>
     <joint name="index_pip" value="0.0"/>
@@ -80,14 +85,14 @@
     <joint name="little_mcp" value="0.0"/>
     <joint name="little_pip" value="0.0"/>
     <joint name="little_dip" value="0.0"/>
-    <joint name="thumb_tmc_ps" value="0.0"/>
-    <joint name="thumb_tmc_aa" value="0.0"/>
-    <joint name="thumb_tmc_fe" value="0.0"/>
-    <joint name="thumb_mcp" value="0.0"/>
-    <joint name="thumb_dip" value="0.0"/>
   </group_state>
 
   <group_state name="fist" group="hand">
+    <joint name="thumb_tmc_ps" value="0.5"/>
+    <joint name="thumb_tmc_aa" value="0.0"/>
+    <joint name="thumb_tmc_fe" value="0.8"/>
+    <joint name="thumb_mcp" value="1.0"/>
+    <joint name="thumb_dip" value="1.0"/>
     <joint name="index_mcp_aa" value="0.0"/>
     <joint name="index_mcp" value="1.5"/>
     <joint name="index_pip" value="1.5"/>
@@ -101,11 +106,6 @@
     <joint name="little_mcp" value="1.5"/>
     <joint name="little_pip" value="1.5"/>
     <joint name="little_dip" value="1.5"/>
-    <joint name="thumb_tmc_ps" value="0.5"/>
-    <joint name="thumb_tmc_aa" value="0.0"/>
-    <joint name="thumb_tmc_fe" value="0.8"/>
-    <joint name="thumb_mcp" value="1.0"/>
-    <joint name="thumb_dip" value="1.0"/>
   </group_state>
 
   <!--===== 末端执行器 =====-->

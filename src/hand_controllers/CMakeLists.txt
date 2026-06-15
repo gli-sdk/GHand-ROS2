@@ -44,4 +44,32 @@ install(DIRECTORY include/ DESTINATION include/hand_controllers)
 
 ament_export_targets(export_hand_controllers HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
+
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  find_package(hardware_interface REQUIRED)
+
+  ament_add_gtest(test_joint_status_broadcaster test/test_joint_status_broadcaster.cpp)
+  target_include_directories(test_joint_status_broadcaster PRIVATE include)
+  ament_target_dependencies(test_joint_status_broadcaster
+    controller_interface
+    hand_msgs
+    hardware_interface
+    rclcpp
+    rclcpp_lifecycle
+  )
+  target_link_libraries(test_joint_status_broadcaster hand_controllers)
+
+  ament_add_gtest(test_tactile_broadcaster test/test_tactile_broadcaster.cpp)
+  target_include_directories(test_tactile_broadcaster PRIVATE include)
+  ament_target_dependencies(test_tactile_broadcaster
+    controller_interface
+    hand_msgs
+    hardware_interface
+    rclcpp
+    rclcpp_lifecycle
+  )
+  target_link_libraries(test_tactile_broadcaster hand_controllers)
+endif()
+
 ament_package()

@@ -1,6 +1,7 @@
 #ifndef GHAND_HARDWARE__GHAND_HARDWARE_H_
 #define GHAND_HARDWARE__GHAND_HARDWARE_H_
 
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -36,9 +37,38 @@ public:
   hardware_interface::return_type write(const rclcpp::Time & time, const rclcpp::Duration & period) override;
 
 private:
-  std::vector<double> hw_positions_;
-  std::vector<double> hw_velocities_;
-  std::vector<double> hw_commands_;
+  struct Force
+  {
+    double x = 0.0;
+    double y = 0.0;
+    double z = 0.0;
+  };
+
+  struct FingerTactileData
+  {
+    Force resultant_force;
+    std::vector<Force> distributed_forces;
+  };
+
+  struct JointState
+  {
+    double position = std::numeric_limits<double>::quiet_NaN();
+    double velocity = std::numeric_limits<double>::quiet_NaN();
+    double effort = std::numeric_limits<double>::quiet_NaN();
+    double status = 0.0;
+    double error = 0.0;
+  };
+
+  struct JointCommand
+  {
+    double position = std::numeric_limits<double>::quiet_NaN();
+    double velocity = std::numeric_limits<double>::quiet_NaN();
+    double effort = std::numeric_limits<double>::quiet_NaN();
+  };
+
+  std::vector<JointState> hw_joint_states_;
+  std::vector<JointCommand> hw_joint_commands_;
+  std::vector<FingerTactileData> hw_finger_tactile_data_;
 };
 
 }  // namespace GHand_hardware
