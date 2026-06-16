@@ -28,8 +28,15 @@ if(PKG_CONFIG_FOUND)
 endif()
 
 # SOEM upstream does not ship a .pc file; fall back to its CMake config.
+# SOEM installs soemConfig.cmake to <prefix>/cmake instead of the standard
+# <prefix>/lib/cmake/soem, so probe common prefixes explicitly.
 if(NOT SOEM_FOUND)
-  find_package(soem QUIET)
+  find_package(soem QUIET PATHS
+    ${CMAKE_PREFIX_PATH}/cmake
+    /usr/local/cmake
+    /usr/cmake
+    $ENV{HOME}/SOEM/build/install/cmake
+    NO_DEFAULT_PATH)
 endif()
 
 find_library(ZLGCAN_LIBRARY NAMES zlgcan libzlgcan HINTS /usr/lib /usr/local/lib)
@@ -53,8 +60,8 @@ if(SOEM_FOUND)
   target_include_directories(ghand_hardware_interface SYSTEM PRIVATE ${SOEM_INCLUDE_DIRS})
   target_link_libraries(ghand_hardware_interface PRIVATE ${SOEM_LIBRARIES})
   target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_SOEM)
-elseif(soem_FOUND AND TARGET soem::soem)
-  target_link_libraries(ghand_hardware_interface PRIVATE soem::soem)
+elseif(soem_FOUND AND TARGET soem)
+  target_link_libraries(ghand_hardware_interface PRIVATE soem)
   target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_SOEM)
 else()
   message(WARNING "SOEM not found; EtherCAT backend will be disabled at runtime")
