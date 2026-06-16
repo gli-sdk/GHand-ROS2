@@ -79,25 +79,21 @@ sudo apt install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
 
 **EtherCAT（SOEM）**
 
-方式一：通过 ROS 2 apt 安装（推荐，如果可用）：
-
-```bash
-sudo apt update
-sudo apt install -y ros-jazzy-soem
-```
-
-方式二：从源码编译安装：
+ROS 2 Jazzy 没有提供 `ros-jazzy-soem` apt 包，需要从源码编译：
 
 ```bash
 cd ~
 git clone https://github.com/OpenEtherCATsociety/SOEM.git
 cd SOEM
 mkdir build && cd build
-cmake ..
+cmake -DCMAKE_INSTALL_PREFIX=/home/pq/SOEM/build/install -DCMAKE_POSITION_INDEPENDENT_CODE=ON ..
 make -j$(nproc)
-sudo make install
-sudo ldconfig
+make install
 ```
+
+> 说明：
+> - `CMAKE_POSITION_INDEPENDENT_CODE=ON` 必须加，因为 `libsoem.a` 是静态库，要被链接进本项目的动态库。
+> - 本项目 `CMakeLists.txt` 会自动探测 `~/SOEM/build/install/cmake` 下的 `soemConfig.cmake`，无需手动设置环境变量。
 
 **RS485（libmodbus）**
 
