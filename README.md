@@ -73,6 +73,61 @@ sudo apt install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
 
 - 如需连接真实硬件，确保已安装 `libsoem` 和/或 `libzlgcan`。
 
+#### 可选：安装真实硬件依赖
+
+以下依赖仅在连接真实硬件时需要；纯仿真开发可跳过。
+
+**EtherCAT（SOEM）**
+
+方式一：通过 ROS 2 apt 安装（推荐，如果可用）：
+
+```bash
+sudo apt update
+sudo apt install -y ros-jazzy-soem
+```
+
+方式二：从源码编译安装：
+
+```bash
+cd ~
+git clone https://github.com/OpenEtherCATsociety/SOEM.git
+cd SOEM
+mkdir build && cd build
+cmake ..
+make -j$(nproc)
+sudo make install
+sudo ldconfig
+```
+
+**RS485（libmodbus）**
+
+```bash
+sudo apt update
+sudo apt install -y libmodbus-dev
+```
+
+**CANFD（ZLG CAN）**
+
+ZLG CAN 为周立功 CAN 接口私有 SDK，需从官方渠道获取：
+
+1. 下载对应 Linux 版本的 ZLG CAN 驱动与 SDK（通常为 `libzlgcan.so` 及头文件 `zlgcan.h`）。
+2. 将头文件放到 `/usr/local/include/`，库文件放到 `/usr/local/lib/`：
+
+```bash
+sudo cp zlgcan.h /usr/local/include/
+sudo cp libzlgcan.so /usr/local/lib/
+sudo ldconfig
+```
+
+3. 验证 CMake 能否找到：
+
+```bash
+cd ~/GHand-Ros2
+colcon build --packages-select ghand_hardware_interface
+```
+
+预期出现：`Found ZLG CAN library; CANFD backend enabled`（或不再提示 disabled）。
+
 ### 2. 编译
 
 ```bash
