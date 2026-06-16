@@ -1,6 +1,11 @@
 ghand_hardware:
   ros__parameters:
     update_rate: 100
+
+    # Communication backend: ethercat | rs485 | canfd
+    communication_type: "ethercat"
+    read_timeout_ms: 500
+
     joints:
       - thumb_tmc_ps
       - thumb_tmc_aa
@@ -30,9 +35,27 @@ ghand_hardware:
       - effort
       - state
       - error
-    # TODO: Add EtherCAT/RS485/CANFD parameters
-    ethercat:
-      ifname: "eth0"
-    canfd:
-      channel: 0
-      bitrate: 1000000
+
+    # EtherCAT backend parameters
+    ifname: "eth0"
+
+    # RS485 backend parameters (uncomment when communication_type == "rs485")
+    # device: "/dev/ttyUSB0"
+    # baud_rate: 1000000
+    # slave_id: 49
+    # data_bits: 8
+    # stop_bits: 1
+    # parity: "N"
+    # response_timeout_ms: 100
+
+    # CANFD backend parameters (uncomment when communication_type == "canfd")
+    # device: "ZCAN_USBCANFD_100U:0:0"
+    # bitrate: 1000000
+    # dbit_rate: 5000000
+    # device_id: 49
+
+    # Tactile sensor layout: per-region distributed sensor counts.
+    # Order: THUMB, FF, MF, RF, LF
+    # Tactile sensor layout: per-region distributed sensor counts.
+    # Order: THUMB, FF, MF, RF, LF
+    tactile_region_counts: "38,31,31,31,31"

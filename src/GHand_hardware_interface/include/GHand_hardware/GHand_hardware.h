@@ -2,9 +2,11 @@
 #define GHAND_HARDWARE__GHAND_HARDWARE_H_
 
 #include <limits>
+#include <memory>
 #include <string>
 #include <vector>
 
+#include "communication/communication.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/hardware_info.hpp"
@@ -27,6 +29,8 @@ public:
   hardware_interface::CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
   hardware_interface::CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
+
+  hardware_interface::CallbackReturn on_error(const rclcpp_lifecycle::State & previous_state) override;
 
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
@@ -69,6 +73,11 @@ private:
   std::vector<JointState> hw_joint_states_;
   std::vector<JointCommand> hw_joint_commands_;
   std::vector<FingerTactileData> hw_finger_tactile_data_;
+
+  std::unique_ptr<ghand_comm::CommunicationBase> comm_;
+  std::vector<ghand_comm::JointId> joint_id_map_;
+  double read_timeout_ms_ = 500.0;
+  rclcpp::Time last_successful_read_{0, 0};
 };
 
 }  // namespace GHand_hardware

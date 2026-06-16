@@ -1,10 +1,13 @@
 #include "GHand_hardware/GHand_hardware.h"
 
-#include <vector>
-#include <string>
-#include <limits>
+#include <algorithm>
 #include <cmath>
+#include <limits>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
+#include "communication/communication.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
 namespace GHand_hardware
@@ -21,6 +24,34 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardwar
   hw_joint_states_.resize(joint_count);
   hw_joint_commands_.resize(joint_count);
   hw_finger_tactile_data_.resize(info_.sensors.size());
+
+  joint_id_map_.reserve(joint_count);
+  for (const auto & joint : info_.joints)
+  {
+    const auto id = ghand_comm::joint_name_to_id(joint.name);
+    if (!id.has_value())
+    {
+      RCLCPP_FATAL(
+        rclcpp::get_logger("GHandHardwareInterface"),
+        "Joint '%s' has no matching SDK joint id.", joint.name.c_str());
+      return hardware_interface::CallbackReturn::ERROR;
+    }
+    joint_id_map_.push_back(id.value());
+  }
+
+  if (info_.hardware_parameters.count("read_timeout_ms"))
+  {
+    try
+    {
+      read_timeout_ms_ = std::stod(info_.hardware_parameters.at("read_timeout_ms"));
+    }
+    catch (...)
+    {
+      RCLCPP_WARN(
+        rclcpp::get_logger("GHandHardwareInterface"),
+        "Invalid read_timeout_ms parameter; using default %.1f ms.", read_timeout_ms_);
+    }
+  }
 
   for (const hardware_interface::ComponentInfo & joint : info_.joints)
   {
@@ -145,10 +176,44 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_configure(const rc
 {
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Configuring ...please wait...");
 
-  // TODO: Initialize communication (EtherCAT/RS485/CANFD)
+  auto it = info_.hardware_parameters.find("communication_type");
+  if (it == info_.hardware_parameters.end() || it->second.empty())
+  {
+    RCLCPP_FATAL(
+      rclcpp::get_logger("GHandHardwareInterface"),
+      "Missing 'communication_type' hardware parameter.");
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+
+  comm_ = ghand_comm::create_communication(it->second);
+  if (!comm_)
+  {
+    RCLCPP_FATAL(
+      rclcpp::get_logger("GHandHardwareInterface"),
+      "Unknown communication_type '%s'.", it->second.c_str());
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+
+  std::unordered_map<std::string, std::string> params(info_.hardware_parameters.begin(), info_.hardware_parameters.end());
+
+  std::string joint_names;
+  for (size_t i = 0; i < info_.joints.size(); ++i)
+  {
+    if (i > 0) joint_names += ",";
+    joint_names += info_.joints[i].name;
+  }
+  params["joint_names"] = joint_names;
+
+  if (!comm_->init(params))
+  {
+    RCLCPP_FATAL(
+      rclcpp::get_logger("GHandHardwareInterface"),
+      "Failed to initialize %s communication backend.", comm_->get_name());
+    comm_.reset();
+    return hardware_interface::CallbackReturn::ERROR;
+  }
 
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Successfully configured!");
-
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
@@ -262,6 +327,8 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(const rcl
   // Leave command interfaces as NaN so write() can detect which ones the active
   // controller actually updates and fill the defaults for the current mode.
 
+  last_successful_read_ = rclcpp::Time(0, 0);
+
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Successfully activated!");
 
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -270,44 +337,109 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(const rcl
 hardware_interface::CallbackReturn GHandHardwareInterface::on_deactivate(const rclcpp_lifecycle::State & /*previous_state*/)
 {
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Deactivating ...please wait...");
+
+  if (comm_)
+  {
+    comm_->close();
+  }
+
   RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"), "Successfully deactivated!");
 
   return hardware_interface::CallbackReturn::SUCCESS;
 }
 
-hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time & /*time*/, const rclcpp::Duration & /*period*/)
+hardware_interface::CallbackReturn GHandHardwareInterface::on_error(const rclcpp_lifecycle::State & /*previous_state*/)
 {
-  // TODO: Read actual hardware state via EtherCAT/RS485/CANFD
-  // For now, mock: position follows command; diagnostics and tactile are zero-filled.
-  for (size_t i = 0; i < hw_joint_states_.size(); ++i)
+  RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"), "Entering error state; freezing commands.");
+
+  for (size_t i = 0; i < hw_joint_commands_.size(); ++i)
   {
-    if (!std::isnan(hw_joint_commands_[i].position))
-    {
-      hw_joint_states_[i].position = hw_joint_commands_[i].position;
-    }
-    if (!std::isnan(hw_joint_commands_[i].velocity))
-    {
-      hw_joint_states_[i].velocity = hw_joint_commands_[i].velocity;
-    }
-    if (!std::isnan(hw_joint_commands_[i].effort))
-    {
-      hw_joint_states_[i].effort = hw_joint_commands_[i].effort;
-    }
-    hw_joint_states_[i].status = 0.0;
-    hw_joint_states_[i].error = 0.0;
+    hw_joint_commands_[i].position = hw_joint_states_[i].position;
+    hw_joint_commands_[i].velocity = hw_joint_states_[i].velocity;
+    hw_joint_commands_[i].effort = hw_joint_states_[i].effort;
   }
 
-  for (auto & finger : hw_finger_tactile_data_)
+  return hardware_interface::CallbackReturn::SUCCESS;
+}
+
+hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time & time, const rclcpp::Duration & /*period*/)
+{
+  if (last_successful_read_.nanoseconds() == 0)
   {
-    finger.resultant_force.x = 0.0;
-    finger.resultant_force.y = 0.0;
-    finger.resultant_force.z = 0.0;
-    for (auto & force : finger.distributed_forces)
+    last_successful_read_ = time;
+  }
+
+  if (!comm_)
+  {
+    return hardware_interface::return_type::ERROR;
+  }
+
+  ghand_comm::CommunicationData data;
+  const bool ok = comm_->read(data);
+
+  if (ok && data.valid)
+  {
+    last_successful_read_ = time;
+
+    constexpr double kPi = 3.14159265358979323846;
+    constexpr double kDegToRad = kPi / 180.0;
+
+    for (size_t i = 0; i < hw_joint_states_.size() && i < data.joints.size(); ++i)
     {
-      force.x = 0.0;
-      force.y = 0.0;
-      force.z = 0.0;
+      hw_joint_states_[i].position = static_cast<double>(data.joints[i].position) * kDegToRad;
+      hw_joint_states_[i].velocity = static_cast<double>(data.joints[i].velocity);
+      hw_joint_states_[i].effort = 0.0;
+      hw_joint_states_[i].status = static_cast<double>(data.joints[i].status);
+      hw_joint_states_[i].error = static_cast<double>(data.joints[i].error);
     }
+
+    for (size_t i = 0; i < hw_finger_tactile_data_.size(); ++i)
+    {
+      if (i < data.tactile_regions.size())
+      {
+        const auto & region = data.tactile_regions[i];
+        hw_finger_tactile_data_[i].resultant_force.x = static_cast<double>(region.resultant_force.x);
+        hw_finger_tactile_data_[i].resultant_force.y = static_cast<double>(region.resultant_force.y);
+        hw_finger_tactile_data_[i].resultant_force.z = static_cast<double>(region.resultant_force.z);
+
+        for (size_t j = 0; j < hw_finger_tactile_data_[i].distributed_forces.size(); ++j)
+        {
+          if (j < region.distributed_forces.size())
+          {
+            hw_finger_tactile_data_[i].distributed_forces[j].x = static_cast<double>(region.distributed_forces[j].x);
+            hw_finger_tactile_data_[i].distributed_forces[j].y = static_cast<double>(region.distributed_forces[j].y);
+            hw_finger_tactile_data_[i].distributed_forces[j].z = static_cast<double>(region.distributed_forces[j].z);
+          }
+          else
+          {
+            hw_finger_tactile_data_[i].distributed_forces[j].x = 0.0;
+            hw_finger_tactile_data_[i].distributed_forces[j].y = 0.0;
+            hw_finger_tactile_data_[i].distributed_forces[j].z = 0.0;
+          }
+        }
+      }
+      else
+      {
+        hw_finger_tactile_data_[i].resultant_force.x = 0.0;
+        hw_finger_tactile_data_[i].resultant_force.y = 0.0;
+        hw_finger_tactile_data_[i].resultant_force.z = 0.0;
+        for (auto & force : hw_finger_tactile_data_[i].distributed_forces)
+        {
+          force.x = 0.0;
+          force.y = 0.0;
+          force.z = 0.0;
+        }
+      }
+    }
+  }
+
+  const rclcpp::Duration elapsed = time - last_successful_read_;
+  if (elapsed.nanoseconds() > static_cast<int64_t>(read_timeout_ms_ * 1e6))
+  {
+    RCLCPP_ERROR_THROTTLE(
+      rclcpp::get_logger("GHandHardwareInterface"), *rclcpp::Clock::make_shared(), 1000,
+      "Hardware read timeout: no valid data for %.1f ms.", read_timeout_ms_);
+    return hardware_interface::return_type::ERROR;
   }
 
   return hardware_interface::return_type::OK;
@@ -357,7 +489,31 @@ hardware_interface::return_type GHandHardwareInterface::write(const rclcpp::Time
     if (std::isnan(effort)) { effort = 0.0; }
   }
 
-  // TODO: Write hw_joint_commands_ to hardware via EtherCAT/RS485/CANFD
+  if (!comm_)
+  {
+    return hardware_interface::return_type::ERROR;
+  }
+
+  constexpr double kPi = 3.14159265358979323846;
+  constexpr double kRadToDeg = 180.0 / kPi;
+
+  std::vector<ghand_comm::JointCommand> commands;
+  commands.reserve(hw_joint_commands_.size());
+  for (size_t i = 0; i < hw_joint_commands_.size(); ++i)
+  {
+    ghand_comm::JointCommand cmd;
+    cmd.id = joint_id_map_[i];
+    cmd.position = static_cast<float>(hw_joint_commands_[i].position * kRadToDeg);
+    cmd.velocity = static_cast<int8_t>(std::clamp(hw_joint_commands_[i].velocity, -100.0, 100.0));
+    cmd.torque = static_cast<int8_t>(std::clamp(hw_joint_commands_[i].effort, 0.0, 100.0));
+    commands.push_back(cmd);
+  }
+
+  if (!comm_->write(commands))
+  {
+    return hardware_interface::return_type::ERROR;
+  }
+
   return hardware_interface::return_type::OK;
 }
 

@@ -97,8 +97,104 @@ ros2 launch hand_bringup ghand.launch.py use_sim:=false
 
 真实硬件模式加载 `GHand_hardware/GHandHardwareInterface`，并通过 `config/ros2_control.yaml` 中的参数连接物理设备。启动前请确认：
 
-- EtherCAT/CANFD 接口已正确连接并配置；
-- `config/ros2_control.yaml` 中的 `ethercat.ifname`、`canfd.channel` 等参数与实际环境一致。
+- EtherCAT/RS485/CANFD 接口已正确连接并配置；
+- `config/ros2_control.yaml` 中的 `communication_type` 与实际后端一致。
+
+#### 4.1 切换通讯后端
+
+修改 `src/hand_bringup/config/ros2_control.yaml`：
+
+```yaml
+communication_type: "ethercat"   # 或 "rs485" / "canfd"
+read_timeout_ms: 500
+```
+
+并取消对应后端参数的注释：
+
+- **EtherCAT**：`ifname`
+- **RS485**：`device`、`baud_rate`、`slave_id` 等
+- **CANFD**：`device`、`bitrate`、`dbit_rate`、`device_id`
+
+#### 4.2 编译检查
+
+```bash
+cd ~/GHand-Ros2
+colcon build --packages-select GHand_hardware_interface --cmake-args -DCMAKE_BUILD_TYPE=Release
+source install/setup.bash
+```
+
+预期结果：
+- `GHand_hardware_interface` 编译成功，无 error、无警告。
+
+#### 4.3 RS485 验证
+
+启动：
+
+```bash
+ros2 launch hand_bringup ghand.launch.py use_sim:=false
+```
+
+验证：
+
+```bash
+ros2 control list_hardware_interfaces
+ros2 control list_controllers
+ros2 topic echo /joint_states
+```
+
+预期结果：
+- 日志出现 `Initialized rs485 communication backend.`
+- `/joint_states` 持续更新，位置/速度与真实手指一致。
+- 发送位置指令后手指实际运动，无串口超时/CRC 错误。
+
+#### 4.4 EtherCAT 验证
+
+启动：
+
+```bash
+ros2 launch hand_bringup ghand.launch.py use_sim:=false
+```
+
+验证：
+
+```bash
+ros2 control list_hardware_interfaces
+ros2 topic echo /joint_states
+```
+
+预期结果：
+- 日志出现 `Initialized ethercat communication backend.`
+- PDO 数据正常刷新，手指运动后 `/joint_states` 同步更新。
+
+#### 4.5 CANFD 验证
+
+CANFD 后端主要用于读取触觉数据。启动：
+
+```bash
+ros2 launch hand_bringup ghand.launch.py use_sim:=false
+```
+
+验证：
+
+```bash
+ros2 topic echo /tactile_data
+```
+
+预期结果：
+- 日志出现 `Initialized canfd communication backend.`
+- 触碰传感器时，`resultant_force` 和 `distributed_forces` 数值明显变化。
+
+#### 4.6 无硬件时的错误提示
+
+断开设备后启动：
+
+```bash
+ros2 launch hand_bringup ghand.launch.py use_sim:=false
+```
+
+预期结果：
+- 日志清晰打印 `Failed to initialize <backend> communication backend.`，例如 `Failed to initialize ethercat communication backend.`。
+- 系统进入 `on_error()` 冻结关节，不崩溃、不 segfault。
 
 ### 5. 启动 MoveIt 2
 
