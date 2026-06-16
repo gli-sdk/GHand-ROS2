@@ -27,6 +27,11 @@ if(PKG_CONFIG_FOUND)
   pkg_check_modules(LIBMODBUS libmodbus QUIET)
 endif()
 
+# SOEM upstream does not ship a .pc file; fall back to its CMake config.
+if(NOT SOEM_FOUND)
+  find_package(soem QUIET)
+endif()
+
 find_library(ZLGCAN_LIBRARY NAMES zlgcan libzlgcan HINTS /usr/lib /usr/local/lib)
 
 add_library(ghand_hardware_interface SHARED
@@ -47,6 +52,9 @@ target_include_directories(ghand_hardware_interface PUBLIC
 if(SOEM_FOUND)
   target_include_directories(ghand_hardware_interface SYSTEM PRIVATE ${SOEM_INCLUDE_DIRS})
   target_link_libraries(ghand_hardware_interface PRIVATE ${SOEM_LIBRARIES})
+  target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_SOEM)
+elseif(soem_FOUND AND TARGET soem::soem)
+  target_link_libraries(ghand_hardware_interface PRIVATE soem::soem)
   target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_SOEM)
 else()
   message(WARNING "SOEM not found; EtherCAT backend will be disabled at runtime")
