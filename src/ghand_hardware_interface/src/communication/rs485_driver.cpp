@@ -37,6 +37,8 @@ namespace ghand_comm
 namespace
 {
 
+#ifdef GHAND_HAS_LIBMODBUS
+
 std::vector<std::string> split(const std::string & text, char delimiter)
 {
   std::vector<std::string> tokens;
@@ -60,6 +62,8 @@ int parse_int_default(const std::string & text, int default_value)
     return default_value;
   }
 }
+
+#endif  // GHAND_HAS_LIBMODBUS
 
 }  // namespace
 
