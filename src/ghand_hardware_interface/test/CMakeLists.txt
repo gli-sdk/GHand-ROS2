@@ -7,7 +7,7 @@ target_include_directories(test_communication PUBLIC
   ${PROJECT_SOURCE_DIR}/include
 )
 
-target_link_libraries(test_communication GHand_hardware_interface)
+target_link_libraries(test_communication ghand_hardware_interface)
 
 ament_target_dependencies(test_communication
   hardware_interface

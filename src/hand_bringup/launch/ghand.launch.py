@@ -28,7 +28,7 @@ def generate_launch_description():
             PathJoinSubstitution([FindExecutable(name="xacro")]),
             " ",
             PathJoinSubstitution(
-                [FindPackageShare("GHand_description"), "urdf", "G5-A7-R.urdf"]
+                [FindPackageShare("ghand_description"), "urdf", "G5-A7-R.urdf"]
             ),
             " use_mock_hardware:=",
             PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),

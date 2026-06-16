@@ -39,7 +39,7 @@ def generate_launch_description():
     xacro_cmd = [
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
-        PathJoinSubstitution([FindPackageShare("GHand_description"), "urdf", "G5-A7-R.urdf"]),
+        PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5-A7-R.urdf"]),
         " use_mock_hardware:=",
         PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
     ]
@@ -47,7 +47,7 @@ def generate_launch_description():
 
     # Build MoveIt configs (skip robot_description — inject manually after builder)
     moveit_config = (
-        MoveItConfigsBuilder("G5-A7-R", package_name="GHand_moveit_config")
+        MoveItConfigsBuilder("G5-A7-R", package_name="ghand_moveit_config")
         .robot_description_semantic(file_path="config/G5-A7-R.srdf")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
@@ -139,7 +139,7 @@ def generate_launch_description():
         executable="rviz2",
         arguments=[
             "-d",
-            PathJoinSubstitution([FindPackageShare("GHand_moveit_config"), "config", "moveit.rviz"]),
+            PathJoinSubstitution([FindPackageShare("ghand_moveit_config"), "config", "moveit.rviz"]),
         ],
         parameters=[
             moveit_config.robot_description,

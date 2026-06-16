@@ -49,12 +49,12 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 
 | 包名 | 说明 |
 |------|------|
-| `GHand_description` | 手部 URDF/Xacro 描述与 STL 模型 |
-| `GHand_hardware_interface` | 硬件组件，实现 `hardware_interface::SystemInterface` |
+| `ghand_description` | 手部 URDF/Xacro 描述与 STL 模型 |
+| `ghand_hardware_interface` | 硬件组件，实现 `hardware_interface::SystemInterface` |
 | `hand_controllers` | 自定义 broadcaster：`joint_status_broadcaster`、`tactile_broadcaster` |
 | `hand_msgs` | 自定义消息类型：`JointStatus`、`TactileData` |
 | `hand_bringup` | 启动文件与控制器/机器人管理器配置 |
-| `GHand_moveit_config` | MoveIt 2 运动规划配置 |
+| `ghand_moveit_config` | MoveIt 2 运动规划配置 |
 
 ---
 
@@ -119,12 +119,12 @@ read_timeout_ms: 500
 
 ```bash
 cd ~/GHand-Ros2
-colcon build --packages-select GHand_hardware_interface --cmake-args -DCMAKE_BUILD_TYPE=Release
+colcon build --packages-select ghand_hardware_interface --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
 预期结果：
-- `GHand_hardware_interface` 编译成功，无 error、无警告。
+- `ghand_hardware_interface` 编译成功，无 error、无警告。
 
 #### 4.3 RS485 验证
 
@@ -199,7 +199,7 @@ ros2 launch hand_bringup ghand.launch.py use_sim:=false
 ### 5. 启动 MoveIt 2
 
 ```bash
-ros2 launch GHand_moveit_config moveit.launch.py
+ros2 launch ghand_moveit_config moveit.launch.py
 ```
 
 ---
@@ -242,7 +242,7 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 - `src/hand_bringup/config/ros2_control.yaml`：硬件组件参数、通讯接口配置、关节列表。
 - `src/hand_bringup/config/controllers.yaml`：控制器管理器参数、控制器类型与 PID 参数。
 - `src/hand_bringup/config/ghand.rviz`：RViz 可视化配置。
-- `src/GHand_moveit_config/config/`：MoveIt 运动学、规划器、关节限制等配置。
+- `src/ghand_moveit_config/config/`：MoveIt 运动学、规划器、关节限制等配置。
 
 ---
 
@@ -261,15 +261,15 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```text
 GHand-Ros2/                              # ROS 2 工作空间
 ├── src/
-│   ├── GHand_description/               # URDF/Xacro 与模型文件
-│   ├── GHand_hardware_interface/        # 硬件接口与通讯驱动
+│   ├── ghand_description/               # URDF/Xacro 与模型文件
+│   ├── ghand_hardware_interface/        # 硬件接口与通讯驱动
 │   │   ├── include/GHand_hardware/      # 硬件接口头文件
 │   │   ├── src/communication/           # EtherCAT / CANFD / RS485 驱动
 │   │   └── hand_hardware_interface.xml  # 插件导出
 │   ├── hand_controllers/                # 自定义 broadcaster
 │   ├── hand_msgs/                       # 自定义消息
 │   ├── hand_bringup/                    # 启动与配置
-│   └── GHand_moveit_config/             # MoveIt 2 配置
+│   └── ghand_moveit_config/             # MoveIt 2 配置
 ├── openspec/                            # 规格驱动开发流程文档
 ├── ros.md                               # 项目设计文档
 ├── ros2_control架构图.drawio.png        # 架构图

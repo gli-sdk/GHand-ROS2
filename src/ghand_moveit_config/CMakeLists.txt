@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(GHand_moveit_config)
+project(ghand_moveit_config)
 
 find_package(ament_cmake REQUIRED)
 

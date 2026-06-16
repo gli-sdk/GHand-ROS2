@@ -9,7 +9,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/base_link.STL" />
+        <mesh filename="package://ghand_description/meshes/base_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.79216 0.81961 0.93333 1" />
@@ -18,7 +18,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/base_link.STL" />
+        <mesh filename="package://ghand_description/meshes/base_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -31,7 +31,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_mcp_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -40,7 +40,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_mcp_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -60,7 +60,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_pip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -69,7 +69,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_pip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -89,7 +89,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_dip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -98,7 +98,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/little_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/little_dip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -118,7 +118,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_mcp_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -127,7 +127,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_mcp_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -147,7 +147,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_pip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -156,7 +156,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_pip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -176,7 +176,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_dip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -185,7 +185,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/ring_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/ring_dip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -205,7 +205,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_mcp_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -214,7 +214,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_mcp_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -234,7 +234,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_pip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -243,7 +243,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_pip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -263,7 +263,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_dip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -272,7 +272,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/middle_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/middle_dip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -292,7 +292,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_mcp_aa_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_mcp_aa_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -301,7 +301,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_mcp_aa_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_mcp_aa_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -321,7 +321,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_mcp_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -330,7 +330,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_mcp_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -350,7 +350,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_pip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -359,7 +359,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_pip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_pip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -379,7 +379,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_dip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -388,7 +388,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/index_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/index_dip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -408,7 +408,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_ps_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_ps_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -417,7 +417,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_ps_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_ps_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -437,7 +437,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_aa_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_aa_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -446,7 +446,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_aa_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_aa_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -466,7 +466,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_fe_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_fe_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -475,7 +475,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_tmc_fe_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_tmc_fe_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -495,7 +495,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_mcp_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -504,7 +504,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_mcp_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_mcp_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -524,7 +524,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_dip_link.STL" />
       </geometry>
       <material name="">
         <color rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
@@ -533,7 +533,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://GHand_description/meshes/thumb_dip_link.STL" />
+        <mesh filename="package://ghand_description/meshes/thumb_dip_link.STL" />
       </geometry>
     </collision>
   </link>
@@ -546,6 +546,6 @@
   </joint>
 
   <!-- ros2_control -->
-  <xacro:include filename="$(find GHand_description)/urdf/ghand.ros2_control.xacro"/>
+  <xacro:include filename="$(find ghand_description)/urdf/ghand.ros2_control.xacro"/>
   <xacro:ghand_ros2_control use_mock_hardware="$(arg use_mock_hardware)"/>
 </robot>
