@@ -16,7 +16,7 @@ double safe_state_value(const hardware_interface::LoanedStateInterface * iface)
   {
     return 0.0;
   }
-  const double value = iface->get_value();
+  const double value = iface->get_optional().value_or(0.0);
   return std::isnan(value) ? 0.0 : value;
 }
 

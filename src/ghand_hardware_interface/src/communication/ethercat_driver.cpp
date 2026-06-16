@@ -518,6 +518,7 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     js.position = joint_angle * (180.0f / static_cast<float>(kPi));
     js.velocity = static_cast<float>(static_cast<int8_t>(joint_velocity));
     (void)joint_torque;
+    (void)joint_id;
     out_data->joints.push_back(js);
   }
 }

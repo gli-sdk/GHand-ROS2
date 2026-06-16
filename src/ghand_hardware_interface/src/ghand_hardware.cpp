@@ -1,4 +1,4 @@
-#include "GHand_hardware/GHand_hardware.h"
+#include "ghand_hardware/ghand_hardware.h"
 
 #include <algorithm>
 #include <cmath>
@@ -13,9 +13,9 @@
 namespace GHand_hardware
 {
 
-hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardware_interface::HardwareInfo & info)
+hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardware_interface::HardwareComponentInterfaceParams & params)
 {
-  if (hardware_interface::SystemInterface::on_init(info) != hardware_interface::CallbackReturn::SUCCESS)
+  if (hardware_interface::SystemInterface::on_init(params) != hardware_interface::CallbackReturn::SUCCESS)
   {
     return hardware_interface::CallbackReturn::ERROR;
   }

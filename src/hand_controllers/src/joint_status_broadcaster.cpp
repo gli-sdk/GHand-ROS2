@@ -100,11 +100,11 @@ controller_interface::return_type JointStatusBroadcaster::update(const rclcpp::T
     {
       if (si.get_name() == state_name)
       {
-        msg.status[i] = state_to_int8(si.get_value());
+        msg.status[i] = state_to_int8(si.get_optional().value_or(0.0));
       }
       else if (si.get_name() == error_name)
       {
-        msg.error[i] = state_to_int8(si.get_value());
+        msg.error[i] = state_to_int8(si.get_optional().value_or(0.0));
       }
     }
   }

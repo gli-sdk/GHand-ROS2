@@ -42,7 +42,7 @@ endif()
 find_library(ZLGCAN_LIBRARY NAMES zlgcan libzlgcan HINTS /usr/lib /usr/local/lib)
 
 add_library(ghand_hardware_interface SHARED
-  src/GHand_hardware.cpp
+  src/ghand_hardware.cpp
   src/communication/communication.cpp
   src/communication/modbus_codec.cpp
   src/communication/canfd_protocol.cpp
