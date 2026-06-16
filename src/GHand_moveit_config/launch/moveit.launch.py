@@ -147,6 +147,7 @@ def generate_launch_description():
             moveit_config.robot_description_kinematics,
         ],
         additional_env={
+            "DISPLAY": os.environ.get("DISPLAY", ""),
             "LD_LIBRARY_PATH": (
                 "/opt/ros/jazzy/lib:"
                 "/opt/ros/jazzy/lib/x86_64-linux-gnu:"
