@@ -1,5 +1,6 @@
 #include "communication/ethercat_driver.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <cstring>

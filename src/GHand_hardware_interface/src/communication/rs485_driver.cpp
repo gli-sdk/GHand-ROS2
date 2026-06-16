@@ -1,6 +1,7 @@
 #include "communication/rs485_driver.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
