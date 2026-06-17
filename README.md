@@ -257,9 +257,20 @@ ros2 launch ghand_moveit_config moveit.launch.py
 
 ## 控制机械手
 
-启动 `hand_bringup` 后，可以使用 `rqt_joint_trajectory_controller` 发送关节轨迹指令，快速验证控制器是否正常工作：
+启动 `hand_bringup` 后，可以通过 `rqt_joint_trajectory_controller` 或示例脚本发送关节轨迹指令，快速验证控制器是否正常工作。
+
+### 使用 `rqt_joint_trajectory_controller`
+
+> 注意：GHand URDF 包含 18 个关节，但 EtherCAT 从站实际只驱动其中 13 个主动关节（不含 DIP 被动关节）。`rqt_joint_trajectory_controller` 会基于 URDF 生成 18 个滑块，直接向 `joint_trajectory_controller` 发送 18 关节轨迹会导致 JTC 因被动关节无法跟踪而失败，真实硬件下不会运动。
+>
+> 因此：
+> - **mock 模式**（`use_mock_hardware:=true`）可以直接使用 rqt；
+> - **真实硬件**需要先用 `rqt_jtc_bridge` 把 rqt 的 18 关节 topic 转换成 13 关节 action goal。
+
+#### mock 模式 / 可视化调试
 
 ```bash
+ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=true
 ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 
@@ -268,6 +279,31 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 1. 在左上角选择对应的控制器管理器命名空间（通常为空，即默认命名空间）。
 2. 在控制器下拉框中选择 `joint_trajectory_controller`。
 3. 拖动各关节滑块，点击 **Enable** 后即可向机械手发送位置指令。
+
+#### 真实硬件
+
+```bash
+# 终端 1：启动真实硬件
+ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=false
+
+# 终端 2：启动 rqt -> JTC bridge（过滤 18->13 关节）
+ros2 run hand_bringup rqt_jtc_bridge.py
+
+# 终端 3：启动 rqt
+ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
+```
+
+然后按 mock 模式同样的步骤操作。
+
+> 注意：Jazzy 版本的 `rqt_joint_trajectory_controller` 有时会出现 **Enable 按钮状态没有正确同步** 的情况。如果拖动滑块后机械手没有反应，请尝试先点击 **Disable**，再点击 **Enable**，然后重新拖动滑块。
+
+### 使用示例脚本（推荐真实硬件）
+
+仓库提供了 `send_hand_position.py` 示例脚本，直接通过 action 向 JTC 发送 13 个主动关节的轨迹：
+
+```bash
+ros2 run hand_bringup send_hand_position.py
+```
 
 > 使用前请确保 `joint_trajectory_controller` 已成功加载并处于 `active` 状态，可通过以下命令检查：
 >

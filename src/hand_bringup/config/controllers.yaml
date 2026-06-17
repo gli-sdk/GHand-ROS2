@@ -88,7 +88,7 @@ joint_trajectory_controller:
       - velocity
     # true: use planned trajectory values directly as feedforward (no feedback correction).
     # false: use state feedback + PID to correct tracking errors. Recommended for real hardware.
-    open_loop_control: true
+    open_loop_control: false
     # true: a trajectory goal may specify only a subset of joints.
     # false: every goal must specify all joints controlled by this controller.
     allow_partial_joints_goal: true

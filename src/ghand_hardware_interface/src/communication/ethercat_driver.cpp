@@ -1,14 +1,17 @@
 #include "communication/ethercat_driver.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>   // 新增
 #include <cstring>
 #include <iomanip>
 #include <mutex>
 #include <sstream>
 #include <thread>
 #include <vector>
+
 
 #include "communication/modbus_codec.hpp"
 
@@ -24,6 +27,31 @@ namespace
 
 constexpr double kPi = 3.14159265358979323846;
 constexpr int kEcTimeoutMon = 500;
+
+// EtherCAT PDO uses 13 active joints in URDF order (all joints except DIP).
+// These map to the first 18 URDF joints, with DIP joints (4, 8, 11, 14, 17)
+// omitted from the PDO.
+const std::vector<ghand_comm::JointId> kEthercatActiveJoints = {
+  // Slave PDO order is tip-to-base within each finger (DIP -> PIP -> MCP -> ...).
+  ghand_comm::JointId::THUMB_PIP,       // thumb_mcp,     ros2_control index 3
+  ghand_comm::JointId::THUMB_MCP,       // thumb_tmc_fe,  ros2_control index 2
+  ghand_comm::JointId::THUMB_SWING,     // thumb_tmc_aa,  ros2_control index 1
+  ghand_comm::JointId::THUMB_ROTATION,  // thumb_tmc_ps,  ros2_control index 0
+  ghand_comm::JointId::FF_PIP,          // index_pip,     ros2_control index 7
+  ghand_comm::JointId::FF_MCP,          // index_mcp,     ros2_control index 6
+  ghand_comm::JointId::FF_SWING,        // index_mcp_aa,  ros2_control index 5
+  ghand_comm::JointId::MF_PIP,          // middle_pip,    ros2_control index 10
+  ghand_comm::JointId::MF_MCP,          // middle_mcp,    ros2_control index 9
+  ghand_comm::JointId::RF_PIP,          // ring_pip,      ros2_control index 13
+  ghand_comm::JointId::RF_MCP,          // ring_mcp,      ros2_control index 12
+  ghand_comm::JointId::LF_PIP,          // little_pip,    ros2_control index 16
+  ghand_comm::JointId::LF_MCP,          // little_mcp,    ros2_control index 15
+};
+
+// ros2_control index in the 18-joint order for each active joint above.
+const std::vector<size_t> kEthercatActiveUrdfIndices = {
+  3, 2, 1, 0, 7, 6, 5, 10, 9, 13, 12, 16, 15,
+};
 
 std::vector<std::string> split(const std::string & text, char delimiter)
 {
@@ -103,6 +131,7 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
     return false;
   }
   impl_->ifname = it->second;
+  printf("=== ECAT init: using interface '%s'\n", impl_->ifname.c_str());
 
   auto jt = params.find("joint_names");
   if (jt != params.end())
@@ -116,14 +145,9 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
       }
     }
   }
-  // If no mapping provided, assume full SDK ordering.
-  if (impl_->valid_joints.empty())
-  {
-    for (uint8_t i = 0; i < static_cast<uint8_t>(JointId::NUM_JOINTS); ++i)
-    {
-      impl_->valid_joints.push_back(static_cast<JointId>(i));
-    }
-  }
+  // EtherCAT uses a fixed 13-active-joint layout in URDF order (no DIP joints).
+  // Override any param-provided list so the PDO format matches the slave.
+  impl_->valid_joints = kEthercatActiveJoints;
 
   auto tt = params.find("tactile_region_counts");
   if (tt != params.end())
@@ -138,7 +162,7 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
   }
 
   std::memset(impl_->rxpdo_buffer, 0, sizeof(impl_->rxpdo_buffer));
-  impl_->rxpdo_buffer[1] = 0x01;
+  impl_->rxpdo_buffer[1] = 0x00;  // run (0x01 = stop)
 
   std::lock_guard<std::mutex> lock(impl_->rt_mutex);
 
@@ -147,23 +171,42 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
 
   if (ecx_init(&impl_->ctx, impl_->ifname.c_str()) <= 0)
   {
+    printf("=== ECAT init: ecx_init failed on '%s'\n", impl_->ifname.c_str());
     return false;
   }
+  printf("=== ECAT init: ecx_init OK\n");
 
   if (ecx_config_init(&impl_->ctx) <= 0 || impl_->ctx.slavecount <= 0)
   {
+    printf("=== ECAT init: ecx_config_init failed or slavecount=%d\n", impl_->ctx.slavecount);
     return false;
   }
+  printf("=== ECAT init: ecx_config_init OK, slavecount=%d\n", impl_->ctx.slavecount);
 
   if (ecx_config_map_group(&impl_->ctx, impl_->io_map, 0) <= 0)
   {
+    printf("=== ECAT init: ecx_config_map_group failed\n");
     return false;
   }
+  printf("=== ECAT init: ecx_config_map_group OK\n");
 
   impl_->mapping_done = 1;
   impl_->do_run = 1;
   ec_groupt * group = &impl_->ctx.grouplist[0];
   impl_->expected_wkc = (group->outputsWKC * 2) + group->inputsWKC;
+
+  if (impl_->ctx.slavecount > 0)
+  {
+    printf("=== ECAT init: slavecount=%d Ibytes=%u Obytes=%u expected_wkc=%d\n",
+           impl_->ctx.slavecount,
+           impl_->ctx.slavelist[1].Ibytes,
+           impl_->ctx.slavelist[1].Obytes,
+           impl_->expected_wkc);
+  }
+  else
+  {
+    printf("=== ECAT init: slavecount=0, no slaves found\n");
+  }
 
   ecx_configdc(&impl_->ctx);
 
@@ -179,23 +222,44 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
         &impl_->ctx, 0, EC_STATE_SAFE_OP, EC_TIMEOUTSTATE) !=
       EC_STATE_SAFE_OP)
   {
+    printf("=== ECAT init: statecheck SAFE_OP failed\n");
     return false;
   }
+  printf("=== ECAT init: SAFE_OP OK\n");
 
-  impl_->ctx.slavelist[0].state = EC_STATE_OPERATIONAL;
-  ecx_writestate(&impl_->ctx, 0);
-
+  // Start PDO threads before requesting OP so that cyclic process data is
+  // already running while the slave transitions to OPERATIONAL.
   impl_->threads_started = true;
   impl_->rt_thread = std::thread([this]() { impl_->ecat_thread(); });
   impl_->check_thread = std::thread([this]() { impl_->ecat_check(); });
 
-  if (ecx_statecheck(
-        &impl_->ctx, 0, EC_STATE_OPERATIONAL, EC_TIMEOUTSTATE) !=
-      EC_STATE_OPERATIONAL)
+  // Wait briefly for the real-time thread to begin PDO exchange.
+  osal_usleep(10000);
+
+  impl_->ctx.slavelist[0].state = EC_STATE_OPERATIONAL;
+  ecx_writestate(&impl_->ctx, 0);
+
+  // Poll OPERATIONAL state with a short retry loop.
+  int op_retry = 0;
+  constexpr int kMaxOpRetries = 5000;
+  while (impl_->ctx.slavelist[0].state != EC_STATE_OPERATIONAL && op_retry < kMaxOpRetries)
   {
+    if (ecx_statecheck(&impl_->ctx, 0, EC_STATE_OPERATIONAL, EC_TIMEOUTRET) == EC_STATE_OPERATIONAL)
+    {
+      break;
+    }
+    osal_usleep(1000);
+    ++op_retry;
+  }
+
+  if (impl_->ctx.slavelist[0].state != EC_STATE_OPERATIONAL)
+  {
+    printf("=== ECAT init: statecheck OPERATIONAL failed (state=0x%04x)\n",
+           impl_->ctx.slavelist[0].state);
     close();
     return false;
   }
+  printf("=== ECAT init: OPERATIONAL OK (%d ms)\n", op_retry);
 
   impl_->in_op = 1;
   impl_->is_connected = true;
@@ -241,13 +305,13 @@ bool EthercatDriver::write(const std::vector<JointCommand> & commands)
     impl_->valid_joints.size() * 6 + 2, 0);
   size_t offset = 0;
   buffer[offset++] = 0x00;  // position control mode
-  buffer[offset++] = 0x00;  // stop flag
+  buffer[offset++] = 0x00;  // run flag (0x00 = run)
 
   for (const auto & joint_id : impl_->valid_joints)
   {
     float angle = 0.0f;
-    uint8_t velocity = 0;
-    uint8_t torque = 0;
+    uint8_t velocity = 100;
+    uint8_t torque = 100;
 
     for (const auto & cmd : commands)
     {
@@ -272,6 +336,24 @@ bool EthercatDriver::write(const std::vector<JointCommand> & commands)
     std::lock_guard<std::mutex> lock(impl_->rt_mutex);
     std::memcpy(impl_->rxpdo_buffer, buffer.data(), copy_size);
   }
+
+  static int write_cnt = 0;
+  if (++write_cnt % 100 == 0 || write_cnt == 1)
+  {
+    printf("=== write #%d: count=%zu\n", write_cnt, commands.size());
+    for (size_t i = 0; i < commands.size(); ++i)
+    {
+      const auto & cmd = commands[i];
+      printf("  [%zu] %-16s id=%2d pos_deg=%7.3f vel=%3d torque=%3d\n",
+             i,
+             joint_id_to_name(cmd.id).c_str(),
+             static_cast<int>(cmd.id),
+             cmd.position,
+             cmd.velocity,
+             cmd.torque);
+    }
+  }
+
   return true;
 #else
   (void)commands;
@@ -307,6 +389,18 @@ void EthercatDriver::Impl::ecat_thread()
 
   while (threads_started)
   {
+    // static int loop_cnt = 0;
+    // if (++loop_cnt % 200 == 0)
+    // {
+    //   printf("=== ecat loop %d: slavecount=%d in_op=%d wkc=%d expected=%d pdo_size=%u\n",
+    //          loop_cnt,
+    //          ctx.slavecount,
+    //          in_op,
+    //          wkc,
+    //          expected_wkc,
+    //          ctx.slavecount > 0 ? ctx.slavelist[1].Ibytes : 0u);
+    // }
+
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
     if (do_run > 0)
@@ -326,6 +420,19 @@ void EthercatDriver::Impl::ecat_thread()
             pdo_copy.assign(inputs, inputs + pdo_size);
           }
         }
+      }
+
+      static bool pdo_dumped = false;
+      if (!pdo_dumped && !pdo_copy.empty())
+      {
+        pdo_dumped = true;
+        const size_t dump_len = std::min(pdo_copy.size(), size_t(64));
+        printf("=== PDO size=%zu, first %zu bytes: ", pdo_copy.size(), dump_len);
+        for (size_t i = 0; i < dump_len; ++i)
+        {
+          printf("%02x ", pdo_copy[i]);
+        }
+        printf("\n");
       }
 
       if (!pdo_copy.empty())
@@ -492,8 +599,13 @@ void EthercatDriver::Impl::parse_hand_and_joints(
   (void)hand_error;
   (void)temperature;
 
-  out_data->joints.reserve(valid_joints.size());
-  for (const auto joint_id : valid_joints)
+  // The slave reports 13 active joints in URDF order (no DIP joints). Expand
+  // to the full 18-joint ros2_control order by placing active joints at their
+  // URDF indices and leaving DIP joints at zero.
+  constexpr size_t kUrdfJointCount = 18;
+  out_data->joints.resize(kUrdfJointCount);
+
+  for (size_t active_idx = 0; active_idx < valid_joints.size(); ++active_idx)
   {
     uint8_t joint_state = 0;
     uint8_t joint_error = 0;
@@ -512,14 +624,25 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     std::memcpy(&joint_torque, data + *offset, sizeof(joint_torque));
     *offset += sizeof(joint_torque);
 
+    const size_t urdf_idx = kEthercatActiveUrdfIndices[active_idx];
     JointState js;
     js.status = joint_state;
     js.error = joint_error;
     js.position = joint_angle * (180.0f / static_cast<float>(kPi));
     js.velocity = static_cast<float>(static_cast<int8_t>(joint_velocity));
     (void)joint_torque;
-    (void)joint_id;
-    out_data->joints.push_back(js);
+    out_data->joints[urdf_idx] = js;
+
+    static bool first_joint_parsed = false;
+    if (!first_joint_parsed)
+    {
+      first_joint_parsed = true;
+      printf("=== first active joint: urdf_idx=%zu status=%u error=%u angle_deg=%.3f velocity=%d torque=%u\n",
+             urdf_idx,
+             js.status, js.error, js.position,
+             static_cast<int>(static_cast<int8_t>(joint_velocity)),
+             static_cast<unsigned>(joint_torque));
+    }
   }
 }
 

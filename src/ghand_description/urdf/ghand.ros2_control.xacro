@@ -4,13 +4,17 @@
   <xacro:macro name="ghand_ros2_control" params="use_mock_hardware:=false">
     <ros2_control name="ghand_hardware" type="system">
       <hardware>
-        <xacro:if value="${use_mock_hardware}">
+        <xacro:if value="${use_mock_hardware == 1}">
           <plugin>mock_components/GenericSystem</plugin>
           <param name="mock_sensor_commands">false</param>
           <param name="state_following_offset">0.0</param>
         </xacro:if>
-        <xacro:unless value="${use_mock_hardware}">
+        <xacro:unless value="${use_mock_hardware == 1}">
           <plugin>GHand_hardware/GHandHardwareInterface</plugin>
+          <param name="communication_type">ethercat</param>
+          <param name="ifname">enxe466e5820449</param>
+          <param name="read_timeout_ms">500</param>
+          <param name="tactile_region_counts">38,31,31,31,31</param>
         </xacro:unless>
       </hardware>
       <joint name="thumb_tmc_ps">

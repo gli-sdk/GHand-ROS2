@@ -14,13 +14,13 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
-    # Launch argument: use_sim
-    use_sim_arg = DeclareLaunchArgument(
-        "use_sim",
+    # Launch argument: use_mock_hardware
+    use_mock_hardware_arg = DeclareLaunchArgument(
+        "use_mock_hardware",
         default_value="false",
-        description="Start robot in Gazebo simulation.",
+        description="Use mock hardware instead of real GHand hardware.",
     )
-    use_sim = LaunchConfiguration("use_sim")
+    use_mock_hardware = LaunchConfiguration("use_mock_hardware")
 
     # Get URDF via xacro, switching between mock and real hardware
     robot_description_content = Command(
@@ -31,7 +31,7 @@ def generate_launch_description():
                 [FindPackageShare("ghand_description"), "urdf", "G5-A7-R.urdf"]
             ),
             " use_mock_hardware:=",
-            PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
+            use_mock_hardware,
         ]
     )
     robot_description = {"robot_description": robot_description_content}
@@ -106,13 +106,13 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-c",
-            "for d in /opt/ros/jazzy/opt/*/lib; do export LD_LIBRARY_PATH=\"$d:$LD_LIBRARY_PATH\"; done && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
+            "export LD_LIBRARY_PATH=\"/opt/ros/jazzy/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH\"; for d in /opt/ros/jazzy/opt/*/lib; do export LD_LIBRARY_PATH=\"$d:$LD_LIBRARY_PATH\"; done && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
         ],
         output="both",
     )
 
     nodes = [
-        use_sim_arg,
+        use_mock_hardware_arg,
         robot_state_pub_node,
         controller_manager_node,
         joint_state_broadcaster_spawner,

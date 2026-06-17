@@ -467,19 +467,19 @@ hardware_interface::return_type GHandHardwareInterface::write(const rclcpp::Time
       velocity = 0.0;
       effort = 0.0;
     }
-    else if (has_position && has_velocity && !has_effort)
+    else if (has_position)
     {
-      // Position + velocity mode: effort defaults to 100%.
+      // Position control mode: the trajectory controller writes the feedforward
+      // velocity in rad/s, but the motor driver expects a percentage velocity limit
+      // (-100~100). Small rad/s values get truncated to 0 and the hand does not
+      // move. Always use the maximum velocity/torque limits and let the position
+      // trajectory govern the motion.
+      velocity = 100.0;
       effort = 100.0;
     }
-    else if (has_position && has_effort && !has_velocity)
+    else if (has_velocity && !has_effort)
     {
-      // Position + effort mode: velocity follows effort.
-      velocity = effort;
-    }
-    else if (!has_position && has_velocity && !has_effort)
-    {
-      // Velocity mode: effort defaults to 100%.
+      // Velocity-only mode: effort defaults to 100%.
       effort = 100.0;
     }
     // Effort-only mode: pass effort through, leave the rest at safe defaults below.

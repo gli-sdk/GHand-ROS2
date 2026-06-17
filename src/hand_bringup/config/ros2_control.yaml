@@ -37,7 +37,7 @@ ghand_hardware:
       - error
 
     # EtherCAT backend parameters
-    ifname: "eth0"
+    ifname: "enxe466e5820449"
 
     # RS485 backend parameters (uncomment when communication_type == "rs485")
     # device: "/dev/ttyUSB0"
