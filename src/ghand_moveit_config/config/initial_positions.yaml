@@ -1,19 +1,19 @@
 initial_positions:
-  thumb_tmc_ps: 0.0
-  thumb_tmc_aa: 0.0
-  thumb_tmc_fe: 0.0
-  thumb_mcp: 0.0
   thumb_dip: 0.0
-  index_mcp_aa: 0.0
-  index_mcp: 0.0
-  index_pip: 0.0
+  thumb_mcp: 0.0
+  thumb_tmc_fe: 0.0
+  thumb_tmc_aa: 0.0
+  thumb_tmc_ps: 0.0
   index_dip: 0.0
-  middle_mcp: 0.0
-  middle_pip: 0.0
+  index_pip: 0.0
+  index_mcp: 0.0
+  index_mcp_aa: 0.0
   middle_dip: 0.0
-  ring_mcp: 0.0
-  ring_pip: 0.0
+  middle_pip: 0.0
+  middle_mcp: 0.0
   ring_dip: 0.0
-  little_mcp: 0.0
-  little_pip: 0.0
+  ring_pip: 0.0
+  ring_mcp: 0.0
   little_dip: 0.0
+  little_pip: 0.0
+  little_mcp: 0.0

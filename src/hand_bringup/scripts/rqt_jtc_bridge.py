@@ -25,19 +25,19 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 
 # EtherCAT slave only supports these 13 active joints (URDF order, no DIP).
 ACTIVE_JOINTS = [
-    "thumb_tmc_ps",
-    "thumb_tmc_aa",
-    "thumb_tmc_fe",
     "thumb_mcp",
-    "index_mcp_aa",
-    "index_mcp",
+    "thumb_tmc_fe",
+    "thumb_tmc_aa",
+    "thumb_tmc_ps",
     "index_pip",
-    "middle_mcp",
+    "index_mcp",
+    "index_mcp_aa",
     "middle_pip",
-    "ring_mcp",
+    "middle_mcp",
     "ring_pip",
-    "little_mcp",
+    "ring_mcp",
     "little_pip",
+    "little_mcp",
 ]
 
 

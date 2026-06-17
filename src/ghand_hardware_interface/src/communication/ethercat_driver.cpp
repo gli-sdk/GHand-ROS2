@@ -28,29 +28,29 @@ namespace
 constexpr double kPi = 3.14159265358979323846;
 constexpr int kEcTimeoutMon = 500;
 
-// EtherCAT PDO uses 13 active joints in URDF order (all joints except DIP).
-// These map to the first 18 URDF joints, with DIP joints (4, 8, 11, 14, 17)
-// omitted from the PDO.
+// EtherCAT PDO uses 13 active joints in canonical ros2_control order (all joints
+// except DIP). These map to the 18-joint canonical order, with DIP joints
+// (0, 5, 9, 12, 15) omitted from the PDO.
 const std::vector<ghand_comm::JointId> kEthercatActiveJoints = {
   // Slave PDO order is tip-to-base within each finger (DIP -> PIP -> MCP -> ...).
-  ghand_comm::JointId::THUMB_PIP,       // thumb_mcp,     ros2_control index 3
+  ghand_comm::JointId::THUMB_PIP,       // thumb_mcp,     ros2_control index 1
   ghand_comm::JointId::THUMB_MCP,       // thumb_tmc_fe,  ros2_control index 2
-  ghand_comm::JointId::THUMB_SWING,     // thumb_tmc_aa,  ros2_control index 1
-  ghand_comm::JointId::THUMB_ROTATION,  // thumb_tmc_ps,  ros2_control index 0
-  ghand_comm::JointId::FF_PIP,          // index_pip,     ros2_control index 7
-  ghand_comm::JointId::FF_MCP,          // index_mcp,     ros2_control index 6
-  ghand_comm::JointId::FF_SWING,        // index_mcp_aa,  ros2_control index 5
+  ghand_comm::JointId::THUMB_SWING,     // thumb_tmc_aa,  ros2_control index 3
+  ghand_comm::JointId::THUMB_ROTATION,  // thumb_tmc_ps,  ros2_control index 4
+  ghand_comm::JointId::FF_PIP,          // index_pip,     ros2_control index 6
+  ghand_comm::JointId::FF_MCP,          // index_mcp,     ros2_control index 7
+  ghand_comm::JointId::FF_SWING,        // index_mcp_aa,  ros2_control index 8
   ghand_comm::JointId::MF_PIP,          // middle_pip,    ros2_control index 10
-  ghand_comm::JointId::MF_MCP,          // middle_mcp,    ros2_control index 9
+  ghand_comm::JointId::MF_MCP,          // middle_mcp,    ros2_control index 11
   ghand_comm::JointId::RF_PIP,          // ring_pip,      ros2_control index 13
-  ghand_comm::JointId::RF_MCP,          // ring_mcp,      ros2_control index 12
+  ghand_comm::JointId::RF_MCP,          // ring_mcp,      ros2_control index 14
   ghand_comm::JointId::LF_PIP,          // little_pip,    ros2_control index 16
-  ghand_comm::JointId::LF_MCP,          // little_mcp,    ros2_control index 15
+  ghand_comm::JointId::LF_MCP,          // little_mcp,    ros2_control index 17
 };
 
-// ros2_control index in the 18-joint order for each active joint above.
+// ros2_control index in the 18-joint canonical order for each active joint above.
 const std::vector<size_t> kEthercatActiveUrdfIndices = {
-  3, 2, 1, 0, 7, 6, 5, 10, 9, 13, 12, 16, 15,
+  1, 2, 3, 4, 6, 7, 8, 10, 11, 13, 14, 16, 17,
 };
 
 std::vector<std::string> split(const std::string & text, char delimiter)
@@ -145,7 +145,7 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
       }
     }
   }
-  // EtherCAT uses a fixed 13-active-joint layout in URDF order (no DIP joints).
+  // EtherCAT uses a fixed 13-active-joint layout in canonical order (no DIP joints).
   // Override any param-provided list so the PDO format matches the slave.
   impl_->valid_joints = kEthercatActiveJoints;
 
@@ -599,8 +599,8 @@ void EthercatDriver::Impl::parse_hand_and_joints(
   (void)hand_error;
   (void)temperature;
 
-  // The slave reports 13 active joints in URDF order (no DIP joints). Expand
-  // to the full 18-joint ros2_control order by placing active joints at their
+  // The slave reports 13 active joints in canonical order (no DIP joints). Expand
+  // to the full 18-joint canonical order by placing active joints at their
   // URDF indices and leaving DIP joints at zero.
   constexpr size_t kUrdfJointCount = 18;
   out_data->joints.resize(kUrdfJointCount);

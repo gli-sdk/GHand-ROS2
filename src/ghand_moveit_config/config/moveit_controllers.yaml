@@ -8,23 +8,18 @@ moveit_simple_controller_manager:
   joint_trajectory_controller:
     type: FollowJointTrajectory
     joints:
-      - thumb_tmc_ps
-      - thumb_tmc_aa
-      - thumb_tmc_fe
       - thumb_mcp
-      - thumb_dip
-      - index_mcp_aa
-      - index_mcp
+      - thumb_tmc_fe
+      - thumb_tmc_aa
+      - thumb_tmc_ps
       - index_pip
-      - index_dip
-      - middle_mcp
+      - index_mcp
+      - index_mcp_aa
       - middle_pip
-      - middle_dip
-      - ring_mcp
+      - middle_mcp
       - ring_pip
-      - ring_dip
-      - little_mcp
+      - ring_mcp
       - little_pip
-      - little_dip
+      - little_mcp
     action_ns: follow_joint_trajectory
     default: true
