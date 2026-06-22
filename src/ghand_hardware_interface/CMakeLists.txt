@@ -39,7 +39,12 @@ if(NOT SOEM_FOUND)
     NO_DEFAULT_PATH)
 endif()
 
-find_library(ZLGCAN_LIBRARY NAMES zlgcan libzlgcan HINTS /usr/lib /usr/local/lib)
+# Prefer the vendored ZLG USB-CANFD library (VCI API: libusbcanfd + libzuds).
+# Falls back to a system libzlgcan.so if present.
+set(VENDOR_ZLG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/usbcanfd_libusb_x64_1.0.12_251029")
+find_library(ZLGCAN_LIBRARY NAMES usbcanfd libusbcanfd usbcanfd.so.1.0.12 libusbcanfd.so.1.0.12 HINTS ${VENDOR_ZLG_DIR} /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+find_library(ZLGUDS_LIBRARY NAMES zuds libzuds HINTS ${VENDOR_ZLG_DIR} /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+set(ZLGCAN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../vendor/dist/include/zlgcan")
 
 add_library(ghand_hardware_interface SHARED
   src/ghand_hardware.cpp
@@ -49,6 +54,7 @@ add_library(ghand_hardware_interface SHARED
   src/communication/ethercat_driver.cpp
   src/communication/rs485_driver.cpp
   src/communication/canfd_driver.cpp
+  src/communication/zqwl_canfd_driver.cpp
 )
 
 target_include_directories(ghand_hardware_interface PUBLIC
@@ -75,9 +81,21 @@ else()
   message(WARNING "libmodbus not found; RS485 backend will be disabled at runtime")
 endif()
 
-if(ZLGCAN_LIBRARY)
+if(ZLGCAN_LIBRARY AND ZLGUDS_LIBRARY AND EXISTS ${ZLGCAN_INCLUDE_DIR}/zcan.h)
+  target_include_directories(ghand_hardware_interface SYSTEM PRIVATE ${ZLGCAN_INCLUDE_DIR})
+  target_link_libraries(ghand_hardware_interface PRIVATE ${ZLGCAN_LIBRARY} ${ZLGUDS_LIBRARY})
+  target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_ZLG_CAN)
+  # Embed the vendored library path so the plugin can be loaded without extra LD_LIBRARY_PATH.
+  set_target_properties(ghand_hardware_interface PROPERTIES
+    BUILD_RPATH "${VENDOR_ZLG_DIR}"
+    INSTALL_RPATH "${VENDOR_ZLG_DIR}"
+    BUILD_WITH_INSTALL_RPATH TRUE
+  )
+  message(STATUS "Found vendored ZLG CAN library: ${ZLGCAN_LIBRARY}")
+elseif(ZLGCAN_LIBRARY)
   target_link_libraries(ghand_hardware_interface PRIVATE ${ZLGCAN_LIBRARY})
   target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_ZLG_CAN)
+  message(STATUS "Found system ZLG CAN library: ${ZLGCAN_LIBRARY}")
 else()
   message(WARNING "ZLG CAN library not found; CANFD backend will be disabled at runtime")
 endif()

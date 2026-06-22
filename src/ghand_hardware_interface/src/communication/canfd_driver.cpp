@@ -18,10 +18,7 @@
 #include "communication/modbus_codec.hpp"
 
 #ifdef GHAND_HAS_ZLG_CAN
-#ifdef _WIN32
-#include <windows.h>
-#endif
-#include <zlgcan.h>
+#include <zcan.h>
 #endif
 
 namespace ghand_comm
@@ -56,11 +53,9 @@ int parse_int_default(const std::string & text, int default_value)
   }
 }
 
-#endif  // GHAND_HAS_ZLG_CAN
-
-#ifdef GHAND_HAS_ZLG_CAN
-
-int resolve_zlg_device_type(const std::string & name)
+// VCI device type numbers for the libusbcanfd/libzuds API.
+// These differ from the zlgcan.h constants used by libzlgcan.so.
+int resolve_vci_device_type(const std::string & name)
 {
   if (name.empty()) return 0;
 
@@ -70,23 +65,49 @@ int resolve_zlg_device_type(const std::string & name)
   }
 
   static const std::map<std::string, int> kNameToType = {
-    {"ZCAN_USBCANFD_100U", ZCAN_USBCANFD_100U},
-    {"ZCAN_USBCANFD_200U", ZCAN_USBCANFD_200U},
-    {"ZCAN_USBCANFD_400U", ZCAN_USBCANFD_400U},
-    {"ZCAN_USBCANFD_MINI", ZCAN_USBCANFD_MINI},
-    {"ZCAN_USBCANFD_800U", ZCAN_USBCANFD_800U},
-    {"ZCAN_PCIE_CANFD_100U", ZCAN_PCIE_CANFD_100U},
-    {"ZCAN_PCIE_CANFD_200U", ZCAN_PCIE_CANFD_200U},
-    {"ZCAN_PCIE_CANFD_400U", ZCAN_PCIE_CANFD_400U},
-    {"ZCAN_PCIE_CANFD_100U_EX", ZCAN_PCIE_CANFD_100U_EX},
-    {"ZCAN_PCIE_CANFD_400U_EX", ZCAN_PCIE_CANFD_400U_EX},
-    {"ZCAN_PCIE_CANFD_200U_MINI", ZCAN_PCIE_CANFD_200U_MINI},
-    {"ZCAN_PCIE_CANFD_200U_M2", ZCAN_PCIE_CANFD_200U_M2},
-    {"ZCAN_CANFDCOM_100IE", ZCAN_CANFDCOM_100IE},
+    {"ZCAN_USBCANFD_100U", 42},
   };
 
   auto it = kNameToType.find(name);
   return (it != kNameToType.end()) ? it->second : 0;
+}
+
+// Compute timing parameters for a desired bitrate given a CAN clock.
+// Returns true if a valid (tseg1, tseg2, sjw, brp) combination is found.
+bool compute_can_timing(
+  uint32_t clock_hz, uint32_t target_bitrate, uint8_t * tseg1, uint8_t * tseg2,
+  uint8_t * sjw, uint16_t * brp)
+{
+  if (clock_hz == 0 || target_bitrate == 0) return false;
+
+  // Valid ranges from ZCAN_INIT struct.
+  const uint16_t kMaxBrp = 512;
+  const uint8_t kMaxTseg = 32;
+
+  for (uint16_t p = 1; p <= kMaxBrp; ++p)
+  {
+    const uint32_t tq_hz = clock_hz / p;
+    if (tq_hz == 0) continue;
+    const uint32_t total_tq = tq_hz / target_bitrate;
+    if (total_tq == 0 || total_tq > kMaxTseg + kMaxTseg) continue;
+
+    // Try a sample point around 75-80%: tseg1 = 0.75 * total_tq, tseg2 = rest.
+    for (uint8_t ts1 = 1; ts1 + 2 <= total_tq && ts1 <= kMaxTseg; ++ts1)
+    {
+      const uint8_t ts2 = static_cast<uint8_t>(total_tq - ts1 - 1);
+      if (ts2 < 1 || ts2 > kMaxTseg) continue;
+
+      // Verify exact match.
+      if (tq_hz / total_tq != target_bitrate) continue;
+
+      *brp = p;
+      *tseg1 = ts1;
+      *tseg2 = ts2;
+      *sjw = std::min<uint8_t>(2, ts2);
+      return true;
+    }
+  }
+  return false;
 }
 
 #endif  // GHAND_HAS_ZLG_CAN
@@ -96,8 +117,10 @@ int resolve_zlg_device_type(const std::string & name)
 struct CanfdDriver::Impl
 {
 #ifdef GHAND_HAS_ZLG_CAN
-  long device_handle_ = INVALID_DEVICE_HANDLE;
-  Handle_chl * channel_handle_ = nullptr;
+  uint32_t device_type_ = 0;
+  uint32_t device_index_ = 0;
+  uint32_t can_index_ = 0;
+  bool device_opened_ = false;
 
   bool WriteHoldingRegister(uint16_t addr, uint16_t value);
   bool WriteHoldingRegisters(uint16_t addr, const std::vector<uint8_t> & data);
@@ -157,7 +180,7 @@ bool CanfdDriver::init(const std::unordered_map<std::string, std::string> & para
     return false;
   }
 
-  const int device_type = resolve_zlg_device_type(parts[0]);
+  const int device_type = resolve_vci_device_type(parts[0]);
   const int device_index = parse_int_default(parts[1], 0);
   const int can_index = parse_int_default(parts[2], 0);
   if (device_type == 0)
@@ -165,14 +188,16 @@ bool CanfdDriver::init(const std::unordered_map<std::string, std::string> & para
     return false;
   }
 
+  impl_->device_type_ = static_cast<uint32_t>(device_type);
+  impl_->device_index_ = static_cast<uint32_t>(device_index);
+  impl_->can_index_ = static_cast<uint32_t>(can_index);
+
   const int bitrate = parse_int_default(
     params.count("bitrate") ? params.at("bitrate") : "", 1000000);
   const int dbitrate = parse_int_default(
     params.count("dbit_rate") ? params.at("dbit_rate") : "", 5000000);
-  const int abit_sample_point = parse_int_default(
-    params.count("abit_sample_point") ? params.at("abit_sample_point") : "", 75);
-  const int dbit_sample_point = parse_int_default(
-    params.count("dbit_sample_point") ? params.at("dbit_sample_point") : "", 80);
+  const uint32_t clock_hz = static_cast<uint32_t>(parse_int_default(
+    params.count("can_clk") ? params.at("can_clk") : "", 60000000));
 
   const int device_id_param = parse_int_default(
     params.count("device_id") ? params.at("device_id") : "", 0);
@@ -210,54 +235,66 @@ bool CanfdDriver::init(const std::unordered_map<std::string, std::string> & para
     }
   }
 
-  impl_->device_handle_ = ZCAN_OpenDevice(device_type, device_index, 0);
-  if (impl_->device_handle_ == INVALID_DEVICE_HANDLE)
+  if (VCI_OpenDevice(impl_->device_type_, impl_->device_index_, 0) != 1)
   {
     return false;
   }
+  impl_->device_opened_ = true;
 
-  IProperty * prop = GetIProperty(impl_->device_handle_);
-  if (prop != nullptr)
+  ZCAN_INIT init_config;
+  memset(&init_config, 0, sizeof(init_config));
+  init_config.clk = clock_hz;
+  init_config.mode = 0;
+
+  uint8_t abit_tseg1 = 0, abit_tseg2 = 0, abit_sjw = 0;
+  uint16_t abit_brp = 0;
+  if (!compute_can_timing(
+        clock_hz, static_cast<uint32_t>(bitrate), &abit_tseg1, &abit_tseg2, &abit_sjw,
+        &abit_brp))
   {
-    const std::string ch_str = std::to_string(can_index);
-    prop->SetValue((ch_str + "/canfd_abit_baud_rate").c_str(), std::to_string(bitrate).c_str());
-    prop->SetValue((ch_str + "/canfd_dbit_baud_rate").c_str(), std::to_string(dbitrate).c_str());
-    prop->SetValue(
-      (ch_str + "/canfd_abit_sample_point").c_str(),
-      std::to_string(abit_sample_point).c_str());
-    prop->SetValue(
-      (ch_str + "/canfd_dbit_sample_point").c_str(),
-      std::to_string(dbit_sample_point).c_str());
-
-    if (prop->SetValue((ch_str + "/initenal_resistance").c_str(), "1") != 1)
-    {
-      prop->SetValue((ch_str + "/internal_resistance").c_str(), "1");
-    }
+    VCI_CloseDevice(impl_->device_type_, impl_->device_index_);
+    impl_->device_opened_ = false;
+    return false;
   }
+  init_config.aset.tseg1 = abit_tseg1;
+  init_config.aset.tseg2 = abit_tseg2;
+  init_config.aset.sjw = abit_sjw;
+  init_config.aset.smp = 0;
+  init_config.aset.brp = abit_brp;
 
-  ZCAN_CHANNEL_INIT_CONFIG config;
-  memset(&config, 0, sizeof(config));
-  config.can_type = TYPE_CANFD;
-  config.canfd.abit_timing = 0;
-  config.canfd.dbit_timing = 0;
-  config.canfd.filter = 0;
-  config.canfd.mode = 0;
-
-  impl_->channel_handle_ = ZCAN_InitCAN(
-    impl_->device_handle_, static_cast<UINT>(can_index), config);
-  if (impl_->channel_handle_ == nullptr)
+  uint8_t dbit_tseg1 = 0, dbit_tseg2 = 0, dbit_sjw = 0;
+  uint16_t dbit_brp = 0;
+  if (!compute_can_timing(
+        clock_hz, static_cast<uint32_t>(dbitrate), &dbit_tseg1, &dbit_tseg2, &dbit_sjw,
+        &dbit_brp))
   {
-    ZCAN_CloseDevice(impl_->device_handle_);
-    impl_->device_handle_ = INVALID_DEVICE_HANDLE;
+    VCI_CloseDevice(impl_->device_type_, impl_->device_index_);
+    impl_->device_opened_ = false;
+    return false;
+  }
+  init_config.dset.tseg1 = dbit_tseg1;
+  init_config.dset.tseg2 = dbit_tseg2;
+  init_config.dset.sjw = dbit_sjw;
+  init_config.dset.smp = 0;
+  init_config.dset.brp = dbit_brp;
+
+  if (VCI_InitCAN(impl_->device_type_, impl_->device_index_, impl_->can_index_, &init_config) != 1)
+  {
+    VCI_CloseDevice(impl_->device_type_, impl_->device_index_);
+    impl_->device_opened_ = false;
     return false;
   }
 
-  if (ZCAN_StartCAN(*impl_->channel_handle_) != STATUS_OK)
+  // Enable on-board termination resistor.
+  U8 tres = 1;
+  VCI_SetReference(
+    impl_->device_type_, impl_->device_index_, impl_->can_index_, CMD_CAN_TRES, &tres);
+
+  if (VCI_StartCAN(impl_->device_type_, impl_->device_index_, impl_->can_index_) != 1)
   {
-    ZCAN_ResetCAN(*impl_->channel_handle_);
-    ZCAN_CloseDevice(impl_->device_handle_);
-    impl_->channel_handle_ = nullptr;
-    impl_->device_handle_ = INVALID_DEVICE_HANDLE;
+    VCI_ResetCAN(impl_->device_type_, impl_->device_index_, impl_->can_index_);
+    VCI_CloseDevice(impl_->device_type_, impl_->device_index_);
+    impl_->device_opened_ = false;
     return false;
   }
 
@@ -277,15 +314,11 @@ void CanfdDriver::close()
     impl_->recv_thread_.join();
   }
 
-  if (impl_->channel_handle_ != nullptr)
+  if (impl_->device_opened_)
   {
-    ZCAN_ResetCAN(*impl_->channel_handle_);
-    impl_->channel_handle_ = nullptr;
-  }
-  if (impl_->device_handle_ != INVALID_DEVICE_HANDLE)
-  {
-    ZCAN_CloseDevice(impl_->device_handle_);
-    impl_->device_handle_ = INVALID_DEVICE_HANDLE;
+    VCI_ResetCAN(impl_->device_type_, impl_->device_index_, impl_->can_index_);
+    VCI_CloseDevice(impl_->device_type_, impl_->device_index_);
+    impl_->device_opened_ = false;
   }
 #endif
   impl_->connected_.store(false);
@@ -343,25 +376,29 @@ bool CanfdDriver::write(const std::vector<JointCommand> & commands)
 
 bool CanfdDriver::Impl::TransmitFrame(uint32_t can_id, const uint8_t * data, uint8_t len)
 {
-  if (channel_handle_ == nullptr)
+  if (!device_opened_)
   {
     return false;
   }
 
-  ZCAN_TransmitFD_Data tx;
-  memset(&tx, 0, sizeof(tx));
-  tx.frame.can_id = MAKE_CAN_ID(can_id, 1, 0, 0);
-  tx.frame.len = canfd::nearest_valid_canfd_length(len);
-  tx.frame.flags = CANFD_BRS;
   if (len > 64)
   {
     len = 64;
   }
-  memcpy(tx.frame.data, data, len);
-  tx.transmit_type = 0;
+
+  ZCAN_FD_MSG tx;
+  memset(&tx, 0, sizeof(tx));
+  tx.hdr.id = can_id;
+  tx.hdr.inf.sef = 1;   // extended frame
+  tx.hdr.inf.fmt = 1;   // CANFD
+  tx.hdr.inf.brs = 1;   // bit-rate switch
+  tx.hdr.inf.sdf = 0;   // data frame
+  tx.hdr.len = canfd::nearest_valid_canfd_length(len);
+  tx.hdr.chn = static_cast<U8>(can_index_);
+  memcpy(tx.dat, data, len);
 
   std::lock_guard<std::mutex> lock(io_mutex_);
-  const UINT sent = ZCAN_TransmitFD(*channel_handle_, &tx, 1);
+  const U32 sent = VCI_TransmitFD(device_type_, device_index_, can_index_, &tx, 1);
   return sent == 1;
 }
 
@@ -383,46 +420,57 @@ bool CanfdDriver::Impl::WriteHoldingRegisters(uint16_t addr, const std::vector<u
 
 void CanfdDriver::Impl::ReceiveLoop()
 {
+  // In the VCI API, CANFD frames are queried by adding 0x80000000 to the channel index.
+  const U32 fd_channel = 0x80000000u + can_index_;
+
   while (run_thread_.load())
   {
-    if (!channel_handle_)
+    if (!device_opened_)
     {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
       continue;
     }
 
-    ZCAN_ReceiveFD_Data rx;
-    memset(&rx, 0, sizeof(rx));
-
-    const UINT received = ZCAN_ReceiveFD(*channel_handle_, &rx, 1, 10);
-    if (received == 0)
+    const U32 available = VCI_GetReceiveNum(device_type_, device_index_, fd_channel);
+    if (available == 0)
     {
+      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
     }
 
-    canfd::Frame frame;
-    frame.id = GET_ID(rx.frame.can_id);
-    frame.len = rx.frame.len;
-    if (frame.len > 64) frame.len = 64;
-    memcpy(frame.data, rx.frame.data, frame.len);
-    frame.is_fd = true;
-    frame.is_extended = IS_EFF(rx.frame.can_id);
+    const U32 count = std::min<U32>(available, 64);
+    std::vector<ZCAN_FD_MSG> rx_buffer(count);
+    const U32 received = VCI_ReceiveFD(
+      device_type_, device_index_, can_index_, rx_buffer.data(), count, 10);
 
-    canfd::ArbitrationId arb(frame.id);
-    if (arb.frame_type() != canfd::FrameType::ACTIVE_REPORT)
+    for (U32 i = 0; i < received; ++i)
     {
-      continue;
-    }
+      const ZCAN_FD_MSG & rx = rx_buffer[i];
 
-    if (device_id_filter_ != 0 && arb.device_id() != device_id_filter_)
-    {
-      continue;
-    }
+      canfd::Frame frame;
+      frame.id = rx.hdr.id & 0x1FFFFFFFu;
+      frame.len = rx.hdr.len;
+      if (frame.len > 64) frame.len = 64;
+      memcpy(frame.data, rx.dat, frame.len);
+      frame.is_fd = true;
+      frame.is_extended = rx.hdr.inf.sef == 1;
 
-    std::vector<uint8_t> payload;
-    if (assembler_.feed(frame, &payload))
-    {
-      ParseReport(payload);
+      canfd::ArbitrationId arb(frame.id);
+      if (arb.frame_type() != canfd::FrameType::ACTIVE_REPORT)
+      {
+        continue;
+      }
+
+      if (device_id_filter_ != 0 && arb.device_id() != device_id_filter_)
+      {
+        continue;
+      }
+
+      std::vector<uint8_t> payload;
+      if (assembler_.feed(frame, &payload))
+      {
+        ParseReport(payload);
+      }
     }
   }
 }

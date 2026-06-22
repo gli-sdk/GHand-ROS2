@@ -26,8 +26,10 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardwar
   hw_finger_tactile_data_.resize(info_.sensors.size());
 
   joint_id_map_.reserve(joint_count);
-  for (const auto & joint : info_.joints)
+  command_joint_indices_.clear();
+  for (size_t i = 0; i < info_.joints.size(); ++i)
   {
+    const auto & joint = info_.joints[i];
     const auto id = ghand_comm::joint_name_to_id(joint.name);
     if (!id.has_value())
     {
@@ -37,6 +39,32 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardwar
       return hardware_interface::CallbackReturn::ERROR;
     }
     joint_id_map_.push_back(id.value());
+    if (!joint.command_interfaces.empty())
+    {
+      command_joint_indices_.push_back(i);
+    }
+  }
+
+  // Diagnostic: print the order in which ros2_control parsed the joints and the
+  // resulting JointId mapping. This helps detect mismatches between URDF/xacro
+  // order and the canonical order used by the communication backend.
+  {
+    std::string names;
+    std::string ids;
+    for (size_t i = 0; i < info_.joints.size(); ++i)
+    {
+      if (i > 0)
+      {
+        names += ", ";
+        ids += ", ";
+      }
+      names += info_.joints[i].name;
+      ids += std::to_string(static_cast<int>(joint_id_map_[i]));
+    }
+    RCLCPP_INFO(
+      rclcpp::get_logger("GHandHardwareInterface"),
+      "Parsed %zu joints in order: [%s] -> JointIds [%s]",
+      info_.joints.size(), names.c_str(), ids.c_str());
   }
 
   if (info_.hardware_parameters.count("read_timeout_ms"))
@@ -55,24 +83,21 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(const hardwar
 
   for (const hardware_interface::ComponentInfo & joint : info_.joints)
   {
-    if (joint.command_interfaces.empty())
+    // Passive/state-only joints are allowed; they simply won't export command interfaces
+    // or receive write() commands. All joints must still provide state interfaces.
+    if (!joint.command_interfaces.empty())
     {
-      RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                   "Joint '%s' has no command interfaces.",
-                   joint.name.c_str());
-      return hardware_interface::CallbackReturn::ERROR;
-    }
-
-    for (const auto & ci : joint.command_interfaces)
-    {
-      if (ci.name != hardware_interface::HW_IF_POSITION &&
-          ci.name != hardware_interface::HW_IF_VELOCITY &&
-          ci.name != hardware_interface::HW_IF_EFFORT)
+      for (const auto & ci : joint.command_interfaces)
       {
-        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                     "Joint '%s' has unsupported command interface '%s'.",
-                     joint.name.c_str(), ci.name.c_str());
-        return hardware_interface::CallbackReturn::ERROR;
+        if (ci.name != hardware_interface::HW_IF_POSITION &&
+            ci.name != hardware_interface::HW_IF_VELOCITY &&
+            ci.name != hardware_interface::HW_IF_EFFORT)
+        {
+          RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+                       "Joint '%s' has unsupported command interface '%s'.",
+                       joint.name.c_str(), ci.name.c_str());
+          return hardware_interface::CallbackReturn::ERROR;
+        }
       }
     }
 
@@ -285,27 +310,27 @@ std::vector<hardware_interface::StateInterface> GHandHardwareInterface::export_s
 std::vector<hardware_interface::CommandInterface> GHandHardwareInterface::export_command_interfaces()
 {
   std::vector<hardware_interface::CommandInterface> command_interfaces;
-  for (size_t i = 0; i < info_.joints.size(); ++i)
+  for (size_t idx : command_joint_indices_)
   {
-    for (const auto & ci : info_.joints[i].command_interfaces)
+    for (const auto & ci : info_.joints[idx].command_interfaces)
     {
       if (ci.name == hardware_interface::HW_IF_POSITION)
       {
         command_interfaces.emplace_back(
-            info_.joints[i].name, hardware_interface::HW_IF_POSITION,
-            &hw_joint_commands_[i].position);
+            info_.joints[idx].name, hardware_interface::HW_IF_POSITION,
+            &hw_joint_commands_[idx].position);
       }
       else if (ci.name == hardware_interface::HW_IF_VELOCITY)
       {
         command_interfaces.emplace_back(
-            info_.joints[i].name, hardware_interface::HW_IF_VELOCITY,
-            &hw_joint_commands_[i].velocity);
+            info_.joints[idx].name, hardware_interface::HW_IF_VELOCITY,
+            &hw_joint_commands_[idx].velocity);
       }
       else if (ci.name == hardware_interface::HW_IF_EFFORT)
       {
         command_interfaces.emplace_back(
-            info_.joints[i].name, hardware_interface::HW_IF_EFFORT,
-            &hw_joint_commands_[i].effort);
+            info_.joints[idx].name, hardware_interface::HW_IF_EFFORT,
+            &hw_joint_commands_[idx].effort);
       }
     }
   }
@@ -386,11 +411,36 @@ hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time 
 
     for (size_t i = 0; i < hw_joint_states_.size() && i < data.joints.size(); ++i)
     {
-      hw_joint_states_[i].position = static_cast<double>(data.joints[i].position) * kDegToRad;
-      hw_joint_states_[i].velocity = static_cast<double>(data.joints[i].velocity);
+      // Map the hardware-state index (which follows the JointId / canonical order
+      // used by the communication backend) into our local joint-state buffer
+      // (which follows the order of info_.joints as parsed by ros2_control).
+      const size_t data_idx = static_cast<size_t>(joint_id_map_[i]);
+      if (data_idx >= data.joints.size())
+      {
+        continue;
+      }
+      hw_joint_states_[i].position = static_cast<double>(data.joints[data_idx].position) * kDegToRad;
+      hw_joint_states_[i].velocity = static_cast<double>(data.joints[data_idx].velocity);
       hw_joint_states_[i].effort = 0.0;
-      hw_joint_states_[i].status = static_cast<double>(data.joints[i].status);
-      hw_joint_states_[i].error = static_cast<double>(data.joints[i].error);
+      hw_joint_states_[i].status = static_cast<double>(data.joints[data_idx].status);
+      hw_joint_states_[i].error = static_cast<double>(data.joints[data_idx].error);
+    }
+
+    // Diagnostic: periodically dump all joint states after mapping.
+    {
+      static int read_count = 0;
+      if (++read_count % 100 == 0)
+      {
+        std::string line;
+        for (size_t i = 0; i < info_.joints.size(); ++i)
+        {
+          if (i > 0) line += ", ";
+          line += info_.joints[i].name + "=" + std::to_string(hw_joint_states_[i].position);
+        }
+        RCLCPP_INFO(
+          rclcpp::get_logger("GHandHardwareInterface"),
+          "read #%d all joints: %s", read_count, line.c_str());
+      }
     }
 
     for (size_t i = 0; i < hw_finger_tactile_data_.size(); ++i)
@@ -494,18 +544,42 @@ hardware_interface::return_type GHandHardwareInterface::write(const rclcpp::Time
     return hardware_interface::return_type::ERROR;
   }
 
+  // Diagnostic: log the commanded values for key joints before they are sent.
+  {
+    static int write_count = 0;
+    if (++write_count % 100 == 0)
+    {
+      auto joint_cmd = [this](const std::string & name) -> double {
+        for (size_t i = 0; i < info_.joints.size(); ++i)
+        {
+          if (info_.joints[i].name == name)
+          {
+            return hw_joint_commands_[i].position;
+          }
+        }
+        return std::numeric_limits<double>::quiet_NaN();
+      };
+      RCLCPP_INFO(
+        rclcpp::get_logger("GHandHardwareInterface"),
+        "write #%d: index_pip=%.4f middle_pip=%.4f middle_mcp=%.4f ring_pip=%.4f little_pip=%.4f",
+        write_count,
+        joint_cmd("index_pip"), joint_cmd("middle_pip"), joint_cmd("middle_mcp"),
+        joint_cmd("ring_pip"), joint_cmd("little_pip"));
+    }
+  }
+
   constexpr double kPi = 3.14159265358979323846;
   constexpr double kRadToDeg = 180.0 / kPi;
 
   std::vector<ghand_comm::JointCommand> commands;
-  commands.reserve(hw_joint_commands_.size());
-  for (size_t i = 0; i < hw_joint_commands_.size(); ++i)
+  commands.reserve(command_joint_indices_.size());
+  for (size_t idx : command_joint_indices_)
   {
     ghand_comm::JointCommand cmd;
-    cmd.id = joint_id_map_[i];
-    cmd.position = static_cast<float>(hw_joint_commands_[i].position * kRadToDeg);
-    cmd.velocity = static_cast<int8_t>(std::clamp(hw_joint_commands_[i].velocity, -100.0, 100.0));
-    cmd.torque = static_cast<int8_t>(std::clamp(hw_joint_commands_[i].effort, 0.0, 100.0));
+    cmd.id = joint_id_map_[idx];
+    cmd.position = static_cast<float>(hw_joint_commands_[idx].position * kRadToDeg);
+    cmd.velocity = static_cast<int8_t>(std::clamp(hw_joint_commands_[idx].velocity, -100.0, 100.0));
+    cmd.torque = static_cast<int8_t>(std::clamp(hw_joint_commands_[idx].effort, 0.0, 100.0));
     commands.push_back(cmd);
   }
 

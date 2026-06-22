@@ -76,6 +76,7 @@ private:
 
   std::unique_ptr<ghand_comm::CommunicationBase> comm_;
   std::vector<ghand_comm::JointId> joint_id_map_;
+  std::vector<size_t> command_joint_indices_;
   double read_timeout_ms_ = 500.0;
   rclcpp::Time last_successful_read_{0, 0};
 };

@@ -270,10 +270,17 @@ bool Rs485Driver::write(const std::vector<JointCommand> & commands)
   std::lock_guard<std::mutex> lock(impl_->io_mutex_);
   modbus_set_slave(impl_->ctx_, impl_->slave_id_);
 
+  // Set control mode register to position mode (0x0000).
   if (modbus_write_register(impl_->ctx_, 0x0010, 0x0000) != 1)
   {
     return false;
   }
+
+  // Build a single contiguous write for all active joints.
+  // Holding registers for active joints span 0x0011 .. 0x002A (26 regs).
+  constexpr uint16_t kFirstHoldingReg = 0x0011;
+  constexpr uint16_t kHoldingRegCount = 26;
+  std::vector<uint16_t> regs(kHoldingRegCount, 0);
 
   for (const auto & cmd : commands)
   {
@@ -284,13 +291,24 @@ bool Rs485Driver::write(const std::vector<JointCommand> & commands)
       continue;
     }
 
-    const auto regs = encode_joint_command(cmd);
-    const uint16_t data[2] = {regs.first, regs.second};
-    if (modbus_write_registers(impl_->ctx_, it->second, 2, data) != 2)
+    const uint16_t base = it->second;
+    if (base < kFirstHoldingReg || base + 1 > kFirstHoldingReg + kHoldingRegCount)
     {
-      return false;
+      continue;
     }
+
+    const auto encoded = encode_joint_command(cmd);
+    const size_t idx = static_cast<size_t>(base - kFirstHoldingReg);
+    regs[idx] = encoded.first;
+    regs[idx + 1] = encoded.second;
   }
+
+  if (modbus_write_registers(impl_->ctx_, kFirstHoldingReg, kHoldingRegCount, regs.data()) !=
+    kHoldingRegCount)
+  {
+    return false;
+  }
+
   return true;
 #endif
 }

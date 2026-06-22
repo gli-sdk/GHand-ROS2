@@ -14,6 +14,9 @@ controller_manager:
     joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
 
+    position_controller:
+      type: position_controllers/JointGroupPositionController
+
     velocity_controller:
       type: velocity_controllers/JointGroupVelocityController
 
@@ -125,6 +128,28 @@ joint_trajectory_controller:
       ring_mcp:         { goal: 0.1, trajectory: 0.1 }
       little_pip:       { goal: 0.1, trajectory: 0.1 }
       little_mcp:       { goal: 0.1, trajectory: 0.1 }
+
+position_controller:
+  ros__parameters:
+    joints:
+      - thumb_mcp
+      - thumb_tmc_fe
+      - thumb_tmc_aa
+      - thumb_tmc_ps
+      - index_pip
+      - index_mcp
+      - index_mcp_aa
+      - middle_pip
+      - middle_mcp
+      - ring_pip
+      - ring_mcp
+      - little_pip
+      - little_mcp
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
 
 velocity_controller:
   ros__parameters:

@@ -5,6 +5,7 @@
 #include "communication/canfd_driver.hpp"
 #include "communication/ethercat_driver.hpp"
 #include "communication/rs485_driver.hpp"
+#include "communication/zqwl_canfd_driver.hpp"
 
 namespace ghand_comm
 {
@@ -15,73 +16,70 @@ namespace
 constexpr size_t kJointCount = static_cast<size_t>(JointId::NUM_JOINTS);
 
 const std::array<std::string, kJointCount + 1> kJointIdNames = {
-  "THUMB_DIP",
-  "THUMB_PIP",
-  "THUMB_MCP",
-  "THUMB_SWING",
-  "THUMB_ROTATION",
-  "FF_DIP",
-  "FF_PIP",
-  "FF_MCP",
-  "FF_SWING",
-  "MF_DIP",
-  "MF_PIP",
-  "MF_MCP",
-  "RF_DIP",
-  "RF_PIP",
-  "RF_MCP",
-  "LF_DIP",
-  "LF_PIP",
-  "LF_MCP",
+  "thumb_dip",
+  "thumb_mcp",
+  "thumb_tmc_fe",
+  "thumb_tmc_aa",
+  "thumb_tmc_ps",
+  "index_dip",
+  "index_pip",
+  "index_mcp",
+  "index_mcp_aa",
+  "middle_dip",
+  "middle_pip",
+  "middle_mcp",
+  "ring_dip",
+  "ring_pip",
+  "ring_mcp",
+  "little_dip",
+  "little_pip",
+  "little_mcp",
   "UNKNOWN",
 };
 
 const std::map<JointId, uint16_t> kHoldingRegMap = {
-  {JointId::THUMB_PIP, 0x0011},
-  {JointId::THUMB_MCP, 0x0013},
-  {JointId::THUMB_SWING, 0x0015},
-  {JointId::THUMB_ROTATION, 0x0017},
-  {JointId::FF_DIP, 0x0019},
-  {JointId::FF_PIP, 0x001B},
-  {JointId::FF_MCP, 0x001D},
-  {JointId::FF_SWING, 0x001F},
-  {JointId::MF_DIP, 0x0021},
-  {JointId::MF_PIP, 0x0023},
-  {JointId::MF_MCP, 0x0025},
-  {JointId::RF_DIP, 0x0027},
-  {JointId::RF_PIP, 0x0029},
-  {JointId::RF_MCP, 0x002B},
-  {JointId::LF_DIP, 0x002D},
-  {JointId::LF_PIP, 0x002F},
-  {JointId::LF_MCP, 0x0031},
+  {JointId::THUMB_MCP, 0x0011},
+  {JointId::THUMB_TMC_FE, 0x0013},
+  {JointId::THUMB_TMC_AA, 0x0015},
+  {JointId::THUMB_TMC_PS, 0x0017},
+  {JointId::INDEX_PIP, 0x0019},
+  {JointId::INDEX_MCP, 0x001B},
+  {JointId::INDEX_MCP_AA, 0x001D},
+  {JointId::MIDDLE_PIP, 0x001F},
+  {JointId::MIDDLE_MCP, 0x0021},
+  {JointId::RING_PIP, 0x0023},
+  {JointId::RING_MCP, 0x0025},
+  {JointId::LITTLE_PIP, 0x0027},
+  {JointId::LITTLE_MCP, 0x0029},
+  
 };
 
 }  // namespace
 
 std::optional<JointId> joint_name_to_id(const std::string & name)
 {
-  if (name == "thumb_tmc_ps") return JointId::THUMB_ROTATION;
-  if (name == "thumb_tmc_aa") return JointId::THUMB_SWING;
-  if (name == "thumb_tmc_fe") return JointId::THUMB_MCP;
-  if (name == "thumb_mcp") return JointId::THUMB_PIP;
+  if (name == "thumb_tmc_ps") return JointId::THUMB_TMC_PS;
+  if (name == "thumb_tmc_aa") return JointId::THUMB_TMC_AA;
+  if (name == "thumb_tmc_fe") return JointId::THUMB_TMC_FE;
+  if (name == "thumb_mcp") return JointId::THUMB_MCP;
   if (name == "thumb_dip") return JointId::THUMB_DIP;
 
-  if (name == "index_mcp_aa") return JointId::FF_SWING;
-  if (name == "index_mcp") return JointId::FF_MCP;
-  if (name == "index_pip") return JointId::FF_PIP;
-  if (name == "index_dip") return JointId::FF_DIP;
+  if (name == "index_mcp_aa") return JointId::INDEX_MCP_AA;
+  if (name == "index_mcp") return JointId::INDEX_MCP;
+  if (name == "index_pip") return JointId::INDEX_PIP;
+  if (name == "index_dip") return JointId::INDEX_DIP;
 
-  if (name == "middle_mcp") return JointId::MF_MCP;
-  if (name == "middle_pip") return JointId::MF_PIP;
-  if (name == "middle_dip") return JointId::MF_DIP;
+  if (name == "middle_mcp") return JointId::MIDDLE_MCP;
+  if (name == "middle_pip") return JointId::MIDDLE_PIP;
+  if (name == "middle_dip") return JointId::MIDDLE_DIP;
 
-  if (name == "ring_mcp") return JointId::RF_MCP;
-  if (name == "ring_pip") return JointId::RF_PIP;
-  if (name == "ring_dip") return JointId::RF_DIP;
+  if (name == "ring_mcp") return JointId::RING_MCP;
+  if (name == "ring_pip") return JointId::RING_PIP;
+  if (name == "ring_dip") return JointId::RING_DIP;
 
-  if (name == "little_mcp") return JointId::LF_MCP;
-  if (name == "little_pip") return JointId::LF_PIP;
-  if (name == "little_dip") return JointId::LF_DIP;
+  if (name == "little_mcp") return JointId::LITTLE_MCP;
+  if (name == "little_pip") return JointId::LITTLE_PIP;
+  if (name == "little_dip") return JointId::LITTLE_DIP;
 
   return std::nullopt;
 }
@@ -114,6 +112,10 @@ std::unique_ptr<CommunicationBase> create_communication(const std::string & type
   if (type == "canfd")
   {
     return std::make_unique<CanfdDriver>();
+  }
+  if (type == "zqwl_canfd")
+  {
+    return std::make_unique<ZqwlCanfdDriver>();
   }
   return nullptr;
 }

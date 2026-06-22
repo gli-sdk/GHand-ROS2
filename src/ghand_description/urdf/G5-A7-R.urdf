@@ -546,6 +546,33 @@
   </joint>
 
   <!-- ros2_control -->
+  <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="communication_type" default="ethercat"/>
+  <xacro:arg name="ifname" default="enxe466e5820449"/>
+  <xacro:arg name="device" default="/dev/ttyUSB0"/>
+  <xacro:arg name="baud_rate" default="1000000"/>
+  <xacro:arg name="dbit_rate" default="5000000"/>
+  <xacro:arg name="slave_id" default="49"/>
+  <xacro:arg name="data_bits" default="8"/>
+  <xacro:arg name="stop_bits" default="1"/>
+  <xacro:arg name="parity" default="N"/>
+  <xacro:arg name="response_timeout_ms" default="100"/>
+  <xacro:arg name="read_timeout_ms" default="500"/>
+  <xacro:arg name="tactile_region_counts" default="38,31,31,31,31"/>
+
   <xacro:include filename="$(find ghand_description)/urdf/ghand.ros2_control.xacro"/>
-  <xacro:ghand_ros2_control use_mock_hardware="$(arg use_mock_hardware)"/>
+  <xacro:ghand_ros2_control
+    use_mock_hardware="$(arg use_mock_hardware)"
+    communication_type="$(arg communication_type)"
+    ifname="$(arg ifname)"
+    device="$(arg device)"
+    baud_rate="$(arg baud_rate)"
+    dbit_rate="$(arg dbit_rate)"
+    slave_id="$(arg slave_id)"
+    data_bits="$(arg data_bits)"
+    stop_bits="$(arg stop_bits)"
+    parity="$(arg parity)"
+    response_timeout_ms="$(arg response_timeout_ms)"
+    read_timeout_ms="$(arg read_timeout_ms)"
+    tactile_region_counts="$(arg tactile_region_counts)"/>
 </robot>

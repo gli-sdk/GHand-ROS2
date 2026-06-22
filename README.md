@@ -146,46 +146,87 @@ ros2 launch hand_bringup ghand.launch.py use_sim:=true
 ros2 launch hand_bringup ghand.launch.py use_sim:=false
 ```
 
-真实硬件模式加载 `GHand_hardware/GHandHardwareInterface`，并通过 `config/ros2_control.yaml` 中的参数连接物理设备。启动前请确认：
+真实硬件模式加载 `GHand_hardware/GHandHardwareInterface`，并通过 URDF/xacro 中的 `<param>` 与 launch 参数连接物理设备。启动前请确认：
 
 - EtherCAT/RS485/CANFD 接口已正确连接并配置；
-- `config/ros2_control.yaml` 中的 `communication_type` 与实际后端一致。
+- 当前用户有串口/CAN 设备读写权限（RS485 需 `dialout` 组）。
 
 #### 4.1 切换通讯后端
 
-修改 `src/hand_bringup/config/ros2_control.yaml`：
+后端类型及设备参数通过 `ghand.launch.py` 的 launch 参数传入，无需修改 `ros2_control.yaml`。
 
-```yaml
-communication_type: "ethercat"   # 或 "rs485" / "canfd"
-read_timeout_ms: 500
-```
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `communication_type` | `ethercat` | `ethercat` / `rs485` / `canfd` |
+| `device` | `/dev/ttyUSB0` | RS485/CANFD 设备名 |
+| `baud_rate` | `1000000` | RS485/CANFD 波特率 |
+| `dbit_rate` | `5000000` | CANFD 数据段波特率（仅 canfd） |
+| `slave_id` | `49` | RS485 从站 ID / CANFD 设备 ID |
+| `ifname` | `enxe466e5820449` | EtherCAT 网卡名 |
 
-并取消对应后端参数的注释：
+对应后端会启用不同的 xacro 参数：
 
 - **EtherCAT**：`ifname`
-- **RS485**：`device`、`baud_rate`、`slave_id` 等
+- **RS485**：`device`、`baud_rate`、`slave_id`、`data_bits`、`stop_bits`、`parity`、`response_timeout_ms`
 - **CANFD**：`device`、`bitrate`、`dbit_rate`、`device_id`
 
 #### 4.2 编译检查
 
 ```bash
 cd ~/GHand-Ros2
+# 若系统未安装 libmodbus，可从源码本地构建（RS485 必需）
+export PKG_CONFIG_PATH=/home/pq/GHand-Ros2/vendor/libmodbus-install/lib/pkgconfig:$PKG_CONFIG_PATH
 colcon build --packages-select ghand_hardware_interface --cmake-args -DCMAKE_BUILD_TYPE=Release
 source install/setup.bash
 ```
 
 预期结果：
 - `ghand_hardware_interface` 编译成功，无 error、无警告。
+- 若 `libmodbus` 找到，CMake 不再提示 `RS485 backend will be disabled at runtime`。
 
 #### 4.3 RS485 验证
 
-启动：
+##### 环境准备
+
+1. 安装或构建 `libmodbus`：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py use_sim:=false
+# 方式一：系统包（推荐）
+sudo apt update
+sudo apt install -y libmodbus-dev
+
+# 方式二：从源码本地构建
+export PKG_CONFIG_PATH=/home/pq/GHand-Ros2/vendor/libmodbus-install/lib/pkgconfig:$PKG_CONFIG_PATH
 ```
 
-验证：
+2. 将当前用户加入 `dialout` 组并重新登录：
+
+```bash
+sudo usermod -aG dialout $USER
+# 重新登录或执行 newgrp dialout
+groups  # 确认包含 dialout
+```
+
+3. 确认设备节点：
+
+```bash
+ls -l /dev/ttyUSB*
+```
+
+##### 启动 RS485
+
+```bash
+ros2 launch hand_bringup ghand.launch.py \
+  use_sim:=false \
+  communication_type:=rs485 \
+  device:=/dev/ttyUSB0 \
+  baud_rate:=1000000 \
+  slave_id:=50
+```
+
+> `slave_id` 需与机械手驱动板的 Modbus 从站 ID 一致；0x31左手；0x32右手
+
+##### 验证
 
 ```bash
 ros2 control list_hardware_interfaces
@@ -194,9 +235,23 @@ ros2 topic echo /joint_states
 ```
 
 预期结果：
-- 日志出现 `Initialized rs485 communication backend.`
+- 日志出现 `Successfully configured!` / `Successfully activated!`。
 - `/joint_states` 持续更新，位置/速度与真实手指一致。
 - 发送位置指令后手指实际运动，无串口超时/CRC 错误。
+
+##### 发送位置指令
+
+```bash
+# 方式一：使用项目示例脚本（基于 joint_trajectory_controller）
+ros2 run hand_bringup send_hand_position.py
+
+# 方式二：使用 position_controller 直接发布（需先切换控制器）
+python3 /home/pq/send_hand_position_direct.py
+```
+
+##### 性能说明
+
+早期实现中 `Rs485Driver::write()` 对每个关节单独发 Modbus 帧，导致 100 Hz 控制周期严重 overrun（write 耗时约 88 ms）。当前版本已改为**批量写连续保持寄存器**（0x0011~0x002A，共 26 个寄存器），write 时间降至约 10 ms 以内，满足实时控制需求。
 
 #### 4.4 EtherCAT 验证
 
@@ -219,20 +274,52 @@ ros2 topic echo /joint_states
 
 #### 4.5 CANFD 验证
 
-CANFD 后端主要用于读取触觉数据。启动：
+CANFD 后端使用 `vendor/usbcanfd_libusb_x64_1.0.12_251029/` 下的周立功 VCI 库：
 
-```bash
-ros2 launch hand_bringup ghand.launch.py use_sim:=false
+```text
+vendor/usbcanfd_libusb_x64_1.0.12_251029/libusbcanfd.so
+vendor/usbcanfd_libusb_x64_1.0.12_251029/libzuds.so
+vendor/dist/include/zlgcan/zcan.h
 ```
 
-验证：
+无需额外安装，编译时会自动链接 vendor 库。
+
+##### 编译
+
+```bash
+cd ~/GHand-Ros2
+colcon build --packages-select ghand_hardware_interface ghand_description hand_bringup --symlink-install
+source install/setup.bash
+```
+
+预期：`ghand_hardware_interface` 编译成功，CMake 不再提示 `ZLG CAN library not found`。
+
+##### 启动 CANFD
+
+`device` 格式为 `设备类型:设备索引:通道索引`，例如 `ZCAN_USBCANFD_100U:0:0`。`baud_rate` 对应 CANFD 仲裁段波特率，`dbit_rate` 对应数据段波特率。
+
+```bash
+ros2 launch hand_bringup ghand.launch.py \
+  use_sim:=false \
+  communication_type:=canfd \
+  device:=ZCAN_USBCANFD_100U:0:0 \
+  baud_rate:=1000000 \
+  dbit_rate:=5000000 \
+  slave_id:=49
+```
+
+> 若设备 CAN 时钟不是 60 MHz，可附加 `can_clk:=<频率>` 参数；当前默认按 60 MHz 计算 timing。
+
+##### 验证
+
+CANFD 后端主要用于读取触觉数据：
 
 ```bash
 ros2 topic echo /tactile_data
 ```
 
 预期结果：
-- 日志出现 `Initialized canfd communication backend.`
+- 日志出现 `Successfully configured!` / `Successfully activated!`。
 - 触碰传感器时，`resultant_force` 和 `distributed_forces` 数值明显变化。
 
 #### 4.6 无硬件时的错误提示
@@ -240,18 +327,20 @@ ros2 topic echo /tactile_data
 断开设备后启动：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py use_sim:=false
+ros2 launch hand_bringup ghand.launch.py use_sim:=false communication_type:=rs485
 ```
 
 预期结果：
-- 日志清晰打印 `Failed to initialize <backend> communication backend.`，例如 `Failed to initialize ethercat communication backend.`。
-- 系统进入 `on_error()` 冻结关节，不崩溃、不 segfault。
+- 日志清晰打印 `Failed to initialize rs485 communication backend.`。
+- ⚠️ 当前版本在配置失败时 `ros2_control_node` 会抛出 `std::runtime_error` 并 abort；建议后续在 `on_configure` 失败路径中优雅降级到 `on_error()` 状态，避免进程崩溃。
 
 ### 5. 启动 MoveIt 2
 
 ```bash
+source /home/pq/GHand-Ros2/install/setup.bash
 ros2 launch ghand_moveit_config moveit.launch.py
 ```
+
 
 ---
 
@@ -275,6 +364,8 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 
 打开界面后：
+source /home/pq/GHand-Ros2/install/setup.bash
+ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=false
 
 1. 在左上角选择对应的控制器管理器命名空间（通常为空，即默认命名空间）。
 2. 在控制器下拉框中选择 `joint_trajectory_controller`。
@@ -368,3 +459,56 @@ GHand-Ros2/                              # ROS 2 工作空间
 ## 许可证
 
 MIT
+https://io-ai.tech/telexperience/docs/glove2/user-guide/
+abit_baud: int = 1_000_000, dbit_baud: int = 5_000_000) 
+
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "sk-a27def14c3f04d7f97c05c960c9ea6f1",
+    "ANTHROPIC_BASE_URL": "https://api.deepseek.com/anthropic",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "deepseek-v4-pro[1m]",
+    "ANTHROPIC_MODEL": "deepseek-v4-pro[1m]",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "CLAUDE_CODE_EFFORT_LEVEL": "max",
+    "CLAUDE_CODE_SUBAGENT_MODEL": "deepseek-v4-pro[1m]"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p examples/tutorial examples/demo)",
+      "Bash(mv examples/01.get_basic_info.py examples/tutorial/)",
+      "Bash(mv examples/02.move_joints.py examples/tutorial/)",
+      "Bash(mv examples/19.torque_control.py examples/tutorial/03.torque_control.py)",
+      "Bash(mv examples/20.speed_control.py examples/tutorial/04.speed_control.py)",
+      "Bash(python -c ' *)",
+      "Bash(ls -la \"E:/other/\" 2>/dev/null || echo \"Path not found\")",
+      "Read(//e/other/**)",
+      "Bash(sed -i 's/from \\\\.error import/from .types import/g' dexhand.py data.py gestures.py __init__.py)",
+      "Bash(sed -i 's/from \\\\.exceptions import/from .types import/g' dexhand.py __init__.py)",
+      "Bash(sed -i 's/from \\\\.product_config import ProductType/from .types import ProductType/g' dexhand.py)",
+      "Bash(read f *)",
+      "Bash(python -c 'import ast; ast.parse\\(open\\('\\\\''__TRACKED_VAR__'\\\\'', encoding='\\\\''utf-8'\\\\''\\).read\\(\\)\\)')",
+      "Bash(exit 1)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/ghand/product_config.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(xargs sed -i 's|config/G5\\\\.json|config/XIAOYAO-Hand.json|g; s/\"G5\\\\.json\"/\"XIAOYAO-Hand.json\"/g; s|`G5\\\\.json`|`XIAOYAO-Hand.json`|g')",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/ghand/__init__.py', encoding='utf-8'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(git mv *)",
+      "Bash(mv \"config/XIAOYAO-Hand.json\" \"config/xiaoyao_hand.json\")",
+      "Bash(xargs sed -i 's/product_config\\\\.py/config.py/g')",
+      "Bash(sed -i 's/from \\\\.comm\\\\.ethercat_comm/from .comm.ethercat/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.canfd_comm/from .comm.canfd/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.rs485_comm/from .comm.rs485/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.ethercat_protocol/from .comm.protocol/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.config /from ._config /g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.ethercat import/from .comm.ethercat_comm import/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.canfd import/from .comm.canfd_comm import/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.rs485 import/from .comm.rs485_comm import/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.protocol import/from .comm.ethercat_protocol import/g' dexhand.py)",
+      "Bash(sed -i 's/from \\\\.comm\\\\.driver import/from .comm.ethercat_driver import/g' _subscription.py)",
+      "Bash(mv third_party/lib/windows/windows/* third_party/lib/windows/)",
+      "Bash(mv third_party/lib/linux/linux/* third_party/lib/linux/)"
+    ]
+  }
+}

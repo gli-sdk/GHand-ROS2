@@ -33,19 +33,19 @@ constexpr int kEcTimeoutMon = 500;
 // (0, 5, 9, 12, 15) omitted from the PDO.
 const std::vector<ghand_comm::JointId> kEthercatActiveJoints = {
   // Slave PDO order is tip-to-base within each finger (DIP -> PIP -> MCP -> ...).
-  ghand_comm::JointId::THUMB_PIP,       // thumb_mcp,     ros2_control index 1
-  ghand_comm::JointId::THUMB_MCP,       // thumb_tmc_fe,  ros2_control index 2
-  ghand_comm::JointId::THUMB_SWING,     // thumb_tmc_aa,  ros2_control index 3
-  ghand_comm::JointId::THUMB_ROTATION,  // thumb_tmc_ps,  ros2_control index 4
-  ghand_comm::JointId::FF_PIP,          // index_pip,     ros2_control index 6
-  ghand_comm::JointId::FF_MCP,          // index_mcp,     ros2_control index 7
-  ghand_comm::JointId::FF_SWING,        // index_mcp_aa,  ros2_control index 8
-  ghand_comm::JointId::MF_PIP,          // middle_pip,    ros2_control index 10
-  ghand_comm::JointId::MF_MCP,          // middle_mcp,    ros2_control index 11
-  ghand_comm::JointId::RF_PIP,          // ring_pip,      ros2_control index 13
-  ghand_comm::JointId::RF_MCP,          // ring_mcp,      ros2_control index 14
-  ghand_comm::JointId::LF_PIP,          // little_pip,    ros2_control index 16
-  ghand_comm::JointId::LF_MCP,          // little_mcp,    ros2_control index 17
+  ghand_comm::JointId::THUMB_MCP,       // thumb_mcp,     ros2_control index 1
+  ghand_comm::JointId::THUMB_TMC_FE,       // thumb_tmc_fe,  ros2_control index 2
+  ghand_comm::JointId::THUMB_TMC_AA,     // thumb_tmc_aa,  ros2_control index 3
+  ghand_comm::JointId::THUMB_TMC_PS,  // thumb_tmc_ps,  ros2_control index 4
+  ghand_comm::JointId::INDEX_PIP,          // index_pip,     ros2_control index 6
+  ghand_comm::JointId::INDEX_MCP,          // index_mcp,     ros2_control index 7
+  ghand_comm::JointId::INDEX_MCP_AA,        // index_mcp_aa,  ros2_control index 8
+  ghand_comm::JointId::MIDDLE_PIP,          // middle_pip,    ros2_control index 10
+  ghand_comm::JointId::MIDDLE_MCP,          // middle_mcp,    ros2_control index 11
+  ghand_comm::JointId::RING_PIP,          // ring_pip,      ros2_control index 13
+  ghand_comm::JointId::RING_MCP,          // ring_mcp,      ros2_control index 14
+  ghand_comm::JointId::LITTLE_PIP,          // little_pip,    ros2_control index 16
+  ghand_comm::JointId::LITTLE_MCP,          // little_mcp,    ros2_control index 17
 };
 
 // ros2_control index in the 18-joint canonical order for each active joint above.
@@ -340,17 +340,32 @@ bool EthercatDriver::write(const std::vector<JointCommand> & commands)
   static int write_cnt = 0;
   if (++write_cnt % 100 == 0 || write_cnt == 1)
   {
-    printf("=== write #%d: count=%zu\n", write_cnt, commands.size());
-    for (size_t i = 0; i < commands.size(); ++i)
+    printf("=== write #%d: command_count=%zu pdo_count=%zu\n",
+           write_cnt, commands.size(), impl_->valid_joints.size());
+    for (size_t pdo_idx = 0; pdo_idx < impl_->valid_joints.size(); ++pdo_idx)
     {
-      const auto & cmd = commands[i];
-      printf("  [%zu] %-16s id=%2d pos_deg=%7.3f vel=%3d torque=%3d\n",
-             i,
-             joint_id_to_name(cmd.id).c_str(),
-             static_cast<int>(cmd.id),
-             cmd.position,
-             cmd.velocity,
-             cmd.torque);
+      const auto joint_id = impl_->valid_joints[pdo_idx];
+      float angle = 0.0f;
+      uint8_t velocity = 100;
+      uint8_t torque = 100;
+      for (const auto & cmd : commands)
+      {
+        if (cmd.id == joint_id)
+        {
+          angle = cmd.position * static_cast<float>(kPi) / 180.0f;
+          velocity = static_cast<uint8_t>(cmd.velocity);
+          torque = static_cast<uint8_t>(cmd.torque);
+          break;
+        }
+      }
+      printf("  [pdo %2zu] %-16s id=%2d pos_deg=%7.3f pos_rad=%7.3f vel=%3d torque=%3d\n",
+             pdo_idx,
+             joint_id_to_name(joint_id).c_str(),
+             static_cast<int>(joint_id),
+             angle * 180.0f / static_cast<float>(kPi),
+             angle,
+             velocity,
+             torque);
     }
   }
 
@@ -599,13 +614,12 @@ void EthercatDriver::Impl::parse_hand_and_joints(
   (void)hand_error;
   (void)temperature;
 
-  // The slave reports 13 active joints in canonical order (no DIP joints). Expand
-  // to the full 18-joint canonical order by placing active joints at their
-  // URDF indices and leaving DIP joints at zero.
+  // The slave reports all 18 joints in canonical URDF/xacro order (including DIP
+  // joints). Read them sequentially and place each at its corresponding URDF index.
   constexpr size_t kUrdfJointCount = 18;
   out_data->joints.resize(kUrdfJointCount);
 
-  for (size_t active_idx = 0; active_idx < valid_joints.size(); ++active_idx)
+  for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx)
   {
     uint8_t joint_state = 0;
     uint8_t joint_error = 0;
@@ -624,7 +638,6 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     std::memcpy(&joint_torque, data + *offset, sizeof(joint_torque));
     *offset += sizeof(joint_torque);
 
-    const size_t urdf_idx = kEthercatActiveUrdfIndices[active_idx];
     JointState js;
     js.status = joint_state;
     js.error = joint_error;
@@ -632,16 +645,22 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     js.velocity = static_cast<float>(static_cast<int8_t>(joint_velocity));
     (void)joint_torque;
     out_data->joints[urdf_idx] = js;
+  }
 
-    static bool first_joint_parsed = false;
-    if (!first_joint_parsed)
+  // Diagnostic: periodically dump the joint mapping as received from the slave.
+  {
+    static int parse_count = 0;
+    if (++parse_count % 100 == 0 || parse_count == 1)
     {
-      first_joint_parsed = true;
-      printf("=== first active joint: urdf_idx=%zu status=%u error=%u angle_deg=%.3f velocity=%d torque=%u\n",
-             urdf_idx,
-             js.status, js.error, js.position,
-             static_cast<int>(static_cast<int8_t>(joint_velocity)),
-             static_cast<unsigned>(joint_torque));
+      printf("=== parse_hand_and_joints #%d (18 joints)\n", parse_count);
+      for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx)
+      {
+        const auto & js = out_data->joints[urdf_idx];
+        printf("  [urdf %2zu] %-16s pos_deg=%7.3f\n",
+               urdf_idx,
+               joint_id_to_name(static_cast<JointId>(urdf_idx)).c_str(),
+               js.position);
+      }
     }
   }
 }

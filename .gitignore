@@ -8,7 +8,11 @@ openspec/
 __pycache__/
 *.pyc
 *.pyo
-docs/superpowers/
+docs/superpowers/*
+!docs/superpowers/specs/
+!docs/superpowers/specs/**
 build/
 install/
 log/
+vendor/
+
