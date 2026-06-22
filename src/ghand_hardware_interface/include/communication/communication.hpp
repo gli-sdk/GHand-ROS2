@@ -65,8 +65,23 @@ struct TactileRegion
   std::vector<Force> distributed_forces;
 };
 
+enum class CtrlMode : uint8_t
+{
+  POSITION = 0,
+  TORQUE = 1,
+  SPEED = 2,
+};
+
+struct HandState
+{
+  uint8_t state = 0;
+  uint8_t error = 0;
+  int16_t temperature = 0;
+};
+
 struct CommunicationData
 {
+  HandState hand_state;
   std::vector<JointState> joints;
   std::vector<TactileRegion> tactile_regions;
   bool valid = false;

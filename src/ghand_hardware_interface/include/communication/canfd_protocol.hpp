@@ -96,6 +96,12 @@ constexpr uint8_t kWriteMultipleRegisters = 0x10;
 // Valid lengths: 0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64.
 uint8_t nearest_valid_canfd_length(uint8_t len);
 
+// Convert a CANFD DLC code (0~8,9~15) to the actual data byte length.
+uint8_t dlc_to_canfd_length(uint8_t dlc);
+
+// Convert a CANFD data byte length to the smallest valid DLC code.
+uint8_t canfd_length_to_dlc(uint8_t len);
+
 // Pack a 29-bit extended CAN ID for Modbus-over-CANFD command/response frames.
 // Layout (MSB to LSB):
 //   bit[28:23] src_id  (6 bits)
@@ -109,6 +115,23 @@ uint8_t nearest_valid_canfd_length(uint8_t len);
 uint32_t pack_modbus_arbitration_id(
   uint8_t src_id, uint8_t dst_id, uint8_t ack, uint8_t func_code, uint8_t start,
   uint8_t end, uint8_t toggle, uint8_t seg_num);
+
+// Unpack a 29-bit extended CAN ID used by Modbus-over-CANFD frames.
+struct ModbusArbitrationId
+{
+  uint32_t raw = 0;
+
+  explicit ModbusArbitrationId(uint32_t id) : raw(id) {}
+
+  uint8_t src_id() const { return static_cast<uint8_t>((raw >> 23) & 0x3F); }
+  uint8_t dst_id() const { return static_cast<uint8_t>((raw >> 17) & 0x3F); }
+  uint8_t ack() const { return static_cast<uint8_t>((raw >> 16) & 0x01); }
+  uint8_t func_code() const { return static_cast<uint8_t>((raw >> 8) & 0xFF); }
+  uint8_t start() const { return static_cast<uint8_t>((raw >> 7) & 0x01); }
+  uint8_t end() const { return static_cast<uint8_t>((raw >> 6) & 0x01); }
+  uint8_t toggle() const { return static_cast<uint8_t>((raw >> 5) & 0x01); }
+  uint8_t seg_num() const { return static_cast<uint8_t>(raw & 0x1F); }
+};
 
 // Encode a Modbus FC 0x06 "write single register" payload.
 std::vector<uint8_t> encode_write_single_register(uint16_t addr, uint16_t value);

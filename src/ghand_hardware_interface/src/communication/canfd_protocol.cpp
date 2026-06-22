@@ -99,6 +99,25 @@ uint8_t nearest_valid_canfd_length(uint8_t len)
   return 64;
 }
 
+uint8_t dlc_to_canfd_length(uint8_t dlc)
+{
+  static constexpr uint8_t kLengths[] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64};
+  if (dlc > 15) return 64;
+  return kLengths[dlc];
+}
+
+uint8_t canfd_length_to_dlc(uint8_t len)
+{
+  static constexpr uint8_t kLengths[] = {
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 16, 20, 24, 32, 48, 64};
+  for (uint8_t dlc = 0; dlc < sizeof(kLengths); ++dlc)
+  {
+    if (kLengths[dlc] >= len) return dlc;
+  }
+  return 15;
+}
+
 uint32_t pack_modbus_arbitration_id(
   uint8_t src_id, uint8_t dst_id, uint8_t ack, uint8_t func_code, uint8_t start,
   uint8_t end, uint8_t toggle, uint8_t seg_num)
