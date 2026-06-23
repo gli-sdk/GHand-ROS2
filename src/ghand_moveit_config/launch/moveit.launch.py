@@ -10,7 +10,7 @@ import os
 from ament_index_python.packages import get_package_prefix
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -105,11 +105,13 @@ def generate_launch_description():
         package="controller_manager",
         executable="spawner",
         arguments=["joint_status_broadcaster", "--controller-manager", "/controller_manager"],
+        condition=UnlessCondition(use_sim),
     )
     tactile_spawner = Node(
         package="controller_manager",
         executable="spawner",
         arguments=["tactile_broadcaster", "--controller-manager", "/controller_manager"],
+        condition=UnlessCondition(use_sim),
     )
 
     # Shared vendor library paths for GUI / MoveIt nodes
