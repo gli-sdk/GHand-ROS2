@@ -20,7 +20,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def resolve_profile(context):
     """Resolve profile file path and verify it exists."""
-    profile = perform_substitutions(context, LaunchConfiguration("profile"))
+    profile = perform_substitutions(context, [LaunchConfiguration("profile")])
     profile_file = os.path.join(
         get_package_share_directory("hand_bringup"),
         "config",
