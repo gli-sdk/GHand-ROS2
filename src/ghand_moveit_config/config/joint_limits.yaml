@@ -9,72 +9,90 @@ joint_limits:
   thumb_dip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   thumb_mcp:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   thumb_tmc_fe:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   thumb_tmc_aa:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   thumb_tmc_ps:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   index_dip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   index_pip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   index_mcp:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   index_mcp_aa:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   middle_dip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   middle_pip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   middle_mcp:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   ring_dip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   ring_pip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   ring_mcp:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   little_dip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   little_pip:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
   little_mcp:
     has_velocity_limits: true
     max_velocity: 100.0
-    has_acceleration_limits: false
+    has_acceleration_limits: true
+    max_acceleration: 100.0
