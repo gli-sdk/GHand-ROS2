@@ -1,24 +1,51 @@
 import os
-from ament_index_python.packages import get_package_prefix
+from ament_index_python.packages import get_package_prefix, get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
+    OpaqueFunction,
 )
 from launch.substitutions import (
     Command,
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
-    PythonExpression,
 )
+from launch.utilities import perform_substitutions
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
+def resolve_profile(context):
+    """Resolve profile file path and verify it exists."""
+    profile = perform_substitutions(context, LaunchConfiguration("profile"))
+    profile_file = os.path.join(
+        get_package_share_directory("hand_bringup"),
+        "config",
+        "profiles",
+        f"{profile}.yaml",
+    )
+    if not os.path.exists(profile_file):
+        available = []
+        profiles_dir = os.path.dirname(profile_file)
+        if os.path.isdir(profiles_dir):
+            available = sorted([
+                f.replace(".yaml", "")
+                for f in os.listdir(profiles_dir)
+                if f.endswith(".yaml")
+            ])
+        raise RuntimeError(
+            f"Communication profile not found: {profile_file}\n"
+            f"Requested profile: '{profile}'\n"
+            f"Available profiles: {', '.join(available) if available else '<none>'}"
+        )
+    return []
+
+
 def generate_launch_description():
-    # Launch argument: use_mock_hardware
+    # Launch argument: use mock hardware
     use_mock_hardware_arg = DeclareLaunchArgument(
         "use_mock_hardware",
         default_value="false",
@@ -26,43 +53,59 @@ def generate_launch_description():
     )
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
 
-    # Launch arguments: communication backend selection
+    # Launch argument: select a communication backend profile
+    profile_arg = DeclareLaunchArgument(
+        "profile",
+        default_value="ethercat_default",
+        description="Communication profile under hand_bringup/config/profiles/.",
+    )
+
+    # Legacy launch arguments (empty defaults mean "use profile value").
+    # When provided, they override the corresponding profile field.
     communication_type_arg = DeclareLaunchArgument(
         "communication_type",
-        default_value="ethercat",
-        description="Communication backend: ethercat, rs485, or canfd.",
+        default_value="",
+        description="Override: communication backend (ethercat, rs485, canfd, zqwl_canfd).",
     )
     communication_type = LaunchConfiguration("communication_type")
 
     device_arg = DeclareLaunchArgument(
         "device",
-        default_value="/dev/ttyUSB0",
-        description="Serial/CAN device for rs485 or canfd backend.",
+        default_value="",
+        description="Override: Serial/CAN device path.",
     )
     device = LaunchConfiguration("device")
 
     baud_rate_arg = DeclareLaunchArgument(
         "baud_rate",
-        default_value="1000000",
-        description="Baud rate for rs485/canfd backend.",
+        default_value="",
+        description="Override: Baud rate for rs485 or CANFD arbitration phase.",
     )
     baud_rate = LaunchConfiguration("baud_rate")
 
     dbit_rate_arg = DeclareLaunchArgument(
         "dbit_rate",
-        default_value="5000000",
-        description="CANFD data phase bit rate (only used when communication_type=canfd).",
+        default_value="",
+        description="Override: CANFD data phase bit rate (legacy name for data_rate).",
     )
     dbit_rate = LaunchConfiguration("dbit_rate")
 
     slave_id_arg = DeclareLaunchArgument(
         "slave_id",
-        default_value="49",
-        description="Modbus slave ID or CAN device ID.",
+        default_value="",
+        description="Override: Modbus slave ID / CAN device ID (legacy name for node_id).",
     )
     slave_id = LaunchConfiguration("slave_id")
 
-    # Get URDF via xacro, switching between mock and real hardware
+    ifname_arg = DeclareLaunchArgument(
+        "ifname",
+        default_value="",
+        description="Override: EtherCAT network interface name.",
+    )
+    ifname = LaunchConfiguration("ifname")
+
+    # Get URDF via xacro. The xacro loads the selected profile and applies any
+    # explicitly provided legacy overrides.
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -72,6 +115,10 @@ def generate_launch_description():
             ),
             " use_mock_hardware:=",
             use_mock_hardware,
+            " profile_file:=",
+            PathJoinSubstitution(
+                [FindPackageShare("hand_bringup"), "config", "profiles", [LaunchConfiguration("profile"), ".yaml"]]
+            ),
             " communication_type:=",
             communication_type,
             " device:=",
@@ -82,6 +129,8 @@ def generate_launch_description():
             dbit_rate,
             " slave_id:=",
             slave_id,
+            " ifname:=",
+            ifname,
         ]
     )
     robot_description = {"robot_description": robot_description_content}
@@ -167,7 +216,7 @@ def generate_launch_description():
         cmd=[
             "bash",
             "-c",
-            "export LD_LIBRARY_PATH=\"/opt/ros/jazzy/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH\"; for d in /opt/ros/jazzy/opt/*/lib; do export LD_LIBRARY_PATH=\"$d:$LD_LIBRARY_PATH\"; done && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz",
+            'export LD_LIBRARY_PATH="/opt/ros/jazzy/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"; for d in /opt/ros/jazzy/opt/*/lib; do export LD_LIBRARY_PATH="$d:$LD_LIBRARY_PATH"; done && rviz2 -d $(ros2 pkg prefix hand_bringup)/share/hand_bringup/config/ghand.rviz',
         ],
         output="both",
     )
@@ -180,11 +229,14 @@ def generate_launch_description():
     nodes = [
         append_vendor_lib,
         use_mock_hardware_arg,
+        profile_arg,
         communication_type_arg,
         device_arg,
         baud_rate_arg,
         dbit_rate_arg,
         slave_id_arg,
+        ifname_arg,
+        OpaqueFunction(function=resolve_profile),
         robot_state_pub_node,
         controller_manager_node,
         joint_state_broadcaster_spawner,

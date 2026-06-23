@@ -263,6 +263,7 @@ bool EthercatDriver::init(const std::unordered_map<std::string, std::string> & p
 
   impl_->in_op = 1;
   impl_->is_connected = true;
+  printf("[ethercat] initialized: ifname=%s\n", impl_->ifname.c_str());
   return true;
 #endif
 }

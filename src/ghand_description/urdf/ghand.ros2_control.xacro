@@ -3,47 +3,86 @@
 
   <xacro:macro name="ghand_ros2_control"
                params="use_mock_hardware:=false
-                       communication_type:=ethercat
-                       ifname:=enxe466e5820449
-                       device:=/dev/ttyUSB0
-                       baud_rate:=1000000
-                       dbit_rate:=5000000
-                       slave_id:=49
-                       data_bits:=8
-                       stop_bits:=1
-                       parity:=N
-                       response_timeout_ms:=100
-                       read_timeout_ms:=500
-                       tactile_region_counts:=38,31,31,31,31">
+                       profile_file:=''
+                       communication_type:=''
+                       device:=''
+                       baud_rate:=''
+                       dbit_rate:=''
+                       slave_id:=''
+                       ifname:=''">
     <ros2_control name="ghand_hardware" type="system">
       <hardware>
-        <xacro:if value="${use_mock_hardware == 1}">
+        <!-- Normalize the mock flag so both '1' and 'true' are treated as mock. -->
+        <xacro:property name="_use_mock" scope="local"
+                        value="${use_mock_hardware in ['1', 'true', 'True']}"/>
+        <xacro:if value="${_use_mock}">
           <plugin>mock_components/GenericSystem</plugin>
           <param name="mock_sensor_commands">false</param>
           <param name="state_following_offset">0.0</param>
         </xacro:if>
-        <xacro:unless value="${use_mock_hardware == 1}">
+        <xacro:unless value="${_use_mock}">
+          <xacro:property name="profile" scope="local"
+                          value="${xacro.load_yaml(profile_file)['hardware']}"/>
+
+          <!-- Resolve unified parameters, applying legacy overrides when set. -->
+          <xacro:property name="_communication_type" scope="local"
+                          value="${communication_type if communication_type != '' else profile.get('communication_type', '')}"/>
+          <xacro:property name="_device" scope="local"
+                          value="${device if device != '' else profile.get('device', '')}"/>
+          <xacro:property name="_baud_rate" scope="local"
+                          value="${baud_rate if baud_rate != '' else profile.get('baud_rate', '')}"/>
+          <xacro:property name="_data_rate" scope="local"
+                          value="${dbit_rate if dbit_rate != '' else profile.get('data_rate', '')}"/>
+          <xacro:property name="_node_id" scope="local"
+                          value="${slave_id if slave_id != '' else profile.get('node_id', '')}"/>
+          <xacro:property name="_ifname" scope="local"
+                          value="${ifname if ifname != '' else profile.get('ifname', '')}"/>
+
           <plugin>GHand_hardware/GHandHardwareInterface</plugin>
-          <param name="communication_type">${communication_type}</param>
-          <param name="read_timeout_ms">${read_timeout_ms}</param>
-          <param name="tactile_region_counts">${tactile_region_counts}</param>
-          <xacro:if value="${communication_type == 'ethercat'}">
-            <param name="ifname">${ifname}</param>
+
+          <xacro:if value="${_communication_type != ''}">
+            <param name="communication_type">${_communication_type}</param>
           </xacro:if>
-          <xacro:if value="${communication_type == 'rs485'}">
-            <param name="device">${device}</param>
-            <param name="baud_rate">${baud_rate}</param>
-            <param name="slave_id">${slave_id}</param>
-            <param name="data_bits">${data_bits}</param>
-            <param name="stop_bits">${stop_bits}</param>
-            <param name="parity">${parity}</param>
-            <param name="response_timeout_ms">${response_timeout_ms}</param>
+          <xacro:if value="${_device != ''}">
+            <param name="device">${_device}</param>
           </xacro:if>
-          <xacro:if value="${communication_type == 'canfd'}">
-            <param name="device">${device}</param>
-            <param name="bitrate">${baud_rate}</param>
-            <param name="dbit_rate">${dbit_rate}</param>
-            <param name="device_id">${slave_id}</param>
+          <xacro:if value="${_baud_rate != ''}">
+            <param name="baud_rate">${_baud_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_data_rate != ''}">
+            <param name="data_rate">${_data_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_node_id != ''}">
+            <param name="node_id">${_node_id}</param>
+          </xacro:if>
+          <xacro:if value="${_ifname != ''}">
+            <param name="ifname">${_ifname}</param>
+          </xacro:if>
+
+          <!-- Backend-specific settings carried by the profile. -->
+          <xacro:if value="${'can_channel' in profile}">
+            <param name="can_channel">${profile['can_channel']}</param>
+          </xacro:if>
+          <xacro:if value="${'can_clk' in profile}">
+            <param name="can_clk">${profile['can_clk']}</param>
+          </xacro:if>
+          <xacro:if value="${'data_bits' in profile}">
+            <param name="data_bits">${profile['data_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'stop_bits' in profile}">
+            <param name="stop_bits">${profile['stop_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'parity' in profile}">
+            <param name="parity">${profile['parity']}</param>
+          </xacro:if>
+          <xacro:if value="${'response_timeout_ms' in profile}">
+            <param name="response_timeout_ms">${profile['response_timeout_ms']}</param>
+          </xacro:if>
+          <xacro:if value="${'read_timeout_ms' in profile}">
+            <param name="read_timeout_ms">${profile['read_timeout_ms']}</param>
+          </xacro:if>
+          <xacro:if value="${'tactile_region_counts' in profile}">
+            <param name="tactile_region_counts">${profile['tactile_region_counts']}</param>
           </xacro:if>
         </xacro:unless>
       </hardware>

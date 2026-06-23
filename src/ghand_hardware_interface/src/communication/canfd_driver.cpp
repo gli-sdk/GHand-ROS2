@@ -5,6 +5,7 @@
 #include <cctype>
 #include <chrono>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <map>
 #include <mutex>
@@ -193,13 +194,16 @@ bool CanfdDriver::init(const std::unordered_map<std::string, std::string> & para
   impl_->can_index_ = static_cast<uint32_t>(can_index);
 
   const int bitrate = parse_int_default(
+    params.count("baud_rate") ? params.at("baud_rate") :
     params.count("bitrate") ? params.at("bitrate") : "", 1000000);
   const int dbitrate = parse_int_default(
+    params.count("data_rate") ? params.at("data_rate") :
     params.count("dbit_rate") ? params.at("dbit_rate") : "", 5000000);
   const uint32_t clock_hz = static_cast<uint32_t>(parse_int_default(
     params.count("can_clk") ? params.at("can_clk") : "", 60000000));
 
   const int device_id_param = parse_int_default(
+    params.count("node_id") ? params.at("node_id") :
     params.count("device_id") ? params.at("device_id") : "", 0);
   impl_->device_id_filter_ = static_cast<uint8_t>(device_id_param);
   impl_->dst_id_ = static_cast<uint8_t>(device_id_param != 0 ? device_id_param : 0x31);
@@ -301,6 +305,10 @@ bool CanfdDriver::init(const std::unordered_map<std::string, std::string> & para
   impl_->connected_.store(true);
   impl_->run_thread_ = true;
   impl_->recv_thread_ = std::thread([this]() { impl_->ReceiveLoop(); });
+  printf(
+    "[canfd] initialized: device=%s baud_rate=%u data_rate=%u node_id=%u\n",
+    device_name.c_str(), static_cast<uint32_t>(bitrate),
+    static_cast<uint32_t>(dbitrate), impl_->device_id_filter_);
   return true;
 #endif
 }

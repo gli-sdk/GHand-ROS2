@@ -27,12 +27,17 @@ from moveit_configs_utils import MoveItConfigsBuilder
 def generate_launch_description():
     use_sim = LaunchConfiguration("use_sim")
     use_rviz = LaunchConfiguration("use_rviz")
+    profile = LaunchConfiguration("profile")
 
     declared_args = [
         DeclareLaunchArgument("use_sim", default_value="true",
                               description="Use mock hardware when true"),
         DeclareLaunchArgument("use_rviz", default_value="true",
                               description="Launch RViz when true"),
+        DeclareLaunchArgument(
+            "profile",
+            default_value="ethercat_default",
+            description="Communication profile under hand_bringup/config/profiles/."),
     ]
 
     # URDF via xacro with mock/real switching
@@ -42,6 +47,10 @@ def generate_launch_description():
         PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5-A7-R.urdf"]),
         " use_mock_hardware:=",
         PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
+        " profile_file:=",
+        PathJoinSubstitution(
+            [FindPackageShare("hand_bringup"), "config", "profiles", [profile, ".yaml"]]
+        ),
     ]
     robot_description_content = Command(xacro_cmd)
 

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <mutex>
 #include <sstream>
@@ -124,8 +125,9 @@ bool Rs485Driver::init(const std::unordered_map<std::string, std::string> & para
   impl_->device_ = it->second;
 
   impl_->baud_rate_ = parse_int_default(params.count("baud_rate") ? params.at("baud_rate") : "", 0);
-  impl_->slave_id_ = static_cast<uint8_t>(
-    parse_int_default(params.count("slave_id") ? params.at("slave_id") : "", 0));
+  impl_->slave_id_ = static_cast<uint8_t>(parse_int_default(
+    params.count("node_id") ? params.at("node_id") :
+    params.count("slave_id") ? params.at("slave_id") : "", 0));
   impl_->data_bits_ = parse_int_default(params.count("data_bits") ? params.at("data_bits") : "", 8);
   impl_->stop_bits_ = parse_int_default(params.count("stop_bits") ? params.at("stop_bits") : "", 1);
   impl_->response_timeout_ms_ = parse_int_default(
@@ -232,6 +234,9 @@ bool Rs485Driver::init(const std::unordered_map<std::string, std::string> & para
 
   impl_->poll_stop_ = false;
   impl_->poll_thread_ = std::thread([this]() { impl_->PollLoop(); });
+  printf(
+    "[rs485] initialized: device=%s baud_rate=%d node_id=%d\n",
+    impl_->device_.c_str(), impl_->baud_rate_, impl_->slave_id_);
   return true;
 #endif
 }

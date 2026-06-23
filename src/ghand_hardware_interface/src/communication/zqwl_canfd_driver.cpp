@@ -216,10 +216,12 @@ bool ZqwlCanfdDriver::init(const std::unordered_map<std::string, std::string> & 
   impl_->can_bitrate_ = static_cast<uint32_t>(parse_int_default(
     params.count("bitrate") ? params.at("bitrate") : "", 1000000));
   impl_->dbit_rate_ = static_cast<uint32_t>(parse_int_default(
+    params.count("data_rate") ? params.at("data_rate") :
     params.count("dbit_rate") ? params.at("dbit_rate") : "", 5000000));
   impl_->can_channel_ = static_cast<uint8_t>(parse_int_default(
     params.count("can_channel") ? params.at("can_channel") : "", 0));
   impl_->device_id_ = static_cast<uint8_t>(parse_int_default(
+    params.count("node_id") ? params.at("node_id") :
     params.count("device_id") ? params.at("device_id") : "", 50));
 
   auto cm = params.find("control_mode");
@@ -343,6 +345,11 @@ bool ZqwlCanfdDriver::init(const std::unordered_map<std::string, std::string> & 
   impl_->handshake_done_.store(true);
   impl_->last_rx_time_ = std::chrono::steady_clock::now();
   impl_->rx_timeout_initialized_ = true;
+
+  printf(
+    "[zqwl_canfd] initialized: device=%s baud_rate=%u data_rate=%u node_id=%u channel=%u\n",
+    impl_->device_path_.c_str(), impl_->serial_baud_rate_,
+    impl_->dbit_rate_, impl_->device_id_, impl_->can_channel_);
 
   // Seed latest_data_ so read() returns valid zero-values immediately,
   // avoiding the Jazzy framework segfault when controllers load without CAN data.
