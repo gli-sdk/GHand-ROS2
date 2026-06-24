@@ -547,6 +547,7 @@
 
   <!-- ros2_control -->
   <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="use_gazebo" default="false"/>
   <xacro:arg name="profile_file" default=""/>
   <xacro:arg name="communication_type" default=""/>
   <xacro:arg name="ifname" default=""/>
@@ -558,6 +559,7 @@
   <xacro:include filename="$(find ghand_description)/urdf/ghand.ros2_control.xacro"/>
   <xacro:ghand_ros2_control
     use_mock_hardware="$(arg use_mock_hardware)"
+    use_gazebo="$(arg use_gazebo)"
     profile_file="$(arg profile_file)"
     communication_type="$(arg communication_type)"
     ifname="$(arg ifname)"
@@ -565,4 +567,30 @@
     baud_rate="$(arg baud_rate)"
     dbit_rate="$(arg dbit_rate)"
     slave_id="$(arg slave_id)"/>
+
+  <!-- Gazebo -->
+  <xacro:include filename="$(find ghand_description)/urdf/ghand.gazebo.xacro"/>
+  <xacro:ghand_gazebo_link_properties link_name="base_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="little_mcp_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="little_pip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="little_dip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="ring_mcp_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="ring_pip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="ring_dip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="middle_mcp_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="middle_pip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="middle_dip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="index_mcp_aa_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="index_mcp_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="index_pip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="index_dip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_ps_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_aa_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_fe_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="thumb_mcp_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="thumb_dip_link"/>
+  <xacro:ghand_gazebo_ros2_control_plugin
+    ros2_control_params="$(find hand_bringup)/config/ros2_control.yaml"
+    controllers_params="$(find hand_bringup)/config/controllers.yaml"/>
+
 </robot>

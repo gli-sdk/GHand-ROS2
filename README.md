@@ -12,7 +12,7 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 | ROS 2 | Humble Hawksbill / Jazzy |
 | 开发语言 | C++17、Python 3.10+ |
 | 构建工具 | colcon（C++ 使用 CMake） |
-| 仿真器 | Gazebo Ignition 6 |
+| 仿真器 | Gazebo Harmonic |
 | 运动规划 | MoveIt 2 |
 | EtherCAT 主站 | SOEM（`libsoem`） |
 | CANFD 主站 | ZLG CAN（`libzlgcan`） |
@@ -55,6 +55,7 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 | `hand_msgs` | 自定义消息类型：`JointStatus`、`TactileData` |
 | `hand_bringup` | 启动文件与控制器/机器人管理器配置 |
 | `ghand_moveit_config` | MoveIt 2 运动规划配置 |
+| `ghand_gazebo`        | Gazebo 物理仿真启动与配置 |
 
 ---
 
@@ -402,6 +403,23 @@ ros2 launch ghand_moveit_config moveit.launch.py
 ros2 launch ghand_moveit_config moveit.launch.py use_sim:=false profile:=rs485_left
 ```
 
+### 6. 启动 Gazebo 仿真
+
+确保已安装 Gazebo 依赖：
+
+```bash
+sudo apt update
+sudo apt install -y ros-jazzy-gazebo-ros2-control ros-jazzy-ros-gz-sim
+```
+
+启动 Gazebo 物理仿真（包含 MoveIt）：
+
+```bash
+source /home/pq/GHand-Ros2/install/setup.bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+启动后，Gazebo 会加载 `empty.world` 并生成 GHand 模型。RViz 中可通过 MotionPlanning 插件规划轨迹，轨迹会发送到 Gazebo 中的 `joint_trajectory_controller` 物理执行。
 
 ---
 
@@ -509,7 +527,8 @@ GHand-Ros2/                              # ROS 2 工作空间
 │   ├── hand_controllers/                # 自定义 broadcaster
 │   ├── hand_msgs/                       # 自定义消息
 │   ├── hand_bringup/                    # 启动与配置
-│   └── ghand_moveit_config/             # MoveIt 2 配置
+│   ├── ghand_moveit_config/             # MoveIt 2 配置
+│   └── ghand_gazebo/                    # Gazebo 物理仿真
 ├── openspec/                            # 规格驱动开发流程文档
 ├── ros.md                               # 项目设计文档
 ├── ros2_control架构图.drawio.png        # 架构图
@@ -535,4 +554,24 @@ ros2 launch hand_bringup ghand.launch.py profile:=zqwl_canfd_left
 # 验证覆盖与错误提示
 ros2 launch hand_bringup ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
 ros2 launch hand_bringup ghand.launch.py profile:=nonexistent
+
+moveIt:
+cd ~/GHand-Ros2
+colcon build --symlink-install
+source install/setup.bash
+
+ros2 launch ghand_moveit_config moveit.launch.py use_sim:=true
+
+gazebo:
+# 1. 安装依赖（如未安装）
+sudo apt update
+sudo apt install -y ros-jazzy-gazebo-ros2-control ros-jazzy-ros-gz-sim
+
+# 2. 构建
+cd ~/GHand-Ros2
+colcon build --symlink-install
+source install/setup.bash
+
+# 3. 启动 Gazebo + MoveIt
+ros2 launch ghand_gazebo ghand_gazebo.launch.py
 

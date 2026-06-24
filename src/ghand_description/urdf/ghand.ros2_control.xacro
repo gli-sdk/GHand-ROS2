@@ -3,6 +3,7 @@
 
   <xacro:macro name="ghand_ros2_control"
                params="use_mock_hardware:=false
+                       use_gazebo:=false
                        profile_file:=''
                        communication_type:=''
                        device:=''
@@ -12,15 +13,21 @@
                        ifname:=''">
     <ros2_control name="ghand_hardware" type="system">
       <hardware>
-        <!-- Normalize the mock flag so both '1' and 'true' are treated as mock. -->
+        <!-- Normalize the mock/gazebo flags so both '1' and 'true' are treated as enabled. -->
         <xacro:property name="_use_mock" scope="local"
                         value="${str(use_mock_hardware) in ['1', 'true', 'True']}"/>
-        <xacro:if value="${_use_mock}">
-          <plugin>mock_components/GenericSystem</plugin>
-          <param name="mock_sensor_commands">false</param>
-          <param name="state_following_offset">0.0</param>
+        <xacro:property name="_use_gazebo" scope="local"
+                        value="${use_gazebo in ['1', 'true', 'True']}"/>
+        <xacro:if value="${_use_gazebo}">
+          <plugin>gazebo_ros2_control/GazeboSystem</plugin>
         </xacro:if>
-        <xacro:unless value="${_use_mock}">
+        <xacro:unless value="${_use_gazebo}">
+          <xacro:if value="${_use_mock}">
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="mock_sensor_commands">false</param>
+            <param name="state_following_offset">0.0</param>
+          </xacro:if>
+          <xacro:unless value="${_use_mock}">
           <xacro:property name="profile" scope="local"
                           value="${xacro.load_yaml(profile_file)['hardware']}"/>
 
@@ -84,6 +91,7 @@
           <xacro:if value="${'tactile_region_counts' in profile}">
             <param name="tactile_region_counts">${profile['tactile_region_counts']}</param>
           </xacro:if>
+          </xacro:unless>
         </xacro:unless>
       </hardware>
       <joint name="thumb_dip">
@@ -123,7 +131,14 @@
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
-        <state_interface name="position"/>
+        <xacro:if value="${_use_mock}">
+          <state_interface name="position">
+            <param name="initial_value">0.349065850398866</param>
+          </state_interface>
+        </xacro:if>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="position"/>
+        </xacro:unless>
         <state_interface name="velocity"/>
         <state_interface name="effort"/>
         <xacro:unless value="${_use_mock}">
