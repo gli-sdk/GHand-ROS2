@@ -2,7 +2,7 @@
 
 Parameters:
   use_rviz: 是否启动 RViz (默认: true)
-  world:    Gazebo world 文件路径 (默认: empty.world)
+  world:    Gazebo world 文件路径 (默认: grasp_world.world)
 """
 
 import os
