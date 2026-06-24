@@ -115,19 +115,19 @@ joint_trajectory_controller:
     constraints:
       goal_time: 2.0
       stopped_velocity_tolerance: 0.01
-      thumb_mcp:        { goal: 0.1, trajectory: 0.1 }
-      thumb_tmc_fe:     { goal: 0.1, trajectory: 0.1 }
-      thumb_tmc_aa:     { goal: 0.1, trajectory: 0.1 }
-      thumb_tmc_ps:     { goal: 0.1, trajectory: 0.1 }
-      index_pip:        { goal: 0.1, trajectory: 0.1 }
-      index_mcp:        { goal: 0.1, trajectory: 0.1 }
-      index_mcp_aa:     { goal: 0.1, trajectory: 0.1 }
-      middle_pip:       { goal: 0.1, trajectory: 0.1 }
-      middle_mcp:       { goal: 0.1, trajectory: 0.1 }
-      ring_pip:         { goal: 0.1, trajectory: 0.1 }
-      ring_mcp:         { goal: 0.1, trajectory: 0.1 }
-      little_pip:       { goal: 0.1, trajectory: 0.1 }
-      little_mcp:       { goal: 0.1, trajectory: 0.1 }
+      thumb_mcp:        { goal: 0.1, trajectory: 0.3 }
+      thumb_tmc_fe:     { goal: 0.1, trajectory: 0.3 }
+      thumb_tmc_aa:     { goal: 0.1, trajectory: 0.3 }
+      thumb_tmc_ps:     { goal: 0.1, trajectory: 0.3 }
+      index_pip:        { goal: 0.1, trajectory: 0.3 }
+      index_mcp:        { goal: 0.1, trajectory: 0.3 }
+      index_mcp_aa:     { goal: 0.1, trajectory: 0.3 }
+      middle_pip:       { goal: 0.1, trajectory: 0.3 }
+      middle_mcp:       { goal: 0.1, trajectory: 0.3 }
+      ring_pip:         { goal: 0.1, trajectory: 0.3 }
+      ring_mcp:         { goal: 0.1, trajectory: 0.3 }
+      little_pip:       { goal: 0.1, trajectory: 0.3 }
+      little_mcp:       { goal: 0.1, trajectory: 0.3 }
 
 position_controller:
   ros__parameters:

@@ -341,8 +341,8 @@ bool EthercatDriver::write(const std::vector<JointCommand> & commands)
   static int write_cnt = 0;
   if (++write_cnt % 100 == 0 || write_cnt == 1)
   {
-    printf("=== write #%d: command_count=%zu pdo_count=%zu\n",
-           write_cnt, commands.size(), impl_->valid_joints.size());
+    // printf("=== write #%d: command_count=%zu pdo_count=%zu\n",
+    //        write_cnt, commands.size(), impl_->valid_joints.size());
     for (size_t pdo_idx = 0; pdo_idx < impl_->valid_joints.size(); ++pdo_idx)
     {
       const auto joint_id = impl_->valid_joints[pdo_idx];
@@ -359,14 +359,17 @@ bool EthercatDriver::write(const std::vector<JointCommand> & commands)
           break;
         }
       }
-      printf("  [pdo %2zu] %-16s id=%2d pos_deg=%7.3f pos_rad=%7.3f vel=%3d torque=%3d\n",
-             pdo_idx,
-             joint_id_to_name(joint_id).c_str(),
-             static_cast<int>(joint_id),
-             angle * 180.0f / static_cast<float>(kPi),
-             angle,
-             velocity,
-             torque);
+      // (void)angle;
+      // (void)velocity;
+      // (void)torque;
+      // printf("  [pdo %2zu] %-16s id=%2d pos_deg=%7.3f pos_rad=%7.3f vel=%3d torque=%3d\n",
+      //        pdo_idx,
+      //        joint_id_to_name(joint_id).c_str(),
+      //        static_cast<int>(joint_id),
+      //        angle * 180.0f / static_cast<float>(kPi),
+      //        angle,
+      //        velocity,
+      //        torque);
     }
   }
 
@@ -438,18 +441,18 @@ void EthercatDriver::Impl::ecat_thread()
         }
       }
 
-      static bool pdo_dumped = false;
-      if (!pdo_dumped && !pdo_copy.empty())
-      {
-        pdo_dumped = true;
-        const size_t dump_len = std::min(pdo_copy.size(), size_t(64));
-        printf("=== PDO size=%zu, first %zu bytes: ", pdo_copy.size(), dump_len);
-        for (size_t i = 0; i < dump_len; ++i)
-        {
-          printf("%02x ", pdo_copy[i]);
-        }
-        printf("\n");
-      }
+      // static bool pdo_dumped = false;
+      // if (!pdo_dumped && !pdo_copy.empty())
+      // {
+      //   pdo_dumped = true;
+      //   const size_t dump_len = std::min(pdo_copy.size(), size_t(64));
+      //   printf("=== PDO size=%zu, first %zu bytes: ", pdo_copy.size(), dump_len);
+      //   for (size_t i = 0; i < dump_len; ++i)
+      //   {
+      //     printf("%02x ", pdo_copy[i]);
+      //   }
+      //   printf("\n");
+      // }
 
       if (!pdo_copy.empty())
       {
@@ -649,22 +652,22 @@ void EthercatDriver::Impl::parse_hand_and_joints(
   }
 
   // Diagnostic: periodically dump the joint mapping as received from the slave.
-  {
-    static int parse_count = 0;
-    if (++parse_count % 100 == 0 || parse_count == 1)
-    {
-      printf("=== parse_hand_and_joints #%d (18 joints)\n", parse_count);
-      for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx)
-      {
-        const auto & js = out_data->joints[urdf_idx];
-        printf("  [urdf %2zu] %-16s pos_deg=%7.3f\n",
-               urdf_idx,
-               joint_id_to_name(static_cast<JointId>(urdf_idx)).c_str(),
-               js.position);
-      }
-    }
-  }
-}
+//   {
+//     static int parse_count = 0;
+//     if (++parse_count % 100 == 0 || parse_count == 1)
+//     {
+//       printf("=== parse_hand_and_joints #%d (18 joints)\n", parse_count);
+//       for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx)
+//       {
+//         const auto & js = out_data->joints[urdf_idx];
+//         printf("  [urdf %2zu] %-16s pos_deg=%7.3f\n",
+//                urdf_idx,
+//                joint_id_to_name(static_cast<JointId>(urdf_idx)).c_str(),
+//                js.position);
+//       }
+//     }
+//   }
+ }
 
 void EthercatDriver::Impl::parse_tactile_data(
   const uint8_t * data, size_t size, size_t * offset,

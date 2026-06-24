@@ -70,7 +70,7 @@
     <joint name="thumb_dip" value="0.0"/>
     <joint name="thumb_mcp" value="0.0"/>
     <joint name="thumb_tmc_fe" value="0.0"/>
-    <joint name="thumb_tmc_aa" value="0.0"/>
+    <joint name="thumb_tmc_aa" value="0.349065850398866"/>
     <joint name="thumb_tmc_ps" value="0.0"/>
     <joint name="index_dip" value="0.0"/>
     <joint name="index_pip" value="0.0"/>
