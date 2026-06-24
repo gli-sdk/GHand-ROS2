@@ -437,9 +437,9 @@ hardware_interface::return_type GHandHardwareInterface::read(const rclcpp::Time 
           if (i > 0) line += ", ";
           line += info_.joints[i].name + "=" + std::to_string(hw_joint_states_[i].position);
         }
-        RCLCPP_INFO(
-          rclcpp::get_logger("GHandHardwareInterface"),
-          "read #%d all joints: %s", read_count, line.c_str());
+        // RCLCPP_INFO(
+        //   rclcpp::get_logger("GHandHardwareInterface"),
+        //   "read #%d all joints: %s", read_count, line.c_str());
       }
     }
 
@@ -545,28 +545,28 @@ hardware_interface::return_type GHandHardwareInterface::write(const rclcpp::Time
   }
 
   // Diagnostic: log the commanded values for key joints before they are sent.
-  {
-    static int write_count = 0;
-    if (++write_count % 100 == 0)
-    {
-      auto joint_cmd = [this](const std::string & name) -> double {
-        for (size_t i = 0; i < info_.joints.size(); ++i)
-        {
-          if (info_.joints[i].name == name)
-          {
-            return hw_joint_commands_[i].position;
-          }
-        }
-        return std::numeric_limits<double>::quiet_NaN();
-      };
-      RCLCPP_INFO(
-        rclcpp::get_logger("GHandHardwareInterface"),
-        "write #%d: index_pip=%.4f middle_pip=%.4f middle_mcp=%.4f ring_pip=%.4f little_pip=%.4f",
-        write_count,
-        joint_cmd("index_pip"), joint_cmd("middle_pip"), joint_cmd("middle_mcp"),
-        joint_cmd("ring_pip"), joint_cmd("little_pip"));
-    }
-  }
+  // {
+  //   static int write_count = 0;
+  //   if (++write_count % 100 == 0)
+  //   {
+  //     auto joint_cmd = [this](const std::string & name) -> double {
+  //       for (size_t i = 0; i < info_.joints.size(); ++i)
+  //       {
+  //         if (info_.joints[i].name == name)
+  //         {
+  //           return hw_joint_commands_[i].position;
+  //         }
+  //       }
+  //       return std::numeric_limits<double>::quiet_NaN();
+  //     };
+  //     RCLCPP_INFO(
+  //       rclcpp::get_logger("GHandHardwareInterface"),
+  //       "write #%d: index_pip=%.4f middle_pip=%.4f middle_mcp=%.4f ring_pip=%.4f little_pip=%.4f",
+  //       write_count,
+  //       joint_cmd("index_pip"), joint_cmd("middle_pip"), joint_cmd("middle_mcp"),
+  //       joint_cmd("ring_pip"), joint_cmd("little_pip"));
+  //   }
+  // }
 
   constexpr double kPi = 3.14159265358979323846;
   constexpr double kRadToDeg = 180.0 / kPi;

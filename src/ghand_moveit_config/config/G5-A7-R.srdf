@@ -115,178 +115,76 @@
   <end_effector name="little_finger_tip" parent_link="little_dip_link" group="little_finger_tip" parent_group="little_finger"/>
   <end_effector name="thumb_tip" parent_link="thumb_dip_link" group="thumb_tip" parent_group="thumb"/>
 
-  <!--===== 禁用手部所有自碰撞对（仿真模式） =====-->
-  <disable_collisions link1="base_link" link2="index_dip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="index_mcp_aa_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="index_mcp_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="index_pip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="little_dip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="little_pip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="middle_dip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="middle_pip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="ring_dip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="base_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="index_mcp_aa_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="index_mcp_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="index_pip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="little_dip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="little_pip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="middle_dip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="middle_pip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="ring_dip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="index_dip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="index_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="index_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="little_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="little_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="middle_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="middle_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="ring_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="index_mcp_aa_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="index_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="little_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="little_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="middle_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="middle_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="ring_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="thumb_tmc_aa_link" reason="User"/>
+  <!--===== 自碰撞禁用规则 =====-->
+  <!-- base_link 与手指根部：手掌和直接连在手掌上的关节，碰撞体通常重叠，禁用 -->
+  <disable_collisions link1="base_link" link2="index_mcp_aa_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="index_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="middle_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="ring_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="little_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="thumb_tmc_ps_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="thumb_tmc_aa_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="thumb_tmc_fe_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="thumb_mcp_link" reason="Adjacent"/>
+
+  <!-- 相邻关节对：同一根手指上直接相连的 link 不检测碰撞 -->
+  <disable_collisions link1="index_dip_link" link2="index_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="index_mcp_aa_link" link2="index_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="index_mcp_link" link2="index_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="little_dip_link" link2="little_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="little_dip_link" link2="little_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="little_mcp_link" link2="little_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="middle_dip_link" link2="middle_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="middle_dip_link" link2="middle_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="middle_mcp_link" link2="middle_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="ring_dip_link" link2="ring_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="ring_dip_link" link2="ring_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="ring_mcp_link" link2="ring_pip_link" reason="Adjacent"/>
+  <disable_collisions link1="thumb_dip_link" link2="thumb_mcp_link" reason="Adjacent"/>
+  <disable_collisions link1="thumb_mcp_link" link2="thumb_tmc_fe_link" reason="Adjacent"/>
+  <disable_collisions link1="thumb_tmc_fe_link" link2="thumb_tmc_aa_link" reason="Adjacent"/>
+  <disable_collisions link1="thumb_tmc_aa_link" link2="thumb_tmc_ps_link" reason="Adjacent"/>
+  <!-- 特殊相邻/无干涉对：index_mcp 与 thumb_tmc_fe -->
   <disable_collisions link1="index_mcp_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="index_mcp_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="little_dip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="little_pip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="middle_dip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="middle_pip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="ring_dip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="index_pip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="little_mcp_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="little_pip_link" reason="User"/>
+
+  <!-- 无干涉组：middle/ring/little 三根手指内部任意 link 之间、以及它们与 thumb_tmc_fe 之间不检测碰撞 -->
   <disable_collisions link1="little_dip_link" link2="middle_dip_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="middle_mcp_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="middle_pip_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="little_dip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="little_dip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="little_mcp_link" link2="little_pip_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="middle_dip_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="middle_mcp_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="middle_pip_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="little_mcp_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="little_mcp_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="little_mcp_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="little_mcp_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="little_mcp_link" link2="thumb_tmc_ps_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="middle_dip_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="middle_mcp_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="middle_pip_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="little_pip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="little_pip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="little_pip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="little_pip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="little_pip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="middle_mcp_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="middle_pip_link" reason="User"/>
   <disable_collisions link1="middle_dip_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="middle_dip_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="middle_dip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="middle_dip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="middle_dip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="middle_mcp_link" link2="middle_pip_link" reason="User"/>
   <disable_collisions link1="middle_mcp_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="middle_mcp_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="middle_mcp_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="middle_mcp_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="middle_mcp_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="middle_mcp_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="middle_mcp_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="middle_mcp_link" link2="thumb_tmc_ps_link" reason="User"/>
   <disable_collisions link1="middle_pip_link" link2="ring_dip_link" reason="User"/>
   <disable_collisions link1="middle_pip_link" link2="ring_mcp_link" reason="User"/>
   <disable_collisions link1="middle_pip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="middle_pip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="middle_pip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="middle_pip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="middle_pip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="middle_pip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="ring_mcp_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="ring_dip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="ring_dip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="ring_mcp_link" link2="ring_pip_link" reason="User"/>
-  <disable_collisions link1="ring_mcp_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="ring_mcp_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="ring_mcp_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="ring_mcp_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="ring_mcp_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="ring_pip_link" link2="thumb_dip_link" reason="User"/>
-  <disable_collisions link1="ring_pip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="ring_pip_link" link2="thumb_tmc_aa_link" reason="User"/>
   <disable_collisions link1="ring_pip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="ring_pip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="thumb_dip_link" link2="thumb_mcp_link" reason="User"/>
-  <disable_collisions link1="thumb_dip_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="thumb_dip_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="thumb_dip_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="thumb_mcp_link" link2="thumb_tmc_aa_link" reason="User"/>
-  <disable_collisions link1="thumb_mcp_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="thumb_mcp_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="thumb_tmc_aa_link" link2="thumb_tmc_fe_link" reason="User"/>
-  <disable_collisions link1="thumb_tmc_aa_link" link2="thumb_tmc_ps_link" reason="User"/>
-  <disable_collisions link1="thumb_tmc_fe_link" link2="thumb_tmc_ps_link" reason="User"/>
+
 
   <!--===== 虚拟关节 =====-->
   <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>

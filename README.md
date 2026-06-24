@@ -409,7 +409,7 @@ ros2 launch ghand_moveit_config moveit.launch.py use_sim:=false profile:=rs485_l
 
 ```bash
 sudo apt update
-sudo apt install -y ros-jazzy-gazebo-ros2-control ros-jazzy-ros-gz-sim
+sudo apt install -y ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz
 ```
 
 启动 Gazebo 物理仿真（包含 MoveIt）：
@@ -565,7 +565,7 @@ ros2 launch ghand_moveit_config moveit.launch.py use_sim:=true
 gazebo:
 # 1. 安装依赖（如未安装）
 sudo apt update
-sudo apt install -y ros-jazzy-gazebo-ros2-control ros-jazzy-ros-gz-sim
+sudo apt install -y ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz
 
 # 2. 构建
 cd ~/GHand-Ros2

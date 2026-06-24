@@ -55,12 +55,17 @@ def generate_launch_description():
     robot_description_content = Command(xacro_cmd)
 
     # Build MoveIt configs (skip robot_description — inject manually after builder)
+    # hand 组为多指树形结构，无 IK solver，因此默认并仅使用 OMPL 管线
     moveit_config = (
         MoveItConfigsBuilder("G5-A7-R", package_name="ghand_moveit_config")
         .robot_description_semantic(file_path="config/G5-A7-R.srdf")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
+        .planning_pipelines(
+            default_planning_pipeline="ompl",
+            pipelines=["ompl"],
+        )
         .to_moveit_configs()
     )
     moveit_config.robot_description = {"robot_description": robot_description_content}

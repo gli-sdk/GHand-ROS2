@@ -1,9 +1,9 @@
 # Joint limits for GHand.
 # Note: velocity and effort in this project are treated as percentage (0-100),
 # not SI units (rad/s or N*m). The URDF limits are also set to 100.0.
-default_velocity_scaling_factor: 0.5
+default_velocity_scaling_factor: 0.2
 
-default_acceleration_scaling_factor: 0.5
+default_acceleration_scaling_factor: 0.2
 
 joint_limits:
   thumb_dip:

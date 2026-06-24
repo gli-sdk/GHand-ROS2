@@ -112,22 +112,24 @@ joint_trajectory_controller:
     # stopped_velocity_tolerance: rad/s threshold below which a joint is considered stopped.
     # goal: final position error tolerance (rad).
     # trajectory: max allowed deviation from planned trajectory during execution (rad).
+    # GHand fingers have backlash and varying mechanical response; use relaxed path
+    # tolerances to avoid frequent ABORTs during normal motion.
     constraints:
       goal_time: 2.0
       stopped_velocity_tolerance: 0.01
-      thumb_mcp:        { goal: 0.1, trajectory: 0.3 }
-      thumb_tmc_fe:     { goal: 0.1, trajectory: 0.3 }
-      thumb_tmc_aa:     { goal: 0.1, trajectory: 0.3 }
-      thumb_tmc_ps:     { goal: 0.1, trajectory: 0.3 }
-      index_pip:        { goal: 0.1, trajectory: 0.3 }
-      index_mcp:        { goal: 0.1, trajectory: 0.3 }
-      index_mcp_aa:     { goal: 0.1, trajectory: 0.3 }
-      middle_pip:       { goal: 0.1, trajectory: 0.3 }
-      middle_mcp:       { goal: 0.1, trajectory: 0.3 }
-      ring_pip:         { goal: 0.1, trajectory: 0.3 }
-      ring_mcp:         { goal: 0.1, trajectory: 0.3 }
-      little_pip:       { goal: 0.1, trajectory: 0.3 }
-      little_mcp:       { goal: 0.1, trajectory: 0.3 }
+      thumb_mcp:        { goal: 0.1, trajectory: 0.5 }
+      thumb_tmc_fe:     { goal: 0.1, trajectory: 0.5 }
+      thumb_tmc_aa:     { goal: 0.1, trajectory: 0.5 }
+      thumb_tmc_ps:     { goal: 0.1, trajectory: 0.5 }
+      index_pip:        { goal: 0.1, trajectory: 0.5 }
+      index_mcp:        { goal: 0.1, trajectory: 0.5 }
+      index_mcp_aa:     { goal: 0.1, trajectory: 0.5 }
+      middle_pip:       { goal: 0.1, trajectory: 0.5 }
+      middle_mcp:       { goal: 0.1, trajectory: 0.5 }
+      ring_pip:         { goal: 0.1, trajectory: 0.5 }
+      ring_mcp:         { goal: 0.1, trajectory: 0.5 }
+      little_pip:       { goal: 0.1, trajectory: 0.5 }
+      little_mcp:       { goal: 0.1, trajectory: 0.5 }
 
 position_controller:
   ros__parameters:
