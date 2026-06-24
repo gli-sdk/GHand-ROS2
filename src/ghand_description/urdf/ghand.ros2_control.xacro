@@ -17,9 +17,9 @@
         <xacro:property name="_use_mock" scope="local"
                         value="${str(use_mock_hardware) in ['1', 'true', 'True']}"/>
         <xacro:property name="_use_gazebo" scope="local"
-                        value="${use_gazebo in ['1', 'true', 'True']}"/>
+                        value="${str(use_gazebo) in ['1', 'true', 'True']}"/>
         <xacro:if value="${_use_gazebo}">
-          <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </xacro:if>
         <xacro:unless value="${_use_gazebo}">
           <xacro:if value="${_use_mock}">

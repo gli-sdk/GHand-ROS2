@@ -108,6 +108,7 @@
     <child link="little_dip_link" />
     <axis xyz="0 0 1" />
     <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
+    <mimic joint="little_pip" multiplier="1.0" offset="0.0" />
   </joint>
 <link name="ring_mcp_link">
     <inertial>
@@ -195,6 +196,7 @@
     <child link="ring_dip_link" />
     <axis xyz="0 0 1" />
     <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
+    <mimic joint="ring_pip" multiplier="1.0" offset="0.0" />
   </joint>
 <link name="middle_mcp_link">
     <inertial>
@@ -282,6 +284,7 @@
     <child link="middle_dip_link" />
     <axis xyz="0 0 1" />
     <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
+    <mimic joint="middle_pip" multiplier="1.0" offset="0.0" />
   </joint>
 <link name="index_mcp_aa_link">
     <inertial>
@@ -398,6 +401,7 @@
     <child link="index_dip_link" />
     <axis xyz="0 0 1" />
     <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
+    <mimic joint="index_pip" multiplier="1.0" offset="0.0" />
   </joint>
 <link name="thumb_tmc_ps_link">
     <inertial>
@@ -543,6 +547,7 @@
     <child link="thumb_dip_link" />
     <axis xyz="0 0 1" />
     <limit lower="0" upper="1.5707963267949" effort="100.0" velocity="100.0" />
+    <mimic joint="thumb_mcp" multiplier="1.0" offset="0.0" />
   </joint>
 
   <!-- ros2_control -->

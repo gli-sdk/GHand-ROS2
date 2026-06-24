@@ -28,7 +28,7 @@
                params="ros2_control_params
                        controllers_params">
     <gazebo>
-      <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control::GazeboRos2ControlPlugin">
+      <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
         <parameters>${ros2_control_params}</parameters>
         <parameters>${controllers_params}</parameters>
       </plugin>

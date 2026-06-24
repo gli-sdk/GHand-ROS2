@@ -67,45 +67,35 @@
 
   <!--===== 预设手势 =====-->
   <group_state name="open" group="hand">
-    <joint name="thumb_dip" value="0.0"/>
     <joint name="thumb_mcp" value="0.0"/>
     <joint name="thumb_tmc_fe" value="0.0"/>
     <joint name="thumb_tmc_aa" value="0.349065850398866"/>
     <joint name="thumb_tmc_ps" value="0.0"/>
-    <joint name="index_dip" value="0.0"/>
     <joint name="index_pip" value="0.0"/>
     <joint name="index_mcp" value="0.0"/>
     <joint name="index_mcp_aa" value="0.0"/>
-    <joint name="middle_dip" value="0.0"/>
     <joint name="middle_pip" value="0.0"/>
     <joint name="middle_mcp" value="0.0"/>
-    <joint name="ring_dip" value="0.0"/>
     <joint name="ring_pip" value="0.0"/>
     <joint name="ring_mcp" value="0.0"/>
-    <joint name="little_dip" value="0.0"/>
     <joint name="little_pip" value="0.0"/>
     <joint name="little_mcp" value="0.0"/>
   </group_state>
 
   <group_state name="fist" group="hand">
-    <joint name="thumb_dip" value="1.0"/>
-    <joint name="thumb_mcp" value="1.0"/>
-    <joint name="thumb_tmc_fe" value="0.8"/>
+    <joint name="thumb_mcp" value="0.5"/>
+    <joint name="thumb_tmc_fe" value="0"/>
     <joint name="thumb_tmc_aa" value="0.349065850398866"/>
     <joint name="thumb_tmc_ps" value="0.5"/>
-    <joint name="index_dip" value="1.5"/>
-    <joint name="index_pip" value="1.5"/>
-    <joint name="index_mcp" value="1.5"/>
+    <joint name="index_pip" value="1.2"/>
+    <joint name="index_mcp" value="1.2"/>
     <joint name="index_mcp_aa" value="0.0"/>
-    <joint name="middle_dip" value="1.5"/>
-    <joint name="middle_pip" value="1.5"/>
-    <joint name="middle_mcp" value="1.5"/>
-    <joint name="ring_dip" value="1.5"/>
-    <joint name="ring_pip" value="1.5"/>
-    <joint name="ring_mcp" value="1.5"/>
-    <joint name="little_dip" value="1.5"/>
-    <joint name="little_pip" value="1.5"/>
-    <joint name="little_mcp" value="1.5"/>
+    <joint name="middle_pip" value="1.2"/>
+    <joint name="middle_mcp" value="1.2"/>
+    <joint name="ring_pip" value="1.2"/>
+    <joint name="ring_mcp" value="1.2"/>
+    <joint name="little_pip" value="1.2"/>
+    <joint name="little_mcp" value="1.2"/>
   </group_state>
 
   <!--===== 末端执行器 =====-->
