@@ -2,7 +2,7 @@
 
 Parameters:
   use_rviz: 是否启动 RViz (默认: true)
-  world:    Gazebo world 文件路径 (默认: empty.world)
+  world:    Gazebo world 文件路径 (默认: grasp_world.world)
 """
 
 import os
@@ -39,7 +39,7 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "world",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("ghand_gazebo"), "worlds", "empty.world"]
+                [FindPackageShare("ghand_gazebo"), "worlds", "grasp_world.world"]
             ),
             description="Gazebo world file path",
         ),
@@ -117,7 +117,10 @@ def generate_launch_description():
             "-entity", "GHand",
             "-x", "0.0",
             "-y", "0.0",
-            "-z", "0.05",
+            "-z", "0.80",
+            "-R", "0.0",
+            "-P", "-1.57079632679",
+            "-Y", "0.0",
         ],
         output="screen",
     )
