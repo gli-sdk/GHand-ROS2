@@ -38,6 +38,8 @@ Visualization Manager:
         Loop Animation: false
         State Display Time: 0.05 s
         Trajectory Topic: display_planned_path
+        Show Robot Visual: false
+        Show Robot Collision: false
         Show Trail: false
       Planning Scene Topic: monitored_planning_scene
       Robot Description: robot_description

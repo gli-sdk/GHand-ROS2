@@ -8,11 +8,13 @@ openspec/
 __pycache__/
 *.pyc
 *.pyo
-docs/superpowers/*
-!docs/superpowers/specs/
-!docs/superpowers/specs/**
 build/
 install/
 log/
 vendor/
 
+.vscode/
+docs/superpowers/plans/2026-06-22-zqwl-canfd-driver.md
+docs/superpowers/specs/2026-06-22-zqwl-canfd-driver-design.md
+check_collision.py
+src/ghand_moveit_config/config/G5-A7-R-all.srdf

@@ -177,6 +177,11 @@
 
 
   <!--===== 虚拟关节 =====-->
-  <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+  <!-- The world->base_link connection is provided by the URDF (a `world` link +
+       `world_to_base` fixed joint, added under use_gazebo with the real mount
+       pose). An SRDF virtual_joint here would duplicate that connection: in
+       Gazebo runs move_group publishes the virtual joint's identity transform
+       while robot_state_publisher publishes the URDF joint's real mount pose,
+       so RViz draws the hand twice. The URDF joint is the single source. -->
 
 </robot>

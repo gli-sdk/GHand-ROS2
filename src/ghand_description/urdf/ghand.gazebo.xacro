@@ -22,6 +22,23 @@
     </gazebo>
   </xacro:macro>
 
+  <!-- Fixed mount to the world frame for Gazebo.
+       The hand has no arm, so without this its base_link is a free rigid body
+       and gravity drops it to the floor. A `world` link + fixed joint pins the
+       base at the given pose, matching the SRDF virtual_joint (world -> base_link).
+       Default pose reproduces the previous launch set_pose hack (z=0.9, palm
+       flipped 180deg about y so fingers point down). -->
+  <xacro:macro name="ghand_world_fixed_joint"
+               params="x:=0 y:=0 z:=0.9
+                       roll:=0 pitch:=3.14159265359 yaw:=0">
+    <link name="world"/>
+    <joint name="world_to_base" type="fixed">
+      <parent link="world"/>
+      <child link="base_link"/>
+      <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
+    </joint>
+  </xacro:macro>
+
   <!-- Gazebo ros2_control plugin.
        The controller parameters are loaded from hand_bringup/config. -->
   <xacro:macro name="ghand_gazebo_ros2_control_plugin"
