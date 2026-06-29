@@ -32,6 +32,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
     world = LaunchConfiguration("world")
+    limit_tolerance = LaunchConfiguration("limit_tolerance")
 
     declared_args = [
         DeclareLaunchArgument("use_rviz", default_value="true",
@@ -42,6 +43,11 @@ def generate_launch_description():
                 [FindPackageShare("ghand_gazebo"), "worlds", "grasp_world.world"]
             ),
             description="Gazebo world file path",
+        ),
+        DeclareLaunchArgument(
+            "limit_tolerance",
+            default_value="-0.01",
+            description="Negative tolerance applied to zero joint lower limits in Gazebo.",
         ),
     ]
 
@@ -80,14 +86,22 @@ def generate_launch_description():
             SetEnvironmentVariable("__EGL_VENDOR_LIBRARY_FILENAMES", nvidia_egl),
         ]
 
-    # URDF via xacro with Gazebo mode enabled.
-    xacro_cmd = [
-        PathJoinSubstitution([FindExecutable(name="xacro")]),
+    # URDF via helper script that patches zero lower limits for Gazebo.
+    # Gazebo's physics solver reports joint positions slightly below zero, which
+    # would violate URDF limits of 0. The helper applies a small negative tolerance
+    # only in the Gazebo launch path, leaving the source URDF unchanged.
+    robot_description_content = Command([
+        PathJoinSubstitution([FindExecutable(name="python3")]),
+        " ",
+        PathJoinSubstitution([
+            FindPackageShare("ghand_gazebo"), "scripts", "generate_gazebo_robot_description.py"
+        ]),
         " ",
         PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5_right.urdf"]),
-        " use_gazebo:=true",
-    ]
-    robot_description_content = Command(xacro_cmd)
+        " --xacro-arg use_gazebo:=true",
+        " --limit-tolerance ",
+        limit_tolerance,
+    ])
     robot_description = {"robot_description": robot_description_content}
 
     # robot_state_publisher

@@ -11,6 +11,7 @@ install(
   DIRECTORY
     launch
     worlds
+    scripts
   DESTINATION share/${PROJECT_NAME}
 )
 
