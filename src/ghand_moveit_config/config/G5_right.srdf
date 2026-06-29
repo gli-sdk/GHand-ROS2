@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<robot name="G5-A7-R">
+<robot name="G5_right">
   <!--===== 全手规划组（18 关节，5 被动 DIP） =====-->
   <group name="hand">
     <link name="base_link"/>

@@ -84,7 +84,7 @@ def generate_launch_description():
     xacro_cmd = [
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
-        PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5-A7-R.urdf"]),
+        PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5_right.urdf"]),
         " use_gazebo:=true",
     ]
     robot_description_content = Command(xacro_cmd)
@@ -108,7 +108,11 @@ def generate_launch_description():
         additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
     )
 
-    # Spawn the robot into Gazebo.
+    # Spawn the robot into Gazebo. The base is pinned to the world frame by the
+    # `world_to_base` fixed joint in the URDF (added under use_gazebo), so the
+    # hand stays at its mount pose (z=0.9, palm down) instead of free-falling.
+    # The spawn pose is the model root (`world` link) origin; the fixed joint
+    # offsets base_link to the mount pose, so we spawn at the origin.
     spawn_entity = Node(
         package="ros_gz_sim",
         executable="create",
@@ -117,10 +121,7 @@ def generate_launch_description():
             "-entity", "GHand",
             "-x", "0.0",
             "-y", "0.0",
-            "-z", "0.80",
-            "-R", "0.0",
-            "-P", "-1.57079632679",
-            "-Y", "0.0",
+            "-z", "0.0",
         ],
         output="screen",
     )
@@ -153,8 +154,8 @@ def generate_launch_description():
 
     # Build MoveIt configs (use the same config as moveit.launch.py).
     moveit_config = (
-        MoveItConfigsBuilder("G5-A7-R", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/G5-A7-R.srdf")
+        MoveItConfigsBuilder("G5_right", package_name="ghand_moveit_config")
+        .robot_description_semantic(file_path="config/G5_right.srdf")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
