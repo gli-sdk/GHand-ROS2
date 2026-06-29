@@ -1,0 +1,5 @@
+repositories:
+  ghand_assets:
+    type: git
+    url: https://gitee.com/glitech/ghand-assets.git
+    version: 86df06641f485bfcb49e0929b6abe94173158372

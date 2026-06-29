@@ -12,9 +12,10 @@ build/
 install/
 log/
 vendor/
+src/ghand_assets/
 
 .vscode/
-docs/superpowers/plans/2026-06-22-zqwl-canfd-driver.md
-docs/superpowers/specs/2026-06-22-zqwl-canfd-driver-design.md
 check_collision.py
-src/ghand_moveit_config/config/G5-A7-R-all.srdf
+src/ghand_moveit_config/config/G5_right-all.srdf
+docs/
+
