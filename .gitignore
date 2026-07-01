@@ -3,6 +3,10 @@ build/
 install/
 log/
 
+# Directories intentionally removed from version control
+.github/
+docs/
+
 # Python artifacts
 __pycache__/
 *.pyc
