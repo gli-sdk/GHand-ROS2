@@ -150,8 +150,10 @@ ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=true
 - 当前用户有串口/CAN 设备读写权限（RS485 需 `dialout` 组）。
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=ethercat_default
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
 ```
+
+> 请将 `enx000000000000` 替换为你本机的 EtherCAT 网卡接口名。可通过 `ip link` 命令查看可用接口。
 
 #### 4.1 通讯配置文件
 
