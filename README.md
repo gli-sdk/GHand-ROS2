@@ -41,7 +41,7 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 - **硬件层**：通过统一的 `communication.hpp` 抽象 EtherCAT、CANFD、RS485 三种通讯方式。
 - **ros2_control 层**：`GHand_hardware` 实现 `hardware_interface::SystemInterface`，完成硬件生命周期管理与周期读写。
 - **控制器层**：自定义 broadcaster 发布关节状态 `/joint_status` 与触觉数据 `/tactile_data`。
-- **启动层**：`hand_bringup` 负责加载机器人描述、控制器管理器与各类控制器。
+- **启动层**：`ghand_hardware_interface` 负责加载机器人描述、控制器管理器与各类控制器。
 
 ---
 
@@ -53,7 +53,7 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 | `ghand_hardware_interface` | 硬件组件，实现 `hardware_interface::SystemInterface` |
 | `hand_controllers` | 自定义 broadcaster：`joint_status_broadcaster`、`tactile_broadcaster` |
 | `hand_msgs` | 自定义消息类型：`JointStatus`、`TactileData` |
-| `hand_bringup` | 启动文件与控制器/机器人管理器配置 |
+| `ghand_hardware_interface` | 启动文件与控制器/机器人管理器配置 |
 | `ghand_moveit_config` | MoveIt 2 运动规划配置 |
 | `ghand_gazebo`        | Gazebo 物理仿真启动与配置 |
 
@@ -136,7 +136,7 @@ source install/setup.bash
 ### 3. 启动仿真（无需硬件）
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ```
 
 仿真模式使用 `mock_components/GenericSystem` 作为后端，无需 EtherCAT/CANFD/RS485 设备，可用于开发、可视化与 CI。
@@ -157,7 +157,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 #### 4.1 通讯配置文件
 
-所有后端参数统一放在 `src/hand_bringup/config/profiles/` 下，一条 `profile` 参数即可切换后端：
+所有后端参数统一放在 `src/ghand_hardware/ghand_hardware_interface/config/profiles/` 下，一条 `profile` 参数即可切换后端：
 
 | 配置文件 | 后端 | 说明 |
 |----------|------|------|
@@ -193,7 +193,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 示例：使用配置文件但临时覆盖设备节点
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
 ```
 
 #### 4.2 编译检查
@@ -242,7 +242,7 @@ ls -l /dev/ttyUSB*
 ##### 启动 RS485
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left
 ```
 
 > `node_id` 需与机械手驱动板的 Modbus 从站 ID 一致；`rs485_left` 为 `49`（`0x31`），`rs485_right` 为 `50`（`0x32`）。
@@ -250,7 +250,7 @@ ros2 launch hand_bringup ghand.launch.py profile:=rs485_left
 如需临时覆盖设备节点或从站 ID：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1 slave_id:=50
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1 slave_id:=50
 ```
 
 ##### 验证
@@ -269,10 +269,7 @@ ros2 topic echo /joint_states
 ##### 发送位置指令
 
 ```bash
-# 方式一：使用项目示例脚本（基于 joint_trajectory_controller）
-ros2 run hand_bringup send_hand_position.py
-
-# 方式二：使用 position_controller 直接发布（需先切换控制器）
+# 使用 position_controller 直接发布（需先切换控制器）
 python3 /home/pq/send_hand_position_direct.py
 ```
 
@@ -285,13 +282,13 @@ python3 /home/pq/send_hand_position_direct.py
 启动：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=ethercat_default
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default
 ```
 
 如需指定其他 EtherCAT 网卡：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=ethercat_default ifname:=eth0
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=eth0
 ```
 
 验证：
@@ -321,7 +318,7 @@ vendor/dist/include/zlgcan/zcan.h
 
 ```bash
 cd ~/GHand-Ros2
-colcon build --packages-select ghand_hardware_interface ghand_description hand_bringup --symlink-install
+colcon build --packages-select ghand_hardware_interface ghand_description ghand_hardware_interface --symlink-install
 source install/setup.bash
 ```
 
@@ -332,13 +329,13 @@ source install/setup.bash
 `device` 格式为 `设备类型:设备索引:通道索引`，例如 `ZCAN_USBCANFD_100U:0:0`。`baud_rate` 对应 CANFD 仲裁段波特率，`data_rate` 对应数据段波特率。
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=canfd_usb
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=canfd_usb
 ```
 
 如需覆盖设备或波特率：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py \
+ros2 launch ghand_hardware_interface ghand.launch.py \
   profile:=canfd_usb \
   device:=ZCAN_USBCANFD_100U:0:0 \
   baud_rate:=1000000 \
@@ -366,13 +363,13 @@ ros2 topic echo /tactile_data
 ZQWL 后端通过 USB 串口转 CANFD，使用 `zqwl_canfd_left` / `zqwl_canfd_right` 配置文件：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=zqwl_canfd_left
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=zqwl_canfd_left
 ```
 
 如需覆盖串口设备或 CAN ID：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py \
+ros2 launch ghand_hardware_interface ghand.launch.py \
   profile:=zqwl_canfd_left \
   device:=/dev/ttyACM1 \
   slave_id:=50
@@ -385,7 +382,7 @@ ros2 launch hand_bringup ghand.launch.py \
 断开设备后启动：
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left
 ```
 
 预期结果：
@@ -427,7 +424,7 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 
 ## 控制机械手
 
-启动 `hand_bringup` 后，可以通过 `rqt_joint_trajectory_controller` 或示例脚本发送关节轨迹指令，快速验证控制器是否正常工作。
+启动 `ghand_hardware_interface` 后，可以通过 `rqt_joint_trajectory_controller` 或示例脚本发送关节轨迹指令，快速验证控制器是否正常工作。
 
 ### 使用 `rqt_joint_trajectory_controller`
 
@@ -440,13 +437,13 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 #### mock 模式 / 可视化调试
 
 ```bash
-ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 
 打开界面后：
 source /home/pq/GHand-Ros2/install/setup.bash
-ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=false
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=false
 
 1. 在左上角选择对应的控制器管理器命名空间（通常为空，即默认命名空间）。
 2. 在控制器下拉框中选择 `joint_trajectory_controller`。
@@ -456,12 +453,9 @@ ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=false
 
 ```bash
 # 终端 1：启动真实硬件
-ros2 launch hand_bringup ghand.launch.py use_mock_hardware:=false
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=false
 
-# 终端 2：启动 rqt -> JTC bridge（过滤 18->13 关节）
-ros2 run hand_bringup rqt_jtc_bridge.py
-
-# 终端 3：启动 rqt
+# 终端 2：启动 rqt
 ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 
@@ -469,19 +463,9 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 
 > 注意：Jazzy 版本的 `rqt_joint_trajectory_controller` 有时会出现 **Enable 按钮状态没有正确同步** 的情况。如果拖动滑块后机械手没有反应，请尝试先点击 **Disable**，再点击 **Enable**，然后重新拖动滑块。
 
-### 使用示例脚本（推荐真实硬件）
+### 使用示例脚本
 
-仓库提供了 `send_hand_position.py` 示例脚本，直接通过 action 向 JTC 发送 13 个主动关节的轨迹：
-
-```bash
-ros2 run hand_bringup send_hand_position.py
-```
-
-> 使用前请确保 `joint_trajectory_controller` 已成功加载并处于 `active` 状态，可通过以下命令检查：
->
-> ```bash
-> ros2 control list_controllers
-> ```
+> 注意：原 `hand_bringup` 中的 `send_hand_position.py` 示例脚本已随包重组移除，如需使用请根据当前控制器接口自行实现或从 Git 历史恢复。
 
 ---
 
@@ -498,10 +482,10 @@ ros2 run hand_bringup send_hand_position.py
 
 ## 配置说明
 
-- `src/hand_bringup/config/profiles/`：通讯后端配置文件（EtherCAT/RS485/CANFD/ZQWL CANFD）。
-- `src/hand_bringup/config/ros2_control.yaml`：硬件组件参数、通讯接口配置、关节列表。
-- `src/hand_bringup/config/controllers.yaml`：控制器管理器参数、控制器类型与 PID 参数。
-- `src/hand_bringup/config/ghand.rviz`：RViz 可视化配置。
+- `src/ghand_hardware/ghand_hardware_interface/config/profiles/`：通讯后端配置文件（EtherCAT/RS485/CANFD/ZQWL CANFD）。
+- `src/ghand_hardware/ghand_hardware_interface/config/ros2_control.yaml`：硬件组件参数、通讯接口配置、关节列表。
+- `src/ghand_hardware/ghand_hardware_interface/config/controllers.yaml`：控制器管理器参数、控制器类型与 PID 参数。
+- `src/ghand_hardware/ghand_hardware_interface/config/ghand.rviz`：RViz 可视化配置。
 - `src/ghand_moveit_config/config/`：MoveIt 运动学、规划器、关节限制等配置。
 
 ---
@@ -528,7 +512,7 @@ GHand-Ros2/                              # ROS 2 工作空间
 │   │   └── hand_hardware_interface.xml  # 插件导出
 │   ├── hand_controllers/                # 自定义 broadcaster
 │   ├── hand_msgs/                       # 自定义消息
-│   ├── hand_bringup/                    # 启动与配置
+│   ├── ghand_hardware_interface/                    # 启动与配置
 │   ├── ghand_moveit_config/             # MoveIt 2 配置
 │   └── ghand_gazebo/                    # Gazebo 物理仿真
 ├── openspec/                            # 规格驱动开发流程文档
@@ -548,14 +532,14 @@ colcon build --symlink-install
 source install/setup.bash
 
 # 验证各 profile
-ros2 launch hand_bringup ghand.launch.py profile:=ethercat_default
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left
-ros2 launch hand_bringup ghand.launch.py profile:=canfd_usb
-ros2 launch hand_bringup ghand.launch.py profile:=zqwl_canfd_left
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=canfd_usb
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=zqwl_canfd_left
 
 # 验证覆盖与错误提示
-ros2 launch hand_bringup ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
-ros2 launch hand_bringup ghand.launch.py profile:=nonexistent
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=nonexistent
 
 moveIt:
 cd ~/GHand-Ros2
