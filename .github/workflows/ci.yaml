@@ -23,7 +23,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
             ros-jazzy-moveit ros-jazzy-joint-state-publisher-gui ros-jazzy-rviz2 \
-            ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz
+            ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz \
+            python3-vcstool
+
+      - name: Import external repositories
+        run: |
+          vcs import src < ghand.repos
 
       - name: Update rosdep and install package dependencies
         run: |
