@@ -312,34 +312,7 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
   }
 
   static int write_cnt = 0;
-  if (++write_cnt % 100 == 0 || write_cnt == 1) {
-    // RCLCPP_INFO(rclcpp::get_logger("ethercat"), "=== write #%d:
-    // command_count=%zu pdo_count=%zu",    //        write_cnt,
-    // commands.size();, impl_->valid_joints.size());
-    for (size_t pdo_idx = 0; pdo_idx < impl_->valid_joints.size(); ++pdo_idx) {
-      const auto joint_id = impl_->valid_joints[pdo_idx];
-      float angle = 0.0f;
-      uint8_t velocity = 100;
-      uint8_t torque = 100;
-      for (const auto& cmd : commands) {
-        if (cmd.id == joint_id) {
-          angle = cmd.position * static_cast<float>(kPi) / 180.0f;
-          velocity = static_cast<uint8_t>(cmd.velocity);
-          torque = static_cast<uint8_t>(cmd.torque);
-          break;
-        }
-      }
-      // (void)angle;
-      // (void)velocity;
-      // (void)torque;
-      // RCLCPP_INFO(rclcpp::get_logger("ethercat"), "  [pdo %2zu] %-16s id=%2d
-      // pos_deg=%7.3f pos_rad=%7.3f vel=%3d torque=%3d",      // pdo_idx, //
-      // joint_id_to_name(joint_id);.c_str(),      //
-      // static_cast<int>(joint_id),      //        angle * 180.0f /
-      // static_cast<float>(kPi),      //        angle,      //        velocity,
-      // //        torque);
-    }
-  }
+  ++write_cnt;
 
   return true;
 #else

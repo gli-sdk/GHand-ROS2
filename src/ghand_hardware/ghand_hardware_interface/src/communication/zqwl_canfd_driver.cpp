@@ -79,58 +79,6 @@ speed_t map_baud_rate(uint32_t baud) {
   }
 }
 
-struct CanTiming {
-  uint8_t sjw = 0;
-  uint8_t tseg1 = 0;
-  uint8_t tseg2 = 0;
-  uint16_t brp = 1;
-};
-
-bool compute_zqwl_timing(uint32_t target_bitrate, CanTiming* out) {
-  // ZQWL formula: Baud = 60000000 / ((SJW+1 + TSEG1+1 + TSEG2+1) * BRP)
-  // where SJW/TSEG1/TSEG2 are REGISTER values in [0,3]/[0,15]/[0,7].
-  // Constraint: total_tq = SJW + TSEG1 + TSEG2 + 3
-  // Sample point = (SJW + TSEG1 + 2) / total_tq, target ≈ 75%
-  constexpr uint32_t kCanClock = 60000000;
-  constexpr uint16_t kMaxBrp = 0x0400;
-  constexpr uint8_t kMaxTseg1 = 0x0F;
-  constexpr uint8_t kMaxTseg2 = 0x07;
-
-  if (target_bitrate == 0) return false;
-
-  for (uint16_t brp = 1; brp <= kMaxBrp; ++brp) {
-    const uint32_t tq_hz = kCanClock / brp;
-    if (tq_hz == 0) continue;
-    const uint32_t total_tq = tq_hz / target_bitrate;
-    if (total_tq < 4 || total_tq > (kMaxTseg1 + kMaxTseg2 + 3 + 3)) continue;
-    if (tq_hz / total_tq != target_bitrate) continue;
-
-    for (uint8_t sjw = 0; sjw <= 3; ++sjw) {
-      // tseg1 + sjw + 2 ≈ 0.75 * total_tq  →  tseg1 ≈ 0.75*total_tq - sjw - 2
-      int tseg1 = static_cast<int>((total_tq * 3) / 4) - sjw - 2;
-      if (tseg1 < 0) continue;
-      if (tseg1 > static_cast<int>(kMaxTseg1)) continue;
-
-      // total_tq = sjw + tseg1 + tseg2 + 3  →  tseg2 = total_tq - 3 - sjw -
-      // tseg1
-      int tseg2 = static_cast<int>(total_tq) - 3 - sjw - tseg1;
-      if (tseg2 < 0) continue;
-      if (tseg2 > static_cast<int>(kMaxTseg2)) continue;
-
-      // Verify sample point in reasonable range (70-80%)
-      const int sp = ((sjw + 1 + tseg1 + 1) * 100) / static_cast<int>(total_tq);
-      if (sp < 70 || sp > 80) continue;
-
-      out->brp = brp;
-      out->tseg1 = static_cast<uint8_t>(tseg1);
-      out->tseg2 = static_cast<uint8_t>(tseg2);
-      out->sjw = sjw;
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace
 
 // Connection-establishment payload from the reference Python SDK.

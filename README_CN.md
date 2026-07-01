@@ -96,14 +96,14 @@ sudo apt install -y \
 `ghand_description` 中的 URDF/Xacro 与 STL 模型由外部仓库提供，通过 `ghand.repos` 引入：
 
 ```bash
-cd ~/GHand-Ros2
+cd ~/ghand-ros2
 vcs import src < ghand.repos
 ```
 
 ### 2. 编译
 
 ```bash
-cd ~/GHand-Ros2
+cd ~/ghand-ros2
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -152,7 +152,7 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 ## 📁 目录结构
 
 ```text
-GHand-Ros2/
+ghand-ros2/
 ├── src/
 │   ├── ghand_hardware/
 │   │   ├── ghand_hardware_interface/   # 硬件接口与通讯驱动

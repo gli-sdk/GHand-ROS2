@@ -96,14 +96,14 @@ Only needed when connecting to real hardware; pure simulation development can sk
 The URDF/Xacro and STL meshes for `ghand_description` are provided by external repositories. Import them via `ghand.repos`:
 
 ```bash
-cd ~/GHand-Ros2
+cd ~/ghand-ros2
 vcs import src < ghand.repos
 ```
 
 ### 2. Build
 
 ```bash
-cd ~/GHand-Ros2
+cd ~/ghand-ros2
 colcon build --symlink-install
 source install/setup.bash
 ```
