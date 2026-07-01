@@ -6,7 +6,7 @@
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 
-[English](README.md)
+[中文](README.md)
 
 GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。支持 Gazebo 物理仿真、MoveIt 2 运动规划，并提供 EtherCAT、CANFD、RS485 多种真实硬件通信后端，方便用户在无硬件环境下进行算法开发与可视化验证。
 

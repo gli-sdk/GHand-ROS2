@@ -126,6 +126,15 @@ colcon build --packages-select ghand_hardware_interface
 
 ### 2. 编译
 
+`ghand_description` 中的 URDF/Xacro 与 STL 模型由外部仓库提供，编译前需先导入：
+
+```bash
+cd ~/GHand-Ros2
+vcs import src < ghand.repos
+```
+
+然后构建工作空间：
+
 ```bash
 cd ~/GHand-Ros2  # 或你的仓库目录
 colcon build --symlink-install

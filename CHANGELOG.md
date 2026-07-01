@@ -12,6 +12,10 @@ file. See also the per-package `CHANGELOG.rst` files under `src/<package>/`.
   deprecated `hand_bringup` and standalone `src/ghand_hardware_interface/`
   layouts. Launch files and configurations now live in
   `ghand_hardware/ghand_hardware_interface`.
+* EtherCAT default profile (`ethercat_default.yaml`) no longer contains a
+  hardcoded network interface name. Users must now provide the interface via
+  the `ifname` launch argument, e.g.
+  `ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000`.
 
 ## 1.0.0 (2026-06-30)
 

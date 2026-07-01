@@ -9,6 +9,7 @@ Parameters:
   use_rviz:  whether to launch RViz (default: true)
   profile:   communication profile used when use_sim is false
              (default: ethercat_default)
+  ifname:    EtherCAT network interface override (default: "")
 """
 
 from launch import LaunchDescription
@@ -31,6 +32,7 @@ def generate_launch_description():
     use_sim = LaunchConfiguration("use_sim")
     use_rviz = LaunchConfiguration("use_rviz")
     profile = LaunchConfiguration("profile")
+    ifname = LaunchConfiguration("ifname")
 
     declared_args = [
         DeclareLaunchArgument(
@@ -50,6 +52,11 @@ def generate_launch_description():
                 "Communication profile under "
                 "ghand_hardware_interface/config/profiles/."
             ),
+        ),
+        DeclareLaunchArgument(
+            "ifname",
+            default_value="",
+            description="Override: EtherCAT network interface name.",
         ),
     ]
 
@@ -75,6 +82,8 @@ def generate_launch_description():
                 [profile, ".yaml"],
             ]
         ),
+        " ifname:=",
+        ifname,
     ]
     robot_description_content = Command(xacro_cmd)
 
