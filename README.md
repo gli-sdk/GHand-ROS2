@@ -440,7 +440,7 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 >
 > 因此：
 > - **mock 模式**（`use_mock_hardware:=true`）可以直接使用 rqt；
-> - **真实硬件**需要先用 `rqt_jtc_bridge` 把 rqt 的 18 关节 topic 转换成 13 关节 action goal。
+> - **真实硬件**下请只控制 13 个主动关节，或自行编写节点把 rqt 的 18 关节 topic 转换成 13 关节 action goal（原 `rqt_jtc_bridge.py` 已随包重组移除）。
 
 #### mock 模式 / 可视化调试
 
@@ -450,8 +450,6 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 
 打开界面后：
-source /home/pq/GHand-Ros2/install/setup.bash
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=false
 
 1. 在左上角选择对应的控制器管理器命名空间（通常为空，即默认命名空间）。
 2. 在控制器下拉框中选择 `joint_trajectory_controller`。
@@ -460,10 +458,8 @@ ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=false
 #### 真实硬件
 
 ```bash
-# 终端 1：启动真实硬件
+source /home/pq/GHand-Ros2/install/setup.bash
 ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=false
-
-# 终端 2：启动 rqt
 ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 ```
 

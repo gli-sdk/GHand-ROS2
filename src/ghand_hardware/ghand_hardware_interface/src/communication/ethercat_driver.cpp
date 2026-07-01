@@ -113,6 +113,10 @@ bool EthercatDriver::init(
 #else
   auto it = params.find("ifname");
   if (it == params.end() || it->second.empty()) {
+    RCLCPP_ERROR(
+        rclcpp::get_logger("ethercat"),
+        "EtherCAT 'ifname' parameter is missing or empty. "
+        "Provide it via launch arg: ifname:=<interface>");
     return false;
   }
   impl_->ifname = it->second;
