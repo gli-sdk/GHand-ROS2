@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="G5_right">
+  <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="profile_file" default=""/>
+  <xacro:arg name="communication_type" default=""/>
+  <xacro:arg name="device" default=""/>
+  <xacro:arg name="baud_rate" default=""/>
+  <xacro:arg name="dbit_rate" default=""/>
+  <xacro:arg name="slave_id" default=""/>
+  <xacro:arg name="ifname" default=""/>
+
+  <!-- Base robot description from the external ghand_description package -->
+  <xacro:include filename="$(find ghand_description)/urdf/G5_right_description.urdf"/>
+
+  <!-- Real-hardware / mock ros2_control configuration -->
+  <xacro:include filename="$(find ghand_hardware_interface)/config/ghand.ros2_control.xacro"/>
+  <xacro:ghand_ros2_control
+    use_mock_hardware="$(arg use_mock_hardware)"
+    profile_file="$(arg profile_file)"
+    communication_type="$(arg communication_type)"
+    device="$(arg device)"
+    baud_rate="$(arg baud_rate)"
+    dbit_rate="$(arg dbit_rate)"
+    slave_id="$(arg slave_id)"
+    ifname="$(arg ifname)"/>
+</robot>

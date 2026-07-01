@@ -1,5 +1,0 @@
-hardware:
-  communication_type: ethercat
-  ifname: enxe466e5820449
-  read_timeout_ms: 500
-  tactile_region_counts: "38,31,31,31,31"

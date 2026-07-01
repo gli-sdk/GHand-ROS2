@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROS 2
+        uses: ros-tooling/setup-ros@v0.7
+        with:
+          required-ros-distributions: jazzy
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
+            ros-jazzy-moveit ros-jazzy-joint-state-publisher-gui ros-jazzy-rviz2 \
+            ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz
+
+      - name: Update rosdep and install package dependencies
+        run: |
+          rosdep update
+          rosdep install --from-paths src --ignore-src --rosdistro jazzy -y
+
+      - name: Check clang-format
+        run: |
+          find src -name '*.cpp' -o -name '*.hpp' | xargs clang-format-14 --dry-run --Werror
+
+      - name: Build workspace (mock mode, no tests)
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          ./build.sh
+        shell: bash
+
+      - name: Run ament_lint_auto
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          colcon test --packages-select ghand_gazebo ghand_hardware_interface hand_controllers hand_msgs ghand_moveit_config
+          colcon test-result --verbose
+        shell: bash

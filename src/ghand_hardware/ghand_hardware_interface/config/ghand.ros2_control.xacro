@@ -1,0 +1,827 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:macro name="ghand_ros2_control"
+               params="use_mock_hardware:=false
+                       use_gazebo:=false
+                       profile_file:=''
+                       communication_type:=''
+                       device:=''
+                       baud_rate:=''
+                       dbit_rate:=''
+                       slave_id:=''
+                       ifname:=''">
+    <ros2_control name="ghand_hardware" type="system">
+      <hardware>
+        <!-- Normalize the mock/gazebo flags so both '1' and 'true' are treated as enabled. -->
+        <xacro:property name="_use_mock" scope="local"
+                        value="${str(use_mock_hardware) in ['1', 'true', 'True']}"/>
+        <xacro:property name="_use_gazebo" scope="local"
+                        value="${str(use_gazebo) in ['1', 'true', 'True']}"/>
+        <xacro:if value="${_use_gazebo}">
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${_use_gazebo}">
+          <xacro:if value="${_use_mock}">
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="mock_sensor_commands">false</param>
+            <param name="state_following_offset">0.0</param>
+          </xacro:if>
+          <xacro:unless value="${_use_mock}">
+          <xacro:property name="profile" scope="local"
+                          value="${xacro.load_yaml(profile_file)['hardware']}"/>
+
+          <!-- Resolve unified parameters, applying legacy overrides when set. -->
+          <xacro:property name="_communication_type" scope="local"
+                          value="${communication_type if communication_type != '' else profile.get('communication_type', '')}"/>
+          <xacro:property name="_device" scope="local"
+                          value="${device if device != '' else profile.get('device', '')}"/>
+          <xacro:property name="_baud_rate" scope="local"
+                          value="${baud_rate if baud_rate != '' else profile.get('baud_rate', '')}"/>
+          <xacro:property name="_data_rate" scope="local"
+                          value="${dbit_rate if dbit_rate != '' else profile.get('data_rate', '')}"/>
+          <xacro:property name="_node_id" scope="local"
+                          value="${slave_id if slave_id != '' else profile.get('node_id', '')}"/>
+          <xacro:property name="_ifname" scope="local"
+                          value="${ifname if ifname != '' else profile.get('ifname', '')}"/>
+
+          <plugin>ghand_hardware_interface/GHandHardwareInterface</plugin>
+
+          <xacro:if value="${_communication_type != ''}">
+            <param name="communication_type">${_communication_type}</param>
+          </xacro:if>
+          <xacro:if value="${_device != ''}">
+            <param name="device">${_device}</param>
+          </xacro:if>
+          <xacro:if value="${_baud_rate != ''}">
+            <param name="baud_rate">${_baud_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_data_rate != ''}">
+            <param name="data_rate">${_data_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_node_id != ''}">
+            <param name="node_id">${_node_id}</param>
+          </xacro:if>
+          <xacro:if value="${_ifname != ''}">
+            <param name="ifname">${_ifname}</param>
+          </xacro:if>
+
+          <!-- Backend-specific settings carried by the profile. -->
+          <xacro:if value="${'can_channel' in profile}">
+            <param name="can_channel">${profile['can_channel']}</param>
+          </xacro:if>
+          <xacro:if value="${'can_clk' in profile}">
+            <param name="can_clk">${profile['can_clk']}</param>
+          </xacro:if>
+          <xacro:if value="${'data_bits' in profile}">
+            <param name="data_bits">${profile['data_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'stop_bits' in profile}">
+            <param name="stop_bits">${profile['stop_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'parity' in profile}">
+            <param name="parity">${profile['parity']}</param>
+          </xacro:if>
+          <xacro:if value="${'response_timeout_ms' in profile}">
+            <param name="response_timeout_ms">${profile['response_timeout_ms']}</param>
+          </xacro:if>
+          <xacro:if value="${'read_timeout_ms' in profile}">
+            <param name="read_timeout_ms">${profile['read_timeout_ms']}</param>
+          </xacro:if>
+          <xacro:if value="${'tactile_region_counts' in profile}">
+            <param name="tactile_region_counts">${profile['tactile_region_counts']}</param>
+          </xacro:if>
+          </xacro:unless>
+        </xacro:unless>
+      </hardware>
+      <joint name="thumb_dip">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="thumb_mcp">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="thumb_tmc_fe">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="thumb_tmc_aa">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <xacro:if value="${_use_mock}">
+          <state_interface name="position">
+            <param name="initial_value">0.349065850398866</param>
+          </state_interface>
+        </xacro:if>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="position"/>
+        </xacro:unless>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="thumb_tmc_ps">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <joint name="index_dip">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="index_pip">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="index_mcp">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="index_mcp_aa">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <joint name="middle_dip">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="middle_pip">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="middle_mcp">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <joint name="ring_dip">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="ring_pip">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="ring_mcp">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <joint name="little_dip">
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="little_pip">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="little_mcp">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position"/>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <xacro:unless value="${_use_mock}">
+      <sensor name="thumb">
+        <state_interface name="resultant_force_x"/>
+        <state_interface name="resultant_force_y"/>
+        <state_interface name="resultant_force_z"/>
+        <state_interface name="distributed_force_0_x"/>
+        <state_interface name="distributed_force_0_y"/>
+        <state_interface name="distributed_force_0_z"/>
+        <state_interface name="distributed_force_1_x"/>
+        <state_interface name="distributed_force_1_y"/>
+        <state_interface name="distributed_force_1_z"/>
+        <state_interface name="distributed_force_2_x"/>
+        <state_interface name="distributed_force_2_y"/>
+        <state_interface name="distributed_force_2_z"/>
+        <state_interface name="distributed_force_3_x"/>
+        <state_interface name="distributed_force_3_y"/>
+        <state_interface name="distributed_force_3_z"/>
+        <state_interface name="distributed_force_4_x"/>
+        <state_interface name="distributed_force_4_y"/>
+        <state_interface name="distributed_force_4_z"/>
+        <state_interface name="distributed_force_5_x"/>
+        <state_interface name="distributed_force_5_y"/>
+        <state_interface name="distributed_force_5_z"/>
+        <state_interface name="distributed_force_6_x"/>
+        <state_interface name="distributed_force_6_y"/>
+        <state_interface name="distributed_force_6_z"/>
+        <state_interface name="distributed_force_7_x"/>
+        <state_interface name="distributed_force_7_y"/>
+        <state_interface name="distributed_force_7_z"/>
+        <state_interface name="distributed_force_8_x"/>
+        <state_interface name="distributed_force_8_y"/>
+        <state_interface name="distributed_force_8_z"/>
+        <state_interface name="distributed_force_9_x"/>
+        <state_interface name="distributed_force_9_y"/>
+        <state_interface name="distributed_force_9_z"/>
+        <state_interface name="distributed_force_10_x"/>
+        <state_interface name="distributed_force_10_y"/>
+        <state_interface name="distributed_force_10_z"/>
+        <state_interface name="distributed_force_11_x"/>
+        <state_interface name="distributed_force_11_y"/>
+        <state_interface name="distributed_force_11_z"/>
+        <state_interface name="distributed_force_12_x"/>
+        <state_interface name="distributed_force_12_y"/>
+        <state_interface name="distributed_force_12_z"/>
+        <state_interface name="distributed_force_13_x"/>
+        <state_interface name="distributed_force_13_y"/>
+        <state_interface name="distributed_force_13_z"/>
+        <state_interface name="distributed_force_14_x"/>
+        <state_interface name="distributed_force_14_y"/>
+        <state_interface name="distributed_force_14_z"/>
+        <state_interface name="distributed_force_15_x"/>
+        <state_interface name="distributed_force_15_y"/>
+        <state_interface name="distributed_force_15_z"/>
+        <state_interface name="distributed_force_16_x"/>
+        <state_interface name="distributed_force_16_y"/>
+        <state_interface name="distributed_force_16_z"/>
+        <state_interface name="distributed_force_17_x"/>
+        <state_interface name="distributed_force_17_y"/>
+        <state_interface name="distributed_force_17_z"/>
+        <state_interface name="distributed_force_18_x"/>
+        <state_interface name="distributed_force_18_y"/>
+        <state_interface name="distributed_force_18_z"/>
+        <state_interface name="distributed_force_19_x"/>
+        <state_interface name="distributed_force_19_y"/>
+        <state_interface name="distributed_force_19_z"/>
+        <state_interface name="distributed_force_20_x"/>
+        <state_interface name="distributed_force_20_y"/>
+        <state_interface name="distributed_force_20_z"/>
+        <state_interface name="distributed_force_21_x"/>
+        <state_interface name="distributed_force_21_y"/>
+        <state_interface name="distributed_force_21_z"/>
+        <state_interface name="distributed_force_22_x"/>
+        <state_interface name="distributed_force_22_y"/>
+        <state_interface name="distributed_force_22_z"/>
+        <state_interface name="distributed_force_23_x"/>
+        <state_interface name="distributed_force_23_y"/>
+        <state_interface name="distributed_force_23_z"/>
+        <state_interface name="distributed_force_24_x"/>
+        <state_interface name="distributed_force_24_y"/>
+        <state_interface name="distributed_force_24_z"/>
+        <state_interface name="distributed_force_25_x"/>
+        <state_interface name="distributed_force_25_y"/>
+        <state_interface name="distributed_force_25_z"/>
+        <state_interface name="distributed_force_26_x"/>
+        <state_interface name="distributed_force_26_y"/>
+        <state_interface name="distributed_force_26_z"/>
+        <state_interface name="distributed_force_27_x"/>
+        <state_interface name="distributed_force_27_y"/>
+        <state_interface name="distributed_force_27_z"/>
+        <state_interface name="distributed_force_28_x"/>
+        <state_interface name="distributed_force_28_y"/>
+        <state_interface name="distributed_force_28_z"/>
+        <state_interface name="distributed_force_29_x"/>
+        <state_interface name="distributed_force_29_y"/>
+        <state_interface name="distributed_force_29_z"/>
+        <state_interface name="distributed_force_30_x"/>
+        <state_interface name="distributed_force_30_y"/>
+        <state_interface name="distributed_force_30_z"/>
+        <state_interface name="distributed_force_31_x"/>
+        <state_interface name="distributed_force_31_y"/>
+        <state_interface name="distributed_force_31_z"/>
+        <state_interface name="distributed_force_32_x"/>
+        <state_interface name="distributed_force_32_y"/>
+        <state_interface name="distributed_force_32_z"/>
+        <state_interface name="distributed_force_33_x"/>
+        <state_interface name="distributed_force_33_y"/>
+        <state_interface name="distributed_force_33_z"/>
+        <state_interface name="distributed_force_34_x"/>
+        <state_interface name="distributed_force_34_y"/>
+        <state_interface name="distributed_force_34_z"/>
+        <state_interface name="distributed_force_35_x"/>
+        <state_interface name="distributed_force_35_y"/>
+        <state_interface name="distributed_force_35_z"/>
+        <state_interface name="distributed_force_36_x"/>
+        <state_interface name="distributed_force_36_y"/>
+        <state_interface name="distributed_force_36_z"/>
+        <state_interface name="distributed_force_37_x"/>
+        <state_interface name="distributed_force_37_y"/>
+        <state_interface name="distributed_force_37_z"/>
+      </sensor>
+      <sensor name="index">
+        <state_interface name="resultant_force_x"/>
+        <state_interface name="resultant_force_y"/>
+        <state_interface name="resultant_force_z"/>
+        <state_interface name="distributed_force_0_x"/>
+        <state_interface name="distributed_force_0_y"/>
+        <state_interface name="distributed_force_0_z"/>
+        <state_interface name="distributed_force_1_x"/>
+        <state_interface name="distributed_force_1_y"/>
+        <state_interface name="distributed_force_1_z"/>
+        <state_interface name="distributed_force_2_x"/>
+        <state_interface name="distributed_force_2_y"/>
+        <state_interface name="distributed_force_2_z"/>
+        <state_interface name="distributed_force_3_x"/>
+        <state_interface name="distributed_force_3_y"/>
+        <state_interface name="distributed_force_3_z"/>
+        <state_interface name="distributed_force_4_x"/>
+        <state_interface name="distributed_force_4_y"/>
+        <state_interface name="distributed_force_4_z"/>
+        <state_interface name="distributed_force_5_x"/>
+        <state_interface name="distributed_force_5_y"/>
+        <state_interface name="distributed_force_5_z"/>
+        <state_interface name="distributed_force_6_x"/>
+        <state_interface name="distributed_force_6_y"/>
+        <state_interface name="distributed_force_6_z"/>
+        <state_interface name="distributed_force_7_x"/>
+        <state_interface name="distributed_force_7_y"/>
+        <state_interface name="distributed_force_7_z"/>
+        <state_interface name="distributed_force_8_x"/>
+        <state_interface name="distributed_force_8_y"/>
+        <state_interface name="distributed_force_8_z"/>
+        <state_interface name="distributed_force_9_x"/>
+        <state_interface name="distributed_force_9_y"/>
+        <state_interface name="distributed_force_9_z"/>
+        <state_interface name="distributed_force_10_x"/>
+        <state_interface name="distributed_force_10_y"/>
+        <state_interface name="distributed_force_10_z"/>
+        <state_interface name="distributed_force_11_x"/>
+        <state_interface name="distributed_force_11_y"/>
+        <state_interface name="distributed_force_11_z"/>
+        <state_interface name="distributed_force_12_x"/>
+        <state_interface name="distributed_force_12_y"/>
+        <state_interface name="distributed_force_12_z"/>
+        <state_interface name="distributed_force_13_x"/>
+        <state_interface name="distributed_force_13_y"/>
+        <state_interface name="distributed_force_13_z"/>
+        <state_interface name="distributed_force_14_x"/>
+        <state_interface name="distributed_force_14_y"/>
+        <state_interface name="distributed_force_14_z"/>
+        <state_interface name="distributed_force_15_x"/>
+        <state_interface name="distributed_force_15_y"/>
+        <state_interface name="distributed_force_15_z"/>
+        <state_interface name="distributed_force_16_x"/>
+        <state_interface name="distributed_force_16_y"/>
+        <state_interface name="distributed_force_16_z"/>
+        <state_interface name="distributed_force_17_x"/>
+        <state_interface name="distributed_force_17_y"/>
+        <state_interface name="distributed_force_17_z"/>
+        <state_interface name="distributed_force_18_x"/>
+        <state_interface name="distributed_force_18_y"/>
+        <state_interface name="distributed_force_18_z"/>
+        <state_interface name="distributed_force_19_x"/>
+        <state_interface name="distributed_force_19_y"/>
+        <state_interface name="distributed_force_19_z"/>
+        <state_interface name="distributed_force_20_x"/>
+        <state_interface name="distributed_force_20_y"/>
+        <state_interface name="distributed_force_20_z"/>
+        <state_interface name="distributed_force_21_x"/>
+        <state_interface name="distributed_force_21_y"/>
+        <state_interface name="distributed_force_21_z"/>
+        <state_interface name="distributed_force_22_x"/>
+        <state_interface name="distributed_force_22_y"/>
+        <state_interface name="distributed_force_22_z"/>
+        <state_interface name="distributed_force_23_x"/>
+        <state_interface name="distributed_force_23_y"/>
+        <state_interface name="distributed_force_23_z"/>
+        <state_interface name="distributed_force_24_x"/>
+        <state_interface name="distributed_force_24_y"/>
+        <state_interface name="distributed_force_24_z"/>
+        <state_interface name="distributed_force_25_x"/>
+        <state_interface name="distributed_force_25_y"/>
+        <state_interface name="distributed_force_25_z"/>
+        <state_interface name="distributed_force_26_x"/>
+        <state_interface name="distributed_force_26_y"/>
+        <state_interface name="distributed_force_26_z"/>
+        <state_interface name="distributed_force_27_x"/>
+        <state_interface name="distributed_force_27_y"/>
+        <state_interface name="distributed_force_27_z"/>
+        <state_interface name="distributed_force_28_x"/>
+        <state_interface name="distributed_force_28_y"/>
+        <state_interface name="distributed_force_28_z"/>
+        <state_interface name="distributed_force_29_x"/>
+        <state_interface name="distributed_force_29_y"/>
+        <state_interface name="distributed_force_29_z"/>
+        <state_interface name="distributed_force_30_x"/>
+        <state_interface name="distributed_force_30_y"/>
+        <state_interface name="distributed_force_30_z"/>
+      </sensor>
+      <sensor name="middle">
+        <state_interface name="resultant_force_x"/>
+        <state_interface name="resultant_force_y"/>
+        <state_interface name="resultant_force_z"/>
+        <state_interface name="distributed_force_0_x"/>
+        <state_interface name="distributed_force_0_y"/>
+        <state_interface name="distributed_force_0_z"/>
+        <state_interface name="distributed_force_1_x"/>
+        <state_interface name="distributed_force_1_y"/>
+        <state_interface name="distributed_force_1_z"/>
+        <state_interface name="distributed_force_2_x"/>
+        <state_interface name="distributed_force_2_y"/>
+        <state_interface name="distributed_force_2_z"/>
+        <state_interface name="distributed_force_3_x"/>
+        <state_interface name="distributed_force_3_y"/>
+        <state_interface name="distributed_force_3_z"/>
+        <state_interface name="distributed_force_4_x"/>
+        <state_interface name="distributed_force_4_y"/>
+        <state_interface name="distributed_force_4_z"/>
+        <state_interface name="distributed_force_5_x"/>
+        <state_interface name="distributed_force_5_y"/>
+        <state_interface name="distributed_force_5_z"/>
+        <state_interface name="distributed_force_6_x"/>
+        <state_interface name="distributed_force_6_y"/>
+        <state_interface name="distributed_force_6_z"/>
+        <state_interface name="distributed_force_7_x"/>
+        <state_interface name="distributed_force_7_y"/>
+        <state_interface name="distributed_force_7_z"/>
+        <state_interface name="distributed_force_8_x"/>
+        <state_interface name="distributed_force_8_y"/>
+        <state_interface name="distributed_force_8_z"/>
+        <state_interface name="distributed_force_9_x"/>
+        <state_interface name="distributed_force_9_y"/>
+        <state_interface name="distributed_force_9_z"/>
+        <state_interface name="distributed_force_10_x"/>
+        <state_interface name="distributed_force_10_y"/>
+        <state_interface name="distributed_force_10_z"/>
+        <state_interface name="distributed_force_11_x"/>
+        <state_interface name="distributed_force_11_y"/>
+        <state_interface name="distributed_force_11_z"/>
+        <state_interface name="distributed_force_12_x"/>
+        <state_interface name="distributed_force_12_y"/>
+        <state_interface name="distributed_force_12_z"/>
+        <state_interface name="distributed_force_13_x"/>
+        <state_interface name="distributed_force_13_y"/>
+        <state_interface name="distributed_force_13_z"/>
+        <state_interface name="distributed_force_14_x"/>
+        <state_interface name="distributed_force_14_y"/>
+        <state_interface name="distributed_force_14_z"/>
+        <state_interface name="distributed_force_15_x"/>
+        <state_interface name="distributed_force_15_y"/>
+        <state_interface name="distributed_force_15_z"/>
+        <state_interface name="distributed_force_16_x"/>
+        <state_interface name="distributed_force_16_y"/>
+        <state_interface name="distributed_force_16_z"/>
+        <state_interface name="distributed_force_17_x"/>
+        <state_interface name="distributed_force_17_y"/>
+        <state_interface name="distributed_force_17_z"/>
+        <state_interface name="distributed_force_18_x"/>
+        <state_interface name="distributed_force_18_y"/>
+        <state_interface name="distributed_force_18_z"/>
+        <state_interface name="distributed_force_19_x"/>
+        <state_interface name="distributed_force_19_y"/>
+        <state_interface name="distributed_force_19_z"/>
+        <state_interface name="distributed_force_20_x"/>
+        <state_interface name="distributed_force_20_y"/>
+        <state_interface name="distributed_force_20_z"/>
+        <state_interface name="distributed_force_21_x"/>
+        <state_interface name="distributed_force_21_y"/>
+        <state_interface name="distributed_force_21_z"/>
+        <state_interface name="distributed_force_22_x"/>
+        <state_interface name="distributed_force_22_y"/>
+        <state_interface name="distributed_force_22_z"/>
+        <state_interface name="distributed_force_23_x"/>
+        <state_interface name="distributed_force_23_y"/>
+        <state_interface name="distributed_force_23_z"/>
+        <state_interface name="distributed_force_24_x"/>
+        <state_interface name="distributed_force_24_y"/>
+        <state_interface name="distributed_force_24_z"/>
+        <state_interface name="distributed_force_25_x"/>
+        <state_interface name="distributed_force_25_y"/>
+        <state_interface name="distributed_force_25_z"/>
+        <state_interface name="distributed_force_26_x"/>
+        <state_interface name="distributed_force_26_y"/>
+        <state_interface name="distributed_force_26_z"/>
+        <state_interface name="distributed_force_27_x"/>
+        <state_interface name="distributed_force_27_y"/>
+        <state_interface name="distributed_force_27_z"/>
+        <state_interface name="distributed_force_28_x"/>
+        <state_interface name="distributed_force_28_y"/>
+        <state_interface name="distributed_force_28_z"/>
+        <state_interface name="distributed_force_29_x"/>
+        <state_interface name="distributed_force_29_y"/>
+        <state_interface name="distributed_force_29_z"/>
+        <state_interface name="distributed_force_30_x"/>
+        <state_interface name="distributed_force_30_y"/>
+        <state_interface name="distributed_force_30_z"/>
+      </sensor>
+      <sensor name="ring">
+        <state_interface name="resultant_force_x"/>
+        <state_interface name="resultant_force_y"/>
+        <state_interface name="resultant_force_z"/>
+        <state_interface name="distributed_force_0_x"/>
+        <state_interface name="distributed_force_0_y"/>
+        <state_interface name="distributed_force_0_z"/>
+        <state_interface name="distributed_force_1_x"/>
+        <state_interface name="distributed_force_1_y"/>
+        <state_interface name="distributed_force_1_z"/>
+        <state_interface name="distributed_force_2_x"/>
+        <state_interface name="distributed_force_2_y"/>
+        <state_interface name="distributed_force_2_z"/>
+        <state_interface name="distributed_force_3_x"/>
+        <state_interface name="distributed_force_3_y"/>
+        <state_interface name="distributed_force_3_z"/>
+        <state_interface name="distributed_force_4_x"/>
+        <state_interface name="distributed_force_4_y"/>
+        <state_interface name="distributed_force_4_z"/>
+        <state_interface name="distributed_force_5_x"/>
+        <state_interface name="distributed_force_5_y"/>
+        <state_interface name="distributed_force_5_z"/>
+        <state_interface name="distributed_force_6_x"/>
+        <state_interface name="distributed_force_6_y"/>
+        <state_interface name="distributed_force_6_z"/>
+        <state_interface name="distributed_force_7_x"/>
+        <state_interface name="distributed_force_7_y"/>
+        <state_interface name="distributed_force_7_z"/>
+        <state_interface name="distributed_force_8_x"/>
+        <state_interface name="distributed_force_8_y"/>
+        <state_interface name="distributed_force_8_z"/>
+        <state_interface name="distributed_force_9_x"/>
+        <state_interface name="distributed_force_9_y"/>
+        <state_interface name="distributed_force_9_z"/>
+        <state_interface name="distributed_force_10_x"/>
+        <state_interface name="distributed_force_10_y"/>
+        <state_interface name="distributed_force_10_z"/>
+        <state_interface name="distributed_force_11_x"/>
+        <state_interface name="distributed_force_11_y"/>
+        <state_interface name="distributed_force_11_z"/>
+        <state_interface name="distributed_force_12_x"/>
+        <state_interface name="distributed_force_12_y"/>
+        <state_interface name="distributed_force_12_z"/>
+        <state_interface name="distributed_force_13_x"/>
+        <state_interface name="distributed_force_13_y"/>
+        <state_interface name="distributed_force_13_z"/>
+        <state_interface name="distributed_force_14_x"/>
+        <state_interface name="distributed_force_14_y"/>
+        <state_interface name="distributed_force_14_z"/>
+        <state_interface name="distributed_force_15_x"/>
+        <state_interface name="distributed_force_15_y"/>
+        <state_interface name="distributed_force_15_z"/>
+        <state_interface name="distributed_force_16_x"/>
+        <state_interface name="distributed_force_16_y"/>
+        <state_interface name="distributed_force_16_z"/>
+        <state_interface name="distributed_force_17_x"/>
+        <state_interface name="distributed_force_17_y"/>
+        <state_interface name="distributed_force_17_z"/>
+        <state_interface name="distributed_force_18_x"/>
+        <state_interface name="distributed_force_18_y"/>
+        <state_interface name="distributed_force_18_z"/>
+        <state_interface name="distributed_force_19_x"/>
+        <state_interface name="distributed_force_19_y"/>
+        <state_interface name="distributed_force_19_z"/>
+        <state_interface name="distributed_force_20_x"/>
+        <state_interface name="distributed_force_20_y"/>
+        <state_interface name="distributed_force_20_z"/>
+        <state_interface name="distributed_force_21_x"/>
+        <state_interface name="distributed_force_21_y"/>
+        <state_interface name="distributed_force_21_z"/>
+        <state_interface name="distributed_force_22_x"/>
+        <state_interface name="distributed_force_22_y"/>
+        <state_interface name="distributed_force_22_z"/>
+        <state_interface name="distributed_force_23_x"/>
+        <state_interface name="distributed_force_23_y"/>
+        <state_interface name="distributed_force_23_z"/>
+        <state_interface name="distributed_force_24_x"/>
+        <state_interface name="distributed_force_24_y"/>
+        <state_interface name="distributed_force_24_z"/>
+        <state_interface name="distributed_force_25_x"/>
+        <state_interface name="distributed_force_25_y"/>
+        <state_interface name="distributed_force_25_z"/>
+        <state_interface name="distributed_force_26_x"/>
+        <state_interface name="distributed_force_26_y"/>
+        <state_interface name="distributed_force_26_z"/>
+        <state_interface name="distributed_force_27_x"/>
+        <state_interface name="distributed_force_27_y"/>
+        <state_interface name="distributed_force_27_z"/>
+        <state_interface name="distributed_force_28_x"/>
+        <state_interface name="distributed_force_28_y"/>
+        <state_interface name="distributed_force_28_z"/>
+        <state_interface name="distributed_force_29_x"/>
+        <state_interface name="distributed_force_29_y"/>
+        <state_interface name="distributed_force_29_z"/>
+        <state_interface name="distributed_force_30_x"/>
+        <state_interface name="distributed_force_30_y"/>
+        <state_interface name="distributed_force_30_z"/>
+      </sensor>
+      <sensor name="little">
+        <state_interface name="resultant_force_x"/>
+        <state_interface name="resultant_force_y"/>
+        <state_interface name="resultant_force_z"/>
+        <state_interface name="distributed_force_0_x"/>
+        <state_interface name="distributed_force_0_y"/>
+        <state_interface name="distributed_force_0_z"/>
+        <state_interface name="distributed_force_1_x"/>
+        <state_interface name="distributed_force_1_y"/>
+        <state_interface name="distributed_force_1_z"/>
+        <state_interface name="distributed_force_2_x"/>
+        <state_interface name="distributed_force_2_y"/>
+        <state_interface name="distributed_force_2_z"/>
+        <state_interface name="distributed_force_3_x"/>
+        <state_interface name="distributed_force_3_y"/>
+        <state_interface name="distributed_force_3_z"/>
+        <state_interface name="distributed_force_4_x"/>
+        <state_interface name="distributed_force_4_y"/>
+        <state_interface name="distributed_force_4_z"/>
+        <state_interface name="distributed_force_5_x"/>
+        <state_interface name="distributed_force_5_y"/>
+        <state_interface name="distributed_force_5_z"/>
+        <state_interface name="distributed_force_6_x"/>
+        <state_interface name="distributed_force_6_y"/>
+        <state_interface name="distributed_force_6_z"/>
+        <state_interface name="distributed_force_7_x"/>
+        <state_interface name="distributed_force_7_y"/>
+        <state_interface name="distributed_force_7_z"/>
+        <state_interface name="distributed_force_8_x"/>
+        <state_interface name="distributed_force_8_y"/>
+        <state_interface name="distributed_force_8_z"/>
+        <state_interface name="distributed_force_9_x"/>
+        <state_interface name="distributed_force_9_y"/>
+        <state_interface name="distributed_force_9_z"/>
+        <state_interface name="distributed_force_10_x"/>
+        <state_interface name="distributed_force_10_y"/>
+        <state_interface name="distributed_force_10_z"/>
+        <state_interface name="distributed_force_11_x"/>
+        <state_interface name="distributed_force_11_y"/>
+        <state_interface name="distributed_force_11_z"/>
+        <state_interface name="distributed_force_12_x"/>
+        <state_interface name="distributed_force_12_y"/>
+        <state_interface name="distributed_force_12_z"/>
+        <state_interface name="distributed_force_13_x"/>
+        <state_interface name="distributed_force_13_y"/>
+        <state_interface name="distributed_force_13_z"/>
+        <state_interface name="distributed_force_14_x"/>
+        <state_interface name="distributed_force_14_y"/>
+        <state_interface name="distributed_force_14_z"/>
+        <state_interface name="distributed_force_15_x"/>
+        <state_interface name="distributed_force_15_y"/>
+        <state_interface name="distributed_force_15_z"/>
+        <state_interface name="distributed_force_16_x"/>
+        <state_interface name="distributed_force_16_y"/>
+        <state_interface name="distributed_force_16_z"/>
+        <state_interface name="distributed_force_17_x"/>
+        <state_interface name="distributed_force_17_y"/>
+        <state_interface name="distributed_force_17_z"/>
+        <state_interface name="distributed_force_18_x"/>
+        <state_interface name="distributed_force_18_y"/>
+        <state_interface name="distributed_force_18_z"/>
+        <state_interface name="distributed_force_19_x"/>
+        <state_interface name="distributed_force_19_y"/>
+        <state_interface name="distributed_force_19_z"/>
+        <state_interface name="distributed_force_20_x"/>
+        <state_interface name="distributed_force_20_y"/>
+        <state_interface name="distributed_force_20_z"/>
+        <state_interface name="distributed_force_21_x"/>
+        <state_interface name="distributed_force_21_y"/>
+        <state_interface name="distributed_force_21_z"/>
+        <state_interface name="distributed_force_22_x"/>
+        <state_interface name="distributed_force_22_y"/>
+        <state_interface name="distributed_force_22_z"/>
+        <state_interface name="distributed_force_23_x"/>
+        <state_interface name="distributed_force_23_y"/>
+        <state_interface name="distributed_force_23_z"/>
+        <state_interface name="distributed_force_24_x"/>
+        <state_interface name="distributed_force_24_y"/>
+        <state_interface name="distributed_force_24_z"/>
+        <state_interface name="distributed_force_25_x"/>
+        <state_interface name="distributed_force_25_y"/>
+        <state_interface name="distributed_force_25_z"/>
+        <state_interface name="distributed_force_26_x"/>
+        <state_interface name="distributed_force_26_y"/>
+        <state_interface name="distributed_force_26_z"/>
+        <state_interface name="distributed_force_27_x"/>
+        <state_interface name="distributed_force_27_y"/>
+        <state_interface name="distributed_force_27_z"/>
+        <state_interface name="distributed_force_28_x"/>
+        <state_interface name="distributed_force_28_y"/>
+        <state_interface name="distributed_force_28_z"/>
+        <state_interface name="distributed_force_29_x"/>
+        <state_interface name="distributed_force_29_y"/>
+        <state_interface name="distributed_force_29_z"/>
+        <state_interface name="distributed_force_30_x"/>
+        <state_interface name="distributed_force_30_y"/>
+        <state_interface name="distributed_force_30_z"/>
+      </sensor>
+      </xacro:unless>
+
+    </ros2_control>
+  </xacro:macro>
+
+</robot>

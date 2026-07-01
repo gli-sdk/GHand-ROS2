@@ -161,7 +161,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 | 配置文件 | 后端 | 说明 |
 |----------|------|------|
-| `ethercat_default` | EtherCAT | 默认网卡 `enxe466e5820449` |
+| `ethercat_default` | EtherCAT | 通过 `ifname` 参数指定网卡 |
 | `rs485_left` | RS485 | 左手，从站 ID `49` (`0x31`)，设备 `/dev/ttyUSB0` |
 | `rs485_right` | RS485 | 右手，从站 ID `50` (`0x32`)，设备 `/dev/ttyUSB0` |
 | `canfd_usb` | CANFD (ZLG USB-CANFD) | 设备 `ZCAN_USBCANFD_100U:0:0`，ID `49` |

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright (c) 2026 GHand ROS2 Maintainers
+# SPDX-License-Identifier: MIT
+
 """Generate robot_description for Gazebo with patched joint lower limits.
 
 This script calls xacro on the provided URDF/xacro file and then patches every
@@ -13,7 +16,9 @@ import sys
 import xml.etree.ElementTree as ET
 
 
-def patch_lower_limits(urdf_str: str, epsilon: float = -0.01) -> tuple[str, int]:
+def patch_lower_limits(
+    urdf_str: str, epsilon: float = -0.01
+) -> tuple[str, int]:
     """Patch zero lower joint limits to the given negative tolerance."""
     root = ET.fromstring(urdf_str)
     patched = 0
@@ -37,15 +42,20 @@ def patch_lower_limits(urdf_str: str, epsilon: float = -0.01) -> tuple[str, int]
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Process a URDF/xacro for Gazebo and apply a small negative "
-                    "tolerance to zero lower joint limits."
+        description=(
+            "Process a URDF/xacro for Gazebo and apply a small negative "
+            "tolerance to zero lower joint limits."
+        )
     )
     parser.add_argument("urdf_path", help="Path to URDF or xacro file")
     parser.add_argument(
         "--limit-tolerance",
         type=float,
         default=-0.01,
-        help="Negative tolerance to apply to zero lower limits (default: -0.01)",
+        help=(
+            "Negative tolerance to apply to zero lower limits "
+            "(default: -0.01)"
+        ),
     )
     parser.add_argument(
         "--xacro-arg",
@@ -64,9 +74,12 @@ def main():
         print(result.stderr, file=sys.stderr)
         sys.exit(result.returncode)
 
-    patched_urdf, count = patch_lower_limits(result.stdout, args.limit_tolerance)
+    patched_urdf, count = patch_lower_limits(
+        result.stdout, args.limit_tolerance
+    )
     print(
-        f"Patched {count} joint limit(s) with lower=0 -> lower={args.limit_tolerance}",
+        f"Patched {count} joint limit(s) with lower=0 -> "
+        f"lower={args.limit_tolerance}",
         file=sys.stderr,
     )
     print(patched_urdf)

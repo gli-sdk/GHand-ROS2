@@ -1,21 +1,20 @@
-.claude/
-ros.md
-ros2_control架构图.drawio
-ros2_control架构图.drawio.png
-ros2_control流程图.drawio
-ros2_control流程图.drawio.png
-openspec/
-__pycache__/
-*.pyc
-*.pyo
+# ROS 2 build artifacts
 build/
 install/
 log/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+
+# Vendored proprietary libraries
 vendor/
+
+# Private assets package
 src/ghand_assets/
 
-.vscode/
-check_collision.py
-src/ghand_moveit_config/config/G5_right-all.srdf
-docs/
-
+# Local-only development tooling (OpenSpec / Claude Code skills and plans).
+# These are not part of the released artifact set; keep them out of commits.
+.claude/
+openspec/

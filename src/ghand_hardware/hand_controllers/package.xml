@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hand_controllers</name>
+  <version>1.0.0</version>
+  <description>Custom controllers and broadcasters for GHand</description>
+  <maintainer email="maintainers@glitech.cn">GHand ROS2 Maintainers</maintainer>
+  <license>MIT</license>
+
+  <url type="website">https://gitee.com/glitech/ghand-ros2</url>
+  <url type="repository">https://gitee.com/glitech/ghand-ros2.git</url>
+  <url type="bugtracker">https://gitee.com/glitech/ghand-ros2/issues</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>controller_interface</depend>
+  <depend>hand_msgs</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>realtime_tools</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

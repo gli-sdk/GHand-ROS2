@@ -1,0 +1,37 @@
+ghand_hardware:
+  ros__parameters:
+    update_rate: 100
+    read_timeout_ms: 500
+
+    joints:
+      - thumb_mcp
+      - thumb_tmc_fe
+      - thumb_tmc_aa
+      - thumb_tmc_ps
+      - index_pip
+      - index_mcp
+      - index_mcp_aa
+      - middle_pip
+      - middle_mcp
+      - ring_pip
+      - ring_mcp
+      - little_pip
+      - little_mcp
+    command_interfaces:
+      - position
+      - velocity
+      - effort
+    state_interfaces:
+      - position
+      - velocity
+      - effort
+      - state
+      - error
+
+    # Backend-specific parameters (communication_type, device, baud_rate, etc.)
+    # are supplied via URDF/xacro launch arguments so that switching between
+    # ethercat/rs485/canfd does not require editing this file.
+
+    # Tactile sensor layout: per-region distributed sensor counts.
+    # Order: THUMB, FF, MF, RF, LF
+    tactile_region_counts: "38,31,31,31,31"

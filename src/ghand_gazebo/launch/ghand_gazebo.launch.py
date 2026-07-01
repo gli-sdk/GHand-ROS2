@@ -1,13 +1,20 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 GHand ROS2 Maintainers
+# SPDX-License-Identifier: MIT
+
 """GHand Gazebo simulation launch file.
 
 Parameters:
-  use_rviz: 是否启动 RViz (默认: true)
-  world:    Gazebo world 文件路径 (默认: grasp_world.world)
+  use_rviz: whether to launch RViz (default: true)
+  world:    Gazebo world file path (default: grasp_world.world)
 """
 
 import os
 
-from ament_index_python.packages import get_package_prefix, get_package_share_directory
+from ament_index_python.packages import (
+    get_package_prefix,
+    get_package_share_directory,
+)
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
@@ -35,32 +42,44 @@ def generate_launch_description():
     limit_tolerance = LaunchConfiguration("limit_tolerance")
 
     declared_args = [
-        DeclareLaunchArgument("use_rviz", default_value="true",
-                              description="Launch RViz when true"),
+        DeclareLaunchArgument(
+            "use_rviz",
+            default_value="true",
+            description="Launch RViz when true",
+        ),
         DeclareLaunchArgument(
             "world",
             default_value=PathJoinSubstitution(
-                [FindPackageShare("ghand_gazebo"), "worlds", "grasp_world.world"]
+                [
+                    FindPackageShare("ghand_gazebo"),
+                    "worlds",
+                    "grasp_world.world",
+                ]
             ),
             description="Gazebo world file path",
         ),
         DeclareLaunchArgument(
             "limit_tolerance",
             default_value="-0.01",
-            description="Negative tolerance applied to zero joint lower limits in Gazebo.",
+            description=(
+                "Negative tolerance applied to zero joint lower limits "
+                "in Gazebo."
+            ),
         ),
     ]
 
     # --- Environment setup for Gazebo Sim (gz) ---
-    # 1. Resource path: gz resolves mesh URIs (package://ghand_description/... is
-    #    converted to model://ghand_description/...) against GZ_SIM_RESOURCE_PATH.
-    #    Point it at the parent of ghand_description's share dir so model://ghand_description
-    #    resolves to the installed meshes.
+    # 1. Resource path: gz resolves mesh URIs
+    #    (package://ghand_description/...) against GZ_SIM_RESOURCE_PATH.
+    #    Point it at the parent of ghand_description's share dir so
+    #    model://ghand_description resolves to the installed meshes.
     # 2. System plugin path: gz_ros2_control-system lives in the ROS lib dir.
-    ghand_desc_share_parent = os.path.dirname(get_package_share_directory("ghand_description"))
+    ghand_desc_share_parent = os.path.dirname(
+        get_package_share_directory("ghand_description")
+    )
     ros_lib = os.path.join(get_package_prefix("gz_ros2_control"), "lib")
     # Architecture-specific ROS lib dir (contains libruckig.so on amd64).
-    ros_lib_x86_64 = os.path.join(
+    ros_lib_multiarch = os.path.join(
         get_package_prefix("moveit_ros_move_group"), "lib", "x86_64-linux-gnu"
     )
     rviz_ogre_lib = os.path.join(
@@ -68,40 +87,62 @@ def generate_launch_description():
     )
 
     env_actions = [
-        AppendEnvironmentVariable("GZ_SIM_RESOURCE_PATH", ghand_desc_share_parent),
+        AppendEnvironmentVariable(
+            "GZ_SIM_RESOURCE_PATH", ghand_desc_share_parent
+        ),
         AppendEnvironmentVariable("GZ_SIM_SYSTEM_PLUGIN_PATH", ros_lib),
-        AppendEnvironmentVariable("LD_LIBRARY_PATH", ros_lib_x86_64),
-        AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib),
     ]
+    if os.path.isdir(ros_lib_multiarch):
+        env_actions.append(
+            AppendEnvironmentVariable("LD_LIBRARY_PATH", ros_lib_multiarch)
+        )
+    if os.path.isdir(rviz_ogre_lib):
+        env_actions.append(
+            AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
+        )
 
-    # NVIDIA PRIME workaround: gz's OGRE2 render engine picks the mesa EGL vendor by
-    # default and segfaults on hybrid NVIDIA setups. Force the NVIDIA EGL/GLX vendor.
-    # Only applied when the NVIDIA glvnd config is present, so this is a no-op on
-    # non-NVIDIA machines.
+    # NVIDIA PRIME workaround: gz's OGRE2 render engine picks the mesa EGL
+    # vendor by default and segfaults on hybrid NVIDIA setups. Force the NVIDIA
+    # EGL/GLX vendor. Only applied when the NVIDIA glvnd config is present, so
+    # this is a no-op on non-NVIDIA machines.
     nvidia_egl = "/usr/share/glvnd/egl_vendor.d/10_nvidia.json"
     if os.path.exists(nvidia_egl):
         env_actions += [
             SetEnvironmentVariable("__NV_PRIME_RENDER_OFFLOAD", "1"),
             SetEnvironmentVariable("__GLX_VENDOR_LIBRARY_NAME", "nvidia"),
-            SetEnvironmentVariable("__EGL_VENDOR_LIBRARY_FILENAMES", nvidia_egl),
+            SetEnvironmentVariable(
+                "__EGL_VENDOR_LIBRARY_FILENAMES", nvidia_egl
+            ),
         ]
 
     # URDF via helper script that patches zero lower limits for Gazebo.
     # Gazebo's physics solver reports joint positions slightly below zero, which
-    # would violate URDF limits of 0. The helper applies a small negative tolerance
-    # only in the Gazebo launch path, leaving the source URDF unchanged.
-    robot_description_content = Command([
-        PathJoinSubstitution([FindExecutable(name="python3")]),
-        " ",
-        PathJoinSubstitution([
-            FindPackageShare("ghand_gazebo"), "scripts", "generate_gazebo_robot_description.py"
-        ]),
-        " ",
-        PathJoinSubstitution([FindPackageShare("ghand_description"), "urdf", "G5_right.urdf"]),
-        " --xacro-arg use_gazebo:=true",
-        " --limit-tolerance ",
-        limit_tolerance,
-    ])
+    # would violate URDF limits of 0. The helper applies a small negative
+    # tolerance only in the Gazebo launch path, leaving the source xacro
+    # unchanged.
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="python3")]),
+            " ",
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("ghand_gazebo"),
+                    "scripts",
+                    "generate_gazebo_robot_description.py",
+                ]
+            ),
+            " ",
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("ghand_gazebo"),
+                    "config",
+                    "ghand_gazebo_description.urdf.xacro",
+                ]
+            ),
+            " --limit-tolerance ",
+            limit_tolerance,
+        ]
+    )
     robot_description = {"robot_description": robot_description_content}
 
     # robot_state_publisher
@@ -116,7 +157,10 @@ def generate_launch_description():
     # The -r flag runs simulation on startup.
     gazebo = ExecuteProcess(
         cmd=[
-            "gz", "sim", "-r", world,
+            "gz",
+            "sim",
+            "-r",
+            world,
         ],
         output="screen",
         additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
@@ -131,11 +175,16 @@ def generate_launch_description():
         package="ros_gz_sim",
         executable="create",
         arguments=[
-            "-topic", "/robot_description",
-            "-entity", "GHand",
-            "-x", "0.0",
-            "-y", "0.0",
-            "-z", "0.0",
+            "-topic",
+            "/robot_description",
+            "-entity",
+            "GHand",
+            "-x",
+            "0.0",
+            "-y",
+            "0.0",
+            "-z",
+            "0.0",
         ],
         output="screen",
     )
@@ -158,12 +207,20 @@ def generate_launch_description():
     jtc_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_trajectory_controller", "--controller-manager", "/controller_manager"],
+        arguments=[
+            "joint_trajectory_controller",
+            "--controller-manager",
+            "/controller_manager",
+        ],
     )
     jsb_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        arguments=[
+            "joint_state_broadcaster",
+            "--controller-manager",
+            "/controller_manager",
+        ],
     )
 
     # Build MoveIt configs (use the same config as moveit.launch.py).
@@ -175,7 +232,9 @@ def generate_launch_description():
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .to_moveit_configs()
     )
-    moveit_config.robot_description = {"robot_description": robot_description_content}
+    moveit_config.robot_description = {
+        "robot_description": robot_description_content
+    }
 
     # MoveGroup
     move_group = Node(
@@ -194,7 +253,13 @@ def generate_launch_description():
         executable="rviz2",
         arguments=[
             "-d",
-            PathJoinSubstitution([FindPackageShare("ghand_moveit_config"), "config", "moveit.rviz"]),
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("ghand_moveit_config"),
+                    "config",
+                    "moveit.rviz",
+                ]
+            ),
         ],
         parameters=[moveit_config.to_dict()],
         condition=IfCondition(use_rviz),
@@ -202,14 +267,18 @@ def generate_launch_description():
         additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
     )
 
-    return LaunchDescription(declared_args + env_actions + [
-        SetParameter(name="use_sim_time", value=True),
-        gazebo,
-        clock_bridge_starter,
-        rsp,
-        spawn_entity,
-        jsb_spawner,
-        jtc_spawner,
-        move_group,
-        rviz,
-    ])
+    return LaunchDescription(
+        declared_args
+        + env_actions
+        + [
+            SetParameter(name="use_sim_time", value=True),
+            gazebo,
+            clock_bridge_starter,
+            rsp,
+            spawn_entity,
+            jsb_spawner,
+            jtc_spawner,
+            move_group,
+            rviz,
+        ]
+    )

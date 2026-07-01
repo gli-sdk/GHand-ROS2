@@ -1,5 +1,19 @@
 repositories:
+  SOEM:
+    type: git
+    url: https://github.com/OpenEtherCATsociety/SOEM.git
+    version: master
+
   ghand_assets:
     type: git
     url: https://gitee.com/glitech/ghand-assets.git
     version: 86df06641f485bfcb49e0929b6abe94173158372
+
+  ghand_description:
+    type: git
+    url: https://gitee.com/glitech/ghand-description.git
+    version: main
+
+# Note: The ZLG CAN SDK is proprietary and cannot be distributed via vcs.
+# Place the vendor headers and shared libraries under vendor/ or install them
+# to /usr/local if you need CANFD support.
