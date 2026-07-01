@@ -1,5 +1,5 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 
 #ifndef HAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
 #define HAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_

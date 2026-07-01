@@ -1,5 +1,5 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 
 #ifndef GHAND_HARDWARE_INTERFACE_GHAND_HARDWARE_HPP_
 #define GHAND_HARDWARE_INTERFACE_GHAND_HARDWARE_HPP_

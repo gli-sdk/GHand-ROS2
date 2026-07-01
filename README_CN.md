@@ -1,7 +1,7 @@
 # GHand-ROS2
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-blue.svg)](https://docs.ros.org/)
 [![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
@@ -161,7 +161,7 @@ GHand-Ros2/
 │   ├── ghand_moveit_config/            # MoveIt 2 配置
 │   └── ghand_gazebo/                   # Gazebo 物理仿真
 ├── CHANGELOG.md                        # 版本历史
-├── LICENSE                             # MIT 许可证
+├── LICENSE                             # Apache License 2.0
 ├── README.md                           # English README
 └── README_CN.md                        # 本文件
 ```
@@ -184,6 +184,6 @@ GHand-Ros2/
 
 ## 📄 许可证
 
-本项目基于 [MIT 许可证](LICENSE) 开源。
+本项目基于 [Apache License 2.0](LICENSE) 开源。
 
 Copyright © 2026 GHand ROS2 Maintainers.

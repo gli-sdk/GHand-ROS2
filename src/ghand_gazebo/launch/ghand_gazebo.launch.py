@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Copyright (c) 2026 GHand ROS2 Maintainers
-# SPDX-License-Identifier: MIT
+# SPDX-License-Identifier: Apache-2.0
 
 """GHand Gazebo simulation launch file.
 

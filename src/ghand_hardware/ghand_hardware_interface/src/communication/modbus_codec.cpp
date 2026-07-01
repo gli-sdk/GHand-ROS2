@@ -1,5 +1,5 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: Apache-2.0
 
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
 
