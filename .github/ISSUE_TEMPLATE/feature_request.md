@@ -20,7 +20,6 @@ Any alternative approaches or workarounds.
 - [ ] ghand_hardware_interface
 - [ ] hand_controllers
 - [ ] hand_msgs
-- [ ] hand_bringup
 - [ ] ghand_moveit_config
 - [ ] ghand_gazebo
 

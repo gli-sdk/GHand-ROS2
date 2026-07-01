@@ -1,9 +1,0 @@
-hardware:
-  communication_type: canfd
-  device: "ZCAN_USBCANFD_100U:0:0"
-  baud_rate: 1000000
-  data_rate: 5000000
-  node_id: 49
-  can_clk: 60000000
-  read_timeout_ms: 500
-  tactile_region_counts: "38,31,31,31,31"

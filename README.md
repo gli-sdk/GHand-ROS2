@@ -50,10 +50,9 @@ GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。
 | 包名 | 说明 |
 |------|------|
 | `ghand_description` | 手部 URDF/Xacro 描述与 STL 模型 |
-| `ghand_hardware_interface` | 硬件组件，实现 `hardware_interface::SystemInterface` |
+| `ghand_hardware_interface` | 硬件组件（含 launch 与 config），实现 `hardware_interface::SystemInterface` |
 | `hand_controllers` | 自定义 broadcaster：`joint_status_broadcaster`、`tactile_broadcaster` |
 | `hand_msgs` | 自定义消息类型：`JointStatus`、`TactileData` |
-| `ghand_hardware_interface` | 启动文件与控制器/机器人管理器配置 |
 | `ghand_moveit_config` | MoveIt 2 运动规划配置 |
 | `ghand_gazebo`        | Gazebo 物理仿真启动与配置 |
 
@@ -282,7 +281,7 @@ python3 /home/pq/send_hand_position_direct.py
 启动：
 
 ```bash
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default
+ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
 ```
 
 如需指定其他 EtherCAT 网卡：
@@ -318,7 +317,7 @@ vendor/dist/include/zlgcan/zcan.h
 
 ```bash
 cd ~/GHand-Ros2
-colcon build --packages-select ghand_hardware_interface ghand_description ghand_hardware_interface --symlink-install
+colcon build --packages-select ghand_hardware_interface ghand_description hand_controllers hand_msgs --symlink-install
 source install/setup.bash
 ```
 
@@ -465,7 +464,7 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 
 ### 使用示例脚本
 
-> 注意：原 `hand_bringup` 中的 `send_hand_position.py` 示例脚本已随包重组移除，如需使用请根据当前控制器接口自行实现或从 Git 历史恢复。
+> 注意：原 `ghand_hardware_interface` 中的 `send_hand_position.py` 示例脚本已随包重组移除，如需使用请根据当前控制器接口自行实现或从 Git 历史恢复。
 
 ---
 
@@ -506,13 +505,10 @@ ros2 run rqt_joint_trajectory_controller rqt_joint_trajectory_controller
 GHand-Ros2/                              # ROS 2 工作空间
 ├── src/
 │   ├── ghand_description/               # URDF/Xacro 与模型文件
-│   ├── ghand_hardware_interface/        # 硬件接口与通讯驱动
-│   │   ├── include/GHand_hardware/      # 硬件接口头文件
-│   │   ├── src/communication/           # EtherCAT / CANFD / RS485 驱动
-│   │   └── hand_hardware_interface.xml  # 插件导出
-│   ├── hand_controllers/                # 自定义 broadcaster
-│   ├── hand_msgs/                       # 自定义消息
-│   ├── ghand_hardware_interface/                    # 启动与配置
+│   ├── ghand_hardware/                  # 硬件相关包
+│   │   ├── ghand_hardware_interface/    # 硬件接口与通讯驱动
+│   │   ├── hand_controllers/            # 自定义 broadcaster
+│   │   └── hand_msgs/                   # 自定义消息
 │   ├── ghand_moveit_config/             # MoveIt 2 配置
 │   └── ghand_gazebo/                    # Gazebo 物理仿真
 ├── openspec/                            # 规格驱动开发流程文档
@@ -526,38 +522,4 @@ GHand-Ros2/                              # ROS 2 工作空间
 ## 许可证
 
 MIT
-
-
-colcon build --symlink-install
-source install/setup.bash
-
-# 验证各 profile
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=canfd_usb
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=zqwl_canfd_left
-
-# 验证覆盖与错误提示
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=rs485_left device:=/dev/ttyUSB1
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=nonexistent
-
-moveIt:
-cd ~/GHand-Ros2
-colcon build --symlink-install
-source install/setup.bash
-
-ros2 launch ghand_moveit_config moveit.launch.py use_sim:=true
-
-gazebo:
-# 1. 安装依赖（如未安装）
-sudo apt update
-sudo apt install -y ros-jazzy-gz-ros2-control ros-jazzy-ros-gz-sim ros-jazzy-ros-gz
-
-# 2. 构建
-cd ~/GHand-Ros2
-colcon build --symlink-install
-source install/setup.bash
-
-# 3. 启动 Gazebo + MoveIt
-ros2 launch ghand_gazebo ghand_gazebo.launch.py
 

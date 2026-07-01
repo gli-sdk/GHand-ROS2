@@ -3,6 +3,16 @@
 All notable changes to the GHand-ROS2 repository will be documented in this
 file. See also the per-package `CHANGELOG.rst` files under `src/<package>/`.
 
+## Unreleased
+
+### Changed
+
+* Reorganized hardware packages: moved `ghand_hardware_interface`,
+  `hand_controllers`, and `hand_msgs` under `src/ghand_hardware/`. Removed the
+  deprecated `hand_bringup` and standalone `src/ghand_hardware_interface/`
+  layouts. Launch files and configurations now live in
+  `ghand_hardware/ghand_hardware_interface`.
+
 ## 1.0.0 (2026-06-30)
 
 ### Added

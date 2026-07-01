@@ -1,7 +1,0 @@
-<library path="ghand_hardware_interface">
-  <class name="GHand_hardware/GHandHardwareInterface"
-         type="GHand_hardware::GHandHardwareInterface"
-         base_class_type="hardware_interface::SystemInterface">
-    <description>Hardware interface for GHand robot.</description>
-  </class>
-</library>
