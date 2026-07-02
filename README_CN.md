@@ -10,6 +10,10 @@
 
 GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 框架构建。支持 Gazebo 物理仿真、MoveIt 2 运动规划，并提供 EtherCAT、CANFD、RS485 多种真实硬件通信后端，方便用户在无硬件环境下进行算法开发与可视化验证。
 
+## 🎬 演示
+
+![Gazebo 仿真演示](docs/gazebo_demo.gif)
+
 ## ✨ 功能特性
 
 - **多后端硬件驱动**
