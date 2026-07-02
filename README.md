@@ -10,6 +10,10 @@
 
 GHand-ROS2 is a ROS 2 control stack for the GHand five-finger dexterous hand, built on the `ros2_control` framework. It supports Gazebo physical simulation, MoveIt 2 motion planning, and multiple real-hardware communication backends (EtherCAT, CANFD, RS485), enabling algorithm development and visualization verification without hardware.
 
+## 🎬 Demo
+
+![Gazebo Simulation Demo](docs/gazebo_demo.gif)
+
 ## ✨ Features
 
 - **Multi-backend hardware drivers**
