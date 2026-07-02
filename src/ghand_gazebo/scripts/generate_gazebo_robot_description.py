@@ -40,6 +40,40 @@ def patch_lower_limits(
     return ET.tostring(root, encoding="unicode"), patched
 
 
+_DIP_MIMIC_MAP = {
+    # finger DIP follows the corresponding PIP
+    "thumb_dip": ("thumb_mcp", 1.0, 0.0),
+    "index_dip": ("index_pip", 1.0, 0.0),
+    "middle_dip": ("middle_pip", 1.0, 0.0),
+    "ring_dip": ("ring_pip", 1.0, 0.0),
+    "little_dip": ("little_pip", 1.0, 0.0),
+}
+
+
+def add_mimic_joints(urdf_str: str) -> tuple[str, int]:
+    """Couple passive DIP joints to their driving PIP/MCP joints.
+
+    The real GHand fingers use a tendon/linkage coupling so the distal
+    interphalangeal joint moves together with the proximal joint. The source
+    URDF models PIP and DIP as independent revolute joints, which makes the
+    DIP hang limp in Gazebo. Insert <mimic> tags so each DIP tracks its
+    driver joint.
+    """
+    root = ET.fromstring(urdf_str)
+    added = 0
+    for joint in root.findall("joint"):
+        name = joint.get("name")
+        if name not in _DIP_MIMIC_MAP:
+            continue
+        driver, multiplier, offset = _DIP_MIMIC_MAP[name]
+        mimic = ET.SubElement(joint, "mimic")
+        mimic.set("joint", driver)
+        mimic.set("multiplier", str(multiplier))
+        mimic.set("offset", str(offset))
+        added += 1
+    return ET.tostring(root, encoding="unicode"), added
+
+
 def main():
     parser = argparse.ArgumentParser(
         description=(
@@ -77,9 +111,14 @@ def main():
     patched_urdf, count = patch_lower_limits(
         result.stdout, args.limit_tolerance
     )
+    patched_urdf, mimic_count = add_mimic_joints(patched_urdf)
     print(
         f"Patched {count} joint limit(s) with lower=0 -> "
         f"lower={args.limit_tolerance}",
+        file=sys.stderr,
+    )
+    print(
+        f"Added {mimic_count} DIP mimic joint(s)",
         file=sys.stderr,
     )
     print(patched_urdf)

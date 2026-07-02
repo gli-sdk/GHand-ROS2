@@ -31,6 +31,18 @@ string(REPLACE
   "ghand5_system/meshes/"
   "package://${PROJECT_NAME}/meshes/"
   _urdf_contents "${_urdf_contents}")
+
+# The source URDF sets effort="0" velocity="0" on every joint limit. Gazebo
+# treats that as zero-force/zero-speed joints and the simulated hand cannot
+# move. Replace them with reasonable positive values so gz_ros2_control can
+# drive the fingers.
+string(REGEX REPLACE "effort=\"0\"" "effort=\"50\"" _urdf_contents "${_urdf_contents}")
+string(REGEX REPLACE "velocity=\"0\"" "velocity=\"50\"" _urdf_contents "${_urdf_contents}")
+
+# Add damping/friction to every joint to suppress high-gain oscillations in
+# Gazebo. The source URDF has no <dynamics>; without damping the fingers jitter
+# when position_proportional_gain is raised enough for trajectory tracking.
+string(REGEX REPLACE "(<limit[^/]*/>)" "\\1\n      <dynamics damping=\"0.1\" friction=\"0.05\"/>" _urdf_contents "${_urdf_contents}")
 file(WRITE
   "${CMAKE_CURRENT_BINARY_DIR}/urdf/G5_right_description.urdf"
   "${_urdf_contents}")

@@ -141,7 +141,12 @@ def generate_launch_description():
             ),
             " --limit-tolerance ",
             limit_tolerance,
-        ]
+        ],
+        # The helper script writes diagnostic info (e.g. "Patched N joint
+        # limit(s)") to stderr while the URDF goes to stdout. Command defaults
+        # to on_stderr="fail", which would abort the launch on that benign
+        # message; real failures still surface via a non-zero exit code.
+        on_stderr="warn",
     )
     robot_description = {"robot_description": robot_description_content}
 
