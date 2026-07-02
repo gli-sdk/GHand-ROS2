@@ -90,8 +90,8 @@ sudo apt install -y \
 | 后端       | 依赖包/库                              | 说明                              |
 | ---------- | -------------------------------------- | --------------------------------- |
 | EtherCAT   | `libsoem` / SOEM                       | 从源码编译， CMake 会自动探测      |
-| RS485      | `libmodbus-dev`                        | 系统包或本地 vendor 构建           |
-| CANFD      | ZLG CAN SDK / vendor `libusbcanfd.so` | 周立功 USB-CANFD 库或 vendor 库    |
+| RS485      | `libmodbus`                            | 系统包         |
+| CANFD      | ZLG CAN SDK | 周立功 USB-CANFD 库 |
 
 ## 📦 安装
 

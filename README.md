@@ -90,8 +90,8 @@ Only needed when connecting to real hardware; pure simulation development can sk
 | Backend | Dependency / Library | Notes |
 | ------- | -------------------- | ----- |
 | EtherCAT | `libsoem` / SOEM | Build from source; CMake auto-detects |
-| RS485 | `libmodbus-dev` | System package or local vendor build |
-| CANFD | ZLG CAN SDK / vendor `libusbcanfd.so` | ZLG USB-CANFD library or vendor library |
+| RS485 | `libmodbus` | System package |
+| CANFD | ZLG CAN SDK | ZLG USB-CANFD library|
 
 ## 📦 Installation
 
