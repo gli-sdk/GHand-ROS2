@@ -12,13 +12,13 @@ GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 
 
 ## 🎬 演示
 
+### MoveIt 运动规划
+![MoveIt 仿真演示](docs/moveit_demo.gif)
+
 ### Gazebo 仿真
 
 ![Gazebo 仿真演示](docs/gazebo_demo.gif)
 
-### MoveIt 运动规划
-
-> 待补充：MoveIt 运动规划演示 GIF（建议路径：`docs/moveit_demo.gif`）
 
 ## ✨ 功能特性
 

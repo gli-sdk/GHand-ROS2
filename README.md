@@ -12,13 +12,13 @@ GHand-ROS2 is a ROS 2 control stack for the GHand five-finger dexterous hand, bu
 
 ## 🎬 Demo
 
+### MoveIt Motion Planning
+
+![MoveIt Simulation Demo](docs/moveit_demo.gif)
+
 ### Gazebo Simulation
 
 ![Gazebo Simulation Demo](docs/gazebo_demo.gif)
-
-### MoveIt Motion Planning
-
-> TODO: Add MoveIt motion planning demo GIF (suggested path: `docs/moveit_demo.gif`)
 
 ## ✨ Features
 
