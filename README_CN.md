@@ -131,8 +131,8 @@ git clone https://gitee.com/glitech/ghand-ros2.git
 `ghand_description` 中的 URDF/Xacro 与 STL 模型由外部仓库提供，通过 `ghand.repos` 引入：
 
 ```bash
-cd <workspace>
-vcs import src < src/ghand-ros2/ghand.repos --recursive --skip-existing
+cd <workspace>/src
+vcs import . < ghand-ros2/ghand.repos --recursive --skip-existing
 ```
 
 **说明**：如果您的系统没有安装 `vcs` 工具，请先安装：

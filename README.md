@@ -131,8 +131,8 @@ git clone https://gitee.com/glitech/ghand-ros2.git
 The URDF/Xacro and STL meshes for `ghand_description` are provided by external repositories. Import them via `ghand.repos`:
 
 ```bash
-cd <workspace>
-vcs import src < src/ghand-ros2/ghand.repos --recursive --skip-existing
+cd <workspace>/src
+vcs import . < ghand-ros2/ghand.repos --recursive --skip-existing
 ```
 
 **Note**: If `vcs` is not installed, install it first:

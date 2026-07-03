@@ -11,7 +11,7 @@ file. See also the per-package `CHANGELOG.rst` files.
   the repository root. Updated installation instructions in `README.md` and
   `README_CN.md` to use a standard ROS 2 workspace layout: clone the
   repository into `<workspace>/src` and import dependencies with
-  `vcs import src < src/ghand-ros2/ghand.repos`.
+  `vcs import . < ghand-ros2/ghand.repos` from the workspace src directory.
 * Reorganized hardware packages: moved `ghand_hardware_interface`,
   `hand_controllers`, and `hand_msgs` under `ghand_hardware/`. Removed the
   deprecated `hand_bringup` and standalone `ghand_hardware_interface/`
