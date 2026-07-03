@@ -108,17 +108,23 @@ Only needed when connecting to real hardware; pure simulation development can sk
 ```bash
 # Verify ROS 2 environment
 echo $ROS_DISTRO  # should output: jazzy
-```
 
-### 2. Clone the Repository
-
-```bash
-# Clone the repository as the main workspace
-git clone https://gitee.com/glitech/ghand-ros2.git <workspace>
+# Create workspace
+mkdir -p <workspace>/src
 cd <workspace>
 ```
 
 **Note**: Replace `<workspace>` with your workspace path, e.g., `~/ghand-ros2`.
+
+### 2. Clone the Repository
+
+```bash
+# Enter workspace src directory
+cd <workspace>/src
+
+# Clone the main repository
+git clone https://gitee.com/glitech/ghand-ros2.git
+```
 
 ### 3. Import External Dependencies
 
@@ -126,7 +132,7 @@ The URDF/Xacro and STL meshes for `ghand_description` are provided by external r
 
 ```bash
 cd <workspace>
-vcs import . < ghand.repos --recursive --skip-existing
+vcs import src < src/ghand-ros2/ghand.repos --recursive --skip-existing
 ```
 
 **Note**: If `vcs` is not installed, install it first:
@@ -145,7 +151,8 @@ source install/setup.bash
 For mock-hardware-only builds, you can also use:
 
 ```bash
-./build.sh
+cd <workspace>
+./src/ghand-ros2/build.sh
 source install/setup.bash
 ```
 
@@ -276,6 +283,7 @@ GHand-Ros2/
 │   └── hand_msgs/                  # Custom message types
 ├── ghand_moveit_config/            # MoveIt 2 configuration
 ├── ghand_gazebo/                   # Gazebo physical simulation
+├── ghand_description/              # Robot description model
 ├── CHANGELOG.md                    # Version history
 ├── LICENSE                         # Apache License 2.0
 ├── README.md                       # This file

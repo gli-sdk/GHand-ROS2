@@ -19,7 +19,12 @@ __pycache__/
 vendor/
 
 # Private assets package
+ghand_assets/
 src/ghand_assets/
+
+# External dependencies imported by vcs
+SOEM/
+src/SOEM/
 
 # Local-only development tooling (OpenSpec / Claude Code skills and plans).
 # These are not part of the released artifact set; keep them out of commits.

@@ -108,17 +108,23 @@ sudo apt install -y \
 ```bash
 # 检查 ROS 2 环境
 echo $ROS_DISTRO  # 应该输出: jazzy
-```
 
-### 2. 克隆仓库
-
-```bash
-# 克隆仓库作为主工作空间
-git clone https://gitee.com/glitech/ghand-ros2.git <workspace>
+# 创建工作空间
+mkdir -p <workspace>/src
 cd <workspace>
 ```
 
 **注意**：请将 `<workspace>` 替换为您的工作空间路径，例如 `~/ghand-ros2`。
+
+### 2. 克隆仓库
+
+```bash
+# 进入工作空间 src 目录
+cd <workspace>/src
+
+# 克隆主仓库
+git clone https://gitee.com/glitech/ghand-ros2.git
+```
 
 ### 3. 导入外部依赖
 
@@ -126,7 +132,7 @@ cd <workspace>
 
 ```bash
 cd <workspace>
-vcs import . < ghand.repos --recursive --skip-existing
+vcs import src < src/ghand-ros2/ghand.repos --recursive --skip-existing
 ```
 
 **说明**：如果您的系统没有安装 `vcs` 工具，请先安装：
@@ -145,7 +151,8 @@ source install/setup.bash
 若只需 mock 硬件构建，可直接使用：
 
 ```bash
-./build.sh
+cd <workspace>
+./src/ghand-ros2/build.sh
 source install/setup.bash
 ```
 
@@ -270,6 +277,7 @@ ghand-ros2/
 │   └── hand_msgs/                  # 自定义消息类型
 ├── ghand_moveit_config/            # MoveIt 2 配置
 ├── ghand_gazebo/                   # Gazebo 物理仿真
+├── ghand_description/              # 机器人描述模型
 ├── CHANGELOG.md                    # 版本历史
 ├── LICENSE                         # Apache License 2.0
 ├── README.md                       # English README

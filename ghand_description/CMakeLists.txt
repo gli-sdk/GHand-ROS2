@@ -7,22 +7,23 @@ find_package(ament_cmake REQUIRED)
 # Source assets
 #
 # The URDF and meshes live in the ghand_assets repository, which is fetched
-# via `vcs import . < ghand.repos` into the sibling ghand_assets checkout.
+# via `vcs import src < src/ghand-ros2/ghand.repos` into the sibling
+# ghand_assets checkout under the workspace src directory.
 # ghand_assets is a raw asset repository (no package.xml), so this package
 # turns the G5 right-hand description into a standard ROS 2 description
 # package: it installs the meshes under share/ and rewrites the URDF's bare
 # mesh paths into package:// URIs that RViz / Gazebo / robot_state_publisher
 # can resolve.
 # --------------------------------------------------------------------------
-set(GHAND_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../ghand_assets/ghand5_system"
+set(GHAND_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ghand_assets/ghand5_system"
     CACHE PATH "Path to the ghand5_system assets directory")
 
 if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/G5_right.urdf")
   message(FATAL_ERROR
     "ghand5_system assets not found at:\n"
     "  ${GHAND_ASSETS_DIR}\n"
-    "Fetch them with `vcs import . < ghand.repos` from the workspace root "
-    "before building, or pass -DGHAND_ASSETS_DIR=<path>.")
+    "Fetch them with `vcs import src < src/ghand-ros2/ghand.repos` from the "
+    "workspace root before building, or pass -DGHAND_ASSETS_DIR=<path>.")
 endif()
 
 # Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
