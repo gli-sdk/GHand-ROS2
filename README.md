@@ -12,7 +12,13 @@ GHand-ROS2 is a ROS 2 control stack for the GHand five-finger dexterous hand, bu
 
 ## 🎬 Demo
 
+### Gazebo Simulation
+
 ![Gazebo Simulation Demo](docs/gazebo_demo.gif)
+
+### MoveIt Motion Planning
+
+> TODO: Add MoveIt motion planning demo GIF (suggested path: `docs/moveit_demo.gif`)
 
 ## ✨ Features
 
@@ -49,6 +55,8 @@ For detailed technical specifications, API reference, and tutorials, see the [GH
 - [Dependencies](#-dependencies)
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
+- [Demo](#-demo)
+- [Control Interfaces](#-control-interfaces)
 - [Directory Structure](#-directory-structure)
 - [Open Source and Ecosystem](#-open-source-and-ecosystem)
 - [Changelog](#-changelog)
@@ -95,19 +103,41 @@ Only needed when connecting to real hardware; pure simulation development can sk
 
 ## 📦 Installation
 
-### 1. Import External Dependencies
+### 1. Environment Setup
+
+```bash
+# Verify ROS 2 environment
+echo $ROS_DISTRO  # should output: jazzy
+```
+
+### 2. Clone the Repository
+
+```bash
+# Clone the repository as the main workspace
+git clone https://gitee.com/glitech/ghand-ros2.git <workspace>
+cd <workspace>
+```
+
+**Note**: Replace `<workspace>` with your workspace path, e.g., `~/ghand-ros2`.
+
+### 3. Import External Dependencies
 
 The URDF/Xacro and STL meshes for `ghand_description` are provided by external repositories. Import them via `ghand.repos`:
 
 ```bash
-cd ~/ghand-ros2
-vcs import src < ghand.repos
+cd <workspace>
+vcs import . < ghand.repos --recursive --skip-existing
 ```
 
-### 2. Build
+**Note**: If `vcs` is not installed, install it first:
+```bash
+sudo apt-get install python3-vcstool
+```
+
+### 4. Build
 
 ```bash
-cd ~/ghand-ros2
+cd <workspace>
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -137,7 +167,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 > Replace `enx000000000000` with your actual EtherCAT network interface name. Use `ip link` to list available interfaces.
 
-Available communication profiles are located at `src/ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_usb`, `zqwl_canfd_left`, and `zqwl_canfd_right`.
+Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_usb`, `zqwl_canfd_left`, and `zqwl_canfd_right`.
 
 ### Launch MoveIt 2
 
@@ -159,21 +189,97 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 
 After launch, you can plan trajectories in RViz using the MotionPlanning plugin; trajectories are sent to the `joint_trajectory_controller` running in Gazebo.
 
+## 🎮 Control Interfaces
+
+### Topic Interfaces
+
+- **Joint States**: `/joint_states` (`sensor_msgs/JointState`)
+- **Joint Status / Error Codes**: `/joint_status_broadcaster/joint_status` (`hand_msgs/JointStatus`)
+- **Tactile Feedback**: `/tactile_broadcaster/tactile_data` (`hand_msgs/TactileData`)
+- **Trajectory Commands**: `/joint_trajectory_controller/joint_trajectory` (`trajectory_msgs/JointTrajectory`)
+
+### Action Interfaces
+
+- **Trajectory Execution**: `/joint_trajectory_controller/follow_joint_trajectory` (`control_msgs/action/FollowJointTrajectory`)
+
+### Control Examples
+
+Start the hardware or simulation first:
+
+```bash
+# mock hardware
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+
+# or Gazebo simulation
+ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+#### Open Palm
+
+```bash
+ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
+  trajectory_msgs/msg/JointTrajectory \
+  '{
+    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
+                  "index_pip", "index_mcp", "index_mcp_aa",
+                  "middle_pip", "middle_mcp",
+                  "ring_pip", "ring_mcp",
+                  "little_pip", "little_mcp"],
+    points: [{
+      positions: [0.0, 0.0, 0.349, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      time_from_start: {sec: 1}
+    }]
+  }'
+```
+
+#### Make Fist
+
+```bash
+ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
+  trajectory_msgs/msg/JointTrajectory \
+  '{
+    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
+                  "index_pip", "index_mcp", "index_mcp_aa",
+                  "middle_pip", "middle_mcp",
+                  "ring_pip", "ring_mcp",
+                  "little_pip", "little_mcp"],
+    points: [{
+      positions: [0.5, 0.0, 0.349, 0.5, 1.2, 1.2, 0.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
+      time_from_start: {sec: 2}
+    }]
+  }'
+```
+
+### Monitoring and Debugging
+
+```bash
+# List all running nodes
+ros2 node list
+
+# List all controllers
+ros2 control list_controllers
+
+# List all topics
+ros2 topic list
+
+# Monitor joint states
+ros2 topic echo /joint_states
+```
+
 ## 📁 Directory Structure
 
 ```text
 GHand-Ros2/
-├── src/
-│   ├── ghand_hardware/
-│   │   ├── ghand_hardware_interface/   # Hardware interface and comm drivers
-│   │   ├── hand_controllers/           # Custom broadcasters
-│   │   └── hand_msgs/                  # Custom message types
-│   ├── ghand_moveit_config/            # MoveIt 2 configuration
-│   └── ghand_gazebo/                   # Gazebo physical simulation
-├── CHANGELOG.md                        # Version history
-├── LICENSE                             # Apache License 2.0
-├── README.md                           # This file
-└── README_CN.md                        # Chinese README
+├── ghand_hardware/
+│   ├── ghand_hardware_interface/   # Hardware interface and comm drivers
+│   ├── hand_controllers/           # Custom broadcasters
+│   └── hand_msgs/                  # Custom message types
+├── ghand_moveit_config/            # MoveIt 2 configuration
+├── ghand_gazebo/                   # Gazebo physical simulation
+├── CHANGELOG.md                    # Version history
+├── LICENSE                         # Apache License 2.0
+├── README.md                       # This file
+└── README_CN.md                    # Chinese README
 ```
 
 ## 🌐 Open Source and Ecosystem Resources

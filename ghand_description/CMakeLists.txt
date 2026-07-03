@@ -7,7 +7,7 @@ find_package(ament_cmake REQUIRED)
 # Source assets
 #
 # The URDF and meshes live in the ghand_assets repository, which is fetched
-# via `vcs import src < ghand.repos` into the sibling ghand_assets checkout.
+# via `vcs import . < ghand.repos` into the sibling ghand_assets checkout.
 # ghand_assets is a raw asset repository (no package.xml), so this package
 # turns the G5 right-hand description into a standard ROS 2 description
 # package: it installs the meshes under share/ and rewrites the URDF's bare
@@ -21,7 +21,7 @@ if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/G5_right.urdf")
   message(FATAL_ERROR
     "ghand5_system assets not found at:\n"
     "  ${GHAND_ASSETS_DIR}\n"
-    "Fetch them with `vcs import src < ghand.repos` from the workspace root "
+    "Fetch them with `vcs import . < ghand.repos` from the workspace root "
     "before building, or pass -DGHAND_ASSETS_DIR=<path>.")
 endif()
 

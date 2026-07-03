@@ -12,7 +12,13 @@ GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 
 
 ## 🎬 演示
 
+### Gazebo 仿真
+
 ![Gazebo 仿真演示](docs/gazebo_demo.gif)
+
+### MoveIt 运动规划
+
+> 待补充：MoveIt 运动规划演示 GIF（建议路径：`docs/moveit_demo.gif`）
 
 ## ✨ 功能特性
 
@@ -49,6 +55,8 @@ GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 
 - [依赖说明](#-依赖说明)
 - [安装](#-安装)
 - [快速开始](#-快速开始)
+- [演示](#-演示)
+- [控制接口](#-控制接口)
 - [目录结构](#-目录结构)
 - [开源与生态资源](#-开源与生态资源)
 - [更新日志](#-更新日志)
@@ -95,19 +103,41 @@ sudo apt install -y \
 
 ## 📦 安装
 
-### 1. 导入外部依赖
+### 1. 环境准备
+
+```bash
+# 检查 ROS 2 环境
+echo $ROS_DISTRO  # 应该输出: jazzy
+```
+
+### 2. 克隆仓库
+
+```bash
+# 克隆仓库作为主工作空间
+git clone https://gitee.com/glitech/ghand-ros2.git <workspace>
+cd <workspace>
+```
+
+**注意**：请将 `<workspace>` 替换为您的工作空间路径，例如 `~/ghand-ros2`。
+
+### 3. 导入外部依赖
 
 `ghand_description` 中的 URDF/Xacro 与 STL 模型由外部仓库提供，通过 `ghand.repos` 引入：
 
 ```bash
-cd ~/ghand-ros2
-vcs import src < ghand.repos
+cd <workspace>
+vcs import . < ghand.repos --recursive --skip-existing
 ```
 
-### 2. 编译
+**说明**：如果您的系统没有安装 `vcs` 工具，请先安装：
+```bash
+sudo apt-get install python3-vcstool
+```
+
+### 4. 编译
 
 ```bash
-cd ~/ghand-ros2
+cd <workspace>
 colcon build --symlink-install
 source install/setup.bash
 ```
@@ -137,7 +167,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 > 请将 `enx000000000000` 替换为你本机的 EtherCAT 网卡接口名。可通过 `ip link` 命令查看可用接口。
 
-可用的通讯配置文件位于 `src/ghand_hardware/ghand_hardware_interface/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_usb`、`zqwl_canfd_left`、`zqwl_canfd_right`。
+可用的通讯配置文件位于 `ghand_hardware/ghand_hardware_interface/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_usb`、`zqwl_canfd_left`、`zqwl_canfd_right`。
 
 ### 启动 MoveIt 2
 
@@ -153,21 +183,97 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 
 启动后可在 RViz 中通过 MotionPlanning 插件规划轨迹，轨迹会发送到 Gazebo 中的 `joint_trajectory_controller` 物理执行。
 
+## 🎮 控制接口
+
+### Topic 接口
+
+- **关节状态**：`/joint_states`（`sensor_msgs/JointState`）
+- **关节状态码 / 错误码**：`/joint_status_broadcaster/joint_status`（`hand_msgs/JointStatus`）
+- **触觉反馈**：`/tactile_broadcaster/tactile_data`（`hand_msgs/TactileData`）
+- **轨迹命令**：`/joint_trajectory_controller/joint_trajectory`（`trajectory_msgs/JointTrajectory`）
+
+### Action 接口
+
+- **轨迹执行**：`/joint_trajectory_controller/follow_joint_trajectory`（`control_msgs/action/FollowJointTrajectory`）
+
+### 控制示例
+
+先启动硬件或仿真：
+
+```bash
+# mock 硬件
+ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+
+# 或 Gazebo 仿真
+ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+#### 张开手掌
+
+```bash
+ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
+  trajectory_msgs/msg/JointTrajectory \
+  '{
+    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
+                  "index_pip", "index_mcp", "index_mcp_aa",
+                  "middle_pip", "middle_mcp",
+                  "ring_pip", "ring_mcp",
+                  "little_pip", "little_mcp"],
+    points: [{
+      positions: [0.0, 0.0, 0.349, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      time_from_start: {sec: 1}
+    }]
+  }'
+```
+
+#### 握拳
+
+```bash
+ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
+  trajectory_msgs/msg/JointTrajectory \
+  '{
+    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
+                  "index_pip", "index_mcp", "index_mcp_aa",
+                  "middle_pip", "middle_mcp",
+                  "ring_pip", "ring_mcp",
+                  "little_pip", "little_mcp"],
+    points: [{
+      positions: [0.5, 0.0, 0.349, 0.5, 1.2, 1.2, 0.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
+      time_from_start: {sec: 2}
+    }]
+  }'
+```
+
+### 监控与调试
+
+```bash
+# 列出所有运行的节点
+ros2 node list
+
+# 列出所有控制器
+ros2 control list_controllers
+
+# 列出所有话题
+ros2 topic list
+
+# 监听关节状态
+ros2 topic echo /joint_states
+```
+
 ## 📁 目录结构
 
 ```text
 ghand-ros2/
-├── src/
-│   ├── ghand_hardware/
-│   │   ├── ghand_hardware_interface/   # 硬件接口与通讯驱动
-│   │   ├── hand_controllers/           # 自定义 broadcaster
-│   │   └── hand_msgs/                  # 自定义消息类型
-│   ├── ghand_moveit_config/            # MoveIt 2 配置
-│   └── ghand_gazebo/                   # Gazebo 物理仿真
-├── CHANGELOG.md                        # 版本历史
-├── LICENSE                             # Apache License 2.0
-├── README.md                           # English README
-└── README_CN.md                        # 本文件
+├── ghand_hardware/
+│   ├── ghand_hardware_interface/   # 硬件接口与通讯驱动
+│   ├── hand_controllers/           # 自定义 broadcaster
+│   └── hand_msgs/                  # 自定义消息类型
+├── ghand_moveit_config/            # MoveIt 2 配置
+├── ghand_gazebo/                   # Gazebo 物理仿真
+├── CHANGELOG.md                    # 版本历史
+├── LICENSE                         # Apache License 2.0
+├── README.md                       # English README
+└── README_CN.md                    # 本文件
 ```
 
 ## 🌐 开源与生态资源

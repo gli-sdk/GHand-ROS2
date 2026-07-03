@@ -1,15 +1,19 @@
 # Changelog
 
 All notable changes to the GHand-ROS2 repository will be documented in this
-file. See also the per-package `CHANGELOG.rst` files under `src/<package>/`.
+file. See also the per-package `CHANGELOG.rst` files.
 
 ## Unreleased
 
 ### Changed
 
+* Removed the top-level `src/` directory; all packages now reside directly in
+  the workspace root. Updated installation instructions in `README.md` and
+  `README_CN.md` to clone the repository as the workspace and import
+  dependencies with `vcs import . < ghand.repos`.
 * Reorganized hardware packages: moved `ghand_hardware_interface`,
-  `hand_controllers`, and `hand_msgs` under `src/ghand_hardware/`. Removed the
-  deprecated `hand_bringup` and standalone `src/ghand_hardware_interface/`
+  `hand_controllers`, and `hand_msgs` under `ghand_hardware/`. Removed the
+  deprecated `hand_bringup` and standalone `ghand_hardware_interface/`
   layouts. Launch files and configurations now live in
   `ghand_hardware/ghand_hardware_interface`.
 * EtherCAT default profile (`ethercat_default.yaml`) no longer contains a
