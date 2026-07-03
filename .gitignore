@@ -9,6 +9,7 @@ docs/*
 
 # Re-add specific docs files that are part of the release artifact set
 !docs/gazebo_demo.gif
+!docs/moveit_demo.gif
 
 # Python artifacts
 __pycache__/
