@@ -3,10 +3,11 @@
   <xacro:arg name="hand_side" default="right"/>
 
   <!-- Base robot description from the external ghand_description package -->
-  <xacro:if value="$(eval arg('hand_side') == 'left')">
+  <xacro:property name="hand_side" value="$(arg hand_side)"/>
+  <xacro:if value="${hand_side == 'left'}">
     <xacro:include filename="$(find ghand_description)/urdf/ghand5_left_description.urdf"/>
   </xacro:if>
-  <xacro:if value="$(eval arg('hand_side') == 'right')">
+  <xacro:if value="${hand_side == 'right'}">
     <xacro:include filename="$(find ghand_description)/urdf/ghand5_right_description.urdf"/>
   </xacro:if>
 
