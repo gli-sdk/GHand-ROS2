@@ -230,8 +230,8 @@ def generate_launch_description():
 
     # Build MoveIt configs (use the same config as moveit.launch.py).
     moveit_config = (
-        MoveItConfigsBuilder("G5_right", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/G5_right.srdf")
+        MoveItConfigsBuilder("ghand5-right", package_name="ghand_moveit_config")
+        .robot_description_semantic(file_path="config/ghand5_right.srdf")
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .joint_limits(file_path="config/joint_limits.yaml")
         .robot_description_kinematics(file_path="config/kinematics.yaml")

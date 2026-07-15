@@ -18,7 +18,7 @@ find_package(ament_cmake REQUIRED)
 set(GHAND_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ghand_assets/ghand5_system"
     CACHE PATH "Path to the ghand5_system assets directory")
 
-if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/G5_right.urdf")
+if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/ghand5_right.urdf")
   message(FATAL_ERROR
     "ghand5_system assets not found at:\n"
     "  ${GHAND_ASSETS_DIR}\n"
@@ -27,7 +27,7 @@ if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/G5_right.urdf")
 endif()
 
 # Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
-file(READ "${GHAND_ASSETS_DIR}/urdf/G5_right.urdf" _urdf_contents)
+file(READ "${GHAND_ASSETS_DIR}/urdf/ghand5_right.urdf" _urdf_contents)
 string(REPLACE
   "ghand5_system/meshes/"
   "package://${PROJECT_NAME}/meshes/"
@@ -45,11 +45,11 @@ string(REGEX REPLACE "velocity=\"0\"" "velocity=\"50\"" _urdf_contents "${_urdf_
 # when position_proportional_gain is raised enough for trajectory tracking.
 string(REGEX REPLACE "(<limit[^/]*/>)" "\\1\n      <dynamics damping=\"0.1\" friction=\"0.05\"/>" _urdf_contents "${_urdf_contents}")
 file(WRITE
-  "${CMAKE_CURRENT_BINARY_DIR}/urdf/G5_right_description.urdf"
+  "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_right_description.urdf"
   "${_urdf_contents}")
 
 # Install the rewritten URDF under the filename the consuming packages expect.
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/urdf/G5_right_description.urdf"
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_right_description.urdf"
         DESTINATION share/${PROJECT_NAME}/urdf)
 
 # Install the right-hand visual meshes. Collision geometry reuses the same

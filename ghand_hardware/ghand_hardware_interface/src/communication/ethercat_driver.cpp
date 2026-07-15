@@ -38,19 +38,19 @@ constexpr int kMaxOpRetries = 5000;
 const std::vector<ghand_comm::JointId> kEthercatActiveJoints = {
     // Slave PDO order is tip-to-base within each finger (DIP -> PIP -> MCP ->
     // ...).
-    ghand_comm::JointId::THUMB_MCP,     // thumb_mcp,     ros2_control index 1
-    ghand_comm::JointId::THUMB_TMC_FE,  // thumb_tmc_fe,  ros2_control index 2
-    ghand_comm::JointId::THUMB_TMC_AA,  // thumb_tmc_aa,  ros2_control index 3
-    ghand_comm::JointId::THUMB_TMC_PS,  // thumb_tmc_ps,  ros2_control index 4
-    ghand_comm::JointId::INDEX_PIP,     // index_pip,     ros2_control index 6
-    ghand_comm::JointId::INDEX_MCP,     // index_mcp,     ros2_control index 7
-    ghand_comm::JointId::INDEX_MCP_AA,  // index_mcp_aa,  ros2_control index 8
-    ghand_comm::JointId::MIDDLE_PIP,    // middle_pip,    ros2_control index 10
-    ghand_comm::JointId::MIDDLE_MCP,    // middle_mcp,    ros2_control index 11
-    ghand_comm::JointId::RING_PIP,      // ring_pip,      ros2_control index 13
-    ghand_comm::JointId::RING_MCP,      // ring_mcp,      ros2_control index 14
-    ghand_comm::JointId::LITTLE_PIP,    // little_pip,    ros2_control index 16
-    ghand_comm::JointId::LITTLE_MCP,    // little_mcp,    ros2_control index 17
+    ghand_comm::JointId::THUMB_MCP,     // Thumb_MCP,     ros2_control index 1
+    ghand_comm::JointId::THUMB_TMC_FE,  // Thumb_TMC_FE,  ros2_control index 2
+    ghand_comm::JointId::THUMB_TMC_AA,  // Thumb_TMC_AA,  ros2_control index 3
+    ghand_comm::JointId::THUMB_TMC_PS,  // Thumb_TMC_PS,  ros2_control index 4
+    ghand_comm::JointId::INDEX_PIP,     // FF_PIP,     ros2_control index 6
+    ghand_comm::JointId::INDEX_MCP,     // FF_MCP,     ros2_control index 7
+    ghand_comm::JointId::INDEX_MCP_AA,  // FF_MCP_AA,  ros2_control index 8
+    ghand_comm::JointId::MIDDLE_PIP,    // MF_PIP,    ros2_control index 10
+    ghand_comm::JointId::MIDDLE_MCP,    // MF_MCP,    ros2_control index 11
+    ghand_comm::JointId::RING_PIP,      // RF_PIP,      ros2_control index 13
+    ghand_comm::JointId::RING_MCP,      // RF_MCP,      ros2_control index 14
+    ghand_comm::JointId::LITTLE_PIP,    // LF_PIP,    ros2_control index 16
+    ghand_comm::JointId::LITTLE_MCP,    // LF_MCP,    ros2_control index 17
 };
 
 // ros2_control index in the 18-joint canonical order for each active joint

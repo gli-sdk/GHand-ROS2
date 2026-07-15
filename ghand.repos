@@ -7,7 +7,7 @@ repositories:
   ghand_assets:
     type: git
     url: https://gitee.com/glitech/ghand-assets.git
-    version: 86df06641f485bfcb49e0929b6abe94173158372
+    version: V1.0.0
 
 # Note: The ZLG CAN SDK is proprietary and cannot be distributed via vcs.
 # Place the vendor headers and shared libraries under vendor/ or install them
