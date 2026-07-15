@@ -42,11 +42,11 @@ def patch_lower_limits(
 
 _DIP_MIMIC_MAP = {
     # finger DIP follows the corresponding PIP
-    "thumb_dip": ("thumb_mcp", 1.0, 0.0),
-    "index_dip": ("index_pip", 1.0, 0.0),
-    "middle_dip": ("middle_pip", 1.0, 0.0),
-    "ring_dip": ("ring_pip", 1.0, 0.0),
-    "little_dip": ("little_pip", 1.0, 0.0),
+    "Thumb_IP": ("Thumb_MCP", 1.0, 0.0),
+    "FF_DIP": ("FF_PIP", 1.0, 0.0),
+    "MF_DIP": ("MF_PIP", 1.0, 0.0),
+    "RF_DIP": ("RF_PIP", 1.0, 0.0),
+    "LF_DIP": ("LF_PIP", 1.0, 0.0),
 }
 
 

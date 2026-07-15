@@ -4,7 +4,7 @@ MoveIt 2 configuration for the GHand dexterous hand.
 
 ## Contents
 
-- `config/G5_right.srdf` — semantic robot description.
+- `config/ghand5_right.srdf` — semantic robot description.
 - `config/kinematics.yaml` — kinematics solver configuration.
 - `config/ompl_planning.yaml`, `config/chomp_planning.yaml` — planning pipeline
   settings.

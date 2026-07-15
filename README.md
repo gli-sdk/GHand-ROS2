@@ -227,11 +227,11 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.0, 0.0, 0.349, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       time_from_start: {sec: 1}
@@ -245,11 +245,11 @@ ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.5, 0.0, 0.349, 0.5, 1.2, 1.2, 0.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
       time_from_start: {sec: 2}
