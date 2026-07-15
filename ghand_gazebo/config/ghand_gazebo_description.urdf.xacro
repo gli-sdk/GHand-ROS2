@@ -1,8 +1,14 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-right">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-$(arg hand_side)">
+  <xacro:arg name="hand_side" default="right"/>
 
   <!-- Base robot description from the external ghand_description package -->
-  <xacro:include filename="$(find ghand_description)/urdf/ghand5_right_description.urdf"/>
+  <xacro:if value="$(eval arg('hand_side') == 'left')">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_left_description.urdf"/>
+  </xacro:if>
+  <xacro:if value="$(eval arg('hand_side') == 'right')">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_right_description.urdf"/>
+  </xacro:if>
 
   <!-- Gazebo-specific macros (world fixed joint, plugin, link properties) -->
   <xacro:include filename="$(find ghand_gazebo)/config/ghand.gazebo.xacro"/>

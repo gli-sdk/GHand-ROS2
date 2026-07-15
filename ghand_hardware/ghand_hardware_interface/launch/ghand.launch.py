@@ -7,7 +7,8 @@
 Launches the robot state publisher, controller manager, and default controllers
 for either mock hardware or a real GHand communication backend. The backend is
 selected via the `profile` argument (a YAML file under
-ghand_hardware_interface/config/profiles).
+ghand_hardware_interface/config/profiles), while `hand_side` selects the left-
+or right-hand description.
 """
 
 from launch import LaunchDescription
@@ -27,6 +28,14 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    hand_side_arg = DeclareLaunchArgument(
+        "hand_side",
+        default_value="right",
+        choices=["left", "right"],
+        description="Hand model to launch.",
+    )
+    hand_side = LaunchConfiguration("hand_side")
+
     # Launch argument: use mock hardware
     use_mock_hardware_arg = DeclareLaunchArgument(
         "use_mock_hardware",
@@ -112,6 +121,8 @@ def generate_launch_description():
                     "ghand_hardware_description.urdf.xacro",
                 ]
             ),
+            " hand_side:=",
+            hand_side,
             " use_mock_hardware:=",
             use_mock_hardware,
             " profile_file:=",
@@ -260,6 +271,7 @@ def generate_launch_description():
     )
 
     nodes = [
+        hand_side_arg,
         use_mock_hardware_arg,
         profile_arg,
         communication_type_arg,

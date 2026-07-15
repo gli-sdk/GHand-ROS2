@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot name="ghand5-left">
+  <!--===== 全手规划组（18 关节，5 被动 DIP） =====-->
+  <group name="hand">
+    <link name="base_link"/>
+    <joint name="Thumb_MCP"/>
+    <joint name="Thumb_TMC_FE"/>
+    <joint name="Thumb_TMC_AA"/>
+    <joint name="Thumb_TMC_PS"/>
+    <joint name="FF_PIP"/>
+    <joint name="FF_MCP"/>
+    <joint name="FF_MCP_AA"/>
+    <joint name="MF_PIP"/>
+    <joint name="MF_MCP"/>
+    <joint name="RF_PIP"/>
+    <joint name="RF_MCP"/>
+    <joint name="LF_PIP"/>
+    <joint name="LF_MCP"/>
+    <passive_joint name="Thumb_IP"/>
+    <passive_joint name="FF_DIP"/>
+    <passive_joint name="MF_DIP"/>
+    <passive_joint name="RF_DIP"/>
+    <passive_joint name="LF_DIP"/>
+  </group>
+
+  <!--===== 单指规划组 =====-->
+  <group name="index_finger">
+    <chain base_link="base_link" tip_link="FF_DIP_link"/>
+  </group>
+
+  <group name="middle_finger">
+    <chain base_link="base_link" tip_link="MF_DIP_link"/>
+  </group>
+
+  <group name="ring_finger">
+    <chain base_link="base_link" tip_link="RF_DIP_link"/>
+  </group>
+
+  <group name="little_finger">
+    <chain base_link="base_link" tip_link="LF_DIP_link"/>
+  </group>
+
+  <group name="thumb">
+    <chain base_link="base_link" tip_link="Thumb_IP_link"/>
+  </group>
+
+  <!--===== 指尖末端执行器组（只包含指尖 link） =====-->
+  <group name="index_finger_tip">
+    <link name="FF_DIP_link"/>
+  </group>
+
+  <group name="middle_finger_tip">
+    <link name="MF_DIP_link"/>
+  </group>
+
+  <group name="ring_finger_tip">
+    <link name="RF_DIP_link"/>
+  </group>
+
+  <group name="little_finger_tip">
+    <link name="LF_DIP_link"/>
+  </group>
+
+  <group name="thumb_tip">
+    <link name="Thumb_IP_link"/>
+  </group>
+
+  <!--===== 预设手势 =====-->
+  <group_state name="open" group="hand">
+    <joint name="Thumb_MCP" value="0.0"/>
+    <joint name="Thumb_TMC_FE" value="0.0"/>
+    <joint name="Thumb_TMC_AA" value="0.349065850398866"/>
+    <joint name="Thumb_TMC_PS" value="0.0"/>
+    <joint name="FF_PIP" value="0.0"/>
+    <joint name="FF_MCP" value="0.0"/>
+    <joint name="FF_MCP_AA" value="0.0"/>
+    <joint name="MF_PIP" value="0.0"/>
+    <joint name="MF_MCP" value="0.0"/>
+    <joint name="RF_PIP" value="0.0"/>
+    <joint name="RF_MCP" value="0.0"/>
+    <joint name="LF_PIP" value="0.0"/>
+    <joint name="LF_MCP" value="0.0"/>
+  </group_state>
+
+  <group_state name="fist" group="hand">
+    <joint name="Thumb_MCP" value="0.5"/>
+    <joint name="Thumb_TMC_FE" value="0"/>
+    <joint name="Thumb_TMC_AA" value="0.349065850398866"/>
+    <joint name="Thumb_TMC_PS" value="0.5"/>
+    <joint name="FF_PIP" value="1.2"/>
+    <joint name="FF_MCP" value="1.2"/>
+    <joint name="FF_MCP_AA" value="0.0"/>
+    <joint name="MF_PIP" value="1.2"/>
+    <joint name="MF_MCP" value="1.2"/>
+    <joint name="RF_PIP" value="1.2"/>
+    <joint name="RF_MCP" value="1.2"/>
+    <joint name="LF_PIP" value="1.2"/>
+    <joint name="LF_MCP" value="1.2"/>
+  </group_state>
+
+  <!--===== 末端执行器 =====-->
+  <end_effector name="index_finger_tip" parent_link="FF_DIP_link" group="index_finger_tip" parent_group="index_finger"/>
+  <end_effector name="middle_finger_tip" parent_link="MF_DIP_link" group="middle_finger_tip" parent_group="middle_finger"/>
+  <end_effector name="ring_finger_tip" parent_link="RF_DIP_link" group="ring_finger_tip" parent_group="ring_finger"/>
+  <end_effector name="little_finger_tip" parent_link="LF_DIP_link" group="little_finger_tip" parent_group="little_finger"/>
+  <end_effector name="thumb_tip" parent_link="Thumb_IP_link" group="thumb_tip" parent_group="thumb"/>
+
+  <!--===== 自碰撞禁用规则 =====-->
+  <!-- base_link 与手指根部：手掌和直接连在手掌上的关节，碰撞体通常重叠，禁用 -->
+  <disable_collisions link1="base_link" link2="FF_MCP_AA_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="FF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="MF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="RF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="LF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="Thumb_TMC_PS_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="Thumb_TMC_AA_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="Thumb_TMC_FE_link" reason="Adjacent"/>
+  <disable_collisions link1="base_link" link2="Thumb_MCP_link" reason="Adjacent"/>
+
+  <!-- 相邻关节对：同一根手指上直接相连的 link 不检测碰撞 -->
+  <disable_collisions link1="FF_DIP_link" link2="FF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="FF_MCP_AA_link" link2="FF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="FF_MCP_link" link2="FF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="LF_DIP_link" link2="LF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="LF_DIP_link" link2="LF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="LF_MCP_link" link2="LF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="MF_DIP_link" link2="MF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="MF_DIP_link" link2="MF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="MF_MCP_link" link2="MF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="RF_DIP_link" link2="RF_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="RF_DIP_link" link2="RF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="RF_MCP_link" link2="RF_PIP_link" reason="Adjacent"/>
+  <disable_collisions link1="Thumb_IP_link" link2="Thumb_MCP_link" reason="Adjacent"/>
+  <disable_collisions link1="Thumb_MCP_link" link2="Thumb_TMC_FE_link" reason="Adjacent"/>
+  <disable_collisions link1="Thumb_TMC_FE_link" link2="Thumb_TMC_AA_link" reason="Adjacent"/>
+  <disable_collisions link1="Thumb_TMC_AA_link" link2="Thumb_TMC_PS_link" reason="Adjacent"/>
+  <!-- 特殊相邻/无干涉对：FF_MCP 与 Thumb_TMC_FE -->
+  <disable_collisions link1="FF_MCP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+
+  <!-- 无干涉组：middle/ring/little 三根手指内部任意 link 之间、以及它们与 Thumb_TMC_FE 之间不检测碰撞 -->
+  <disable_collisions link1="LF_DIP_link" link2="MF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="MF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="MF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_DIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="MF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="MF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="MF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_MCP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="MF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="MF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="MF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="LF_PIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="MF_DIP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="MF_DIP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="MF_DIP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="MF_DIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="MF_MCP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="MF_MCP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="MF_MCP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="MF_MCP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="MF_PIP_link" link2="RF_DIP_link" reason="User"/>
+  <disable_collisions link1="MF_PIP_link" link2="RF_MCP_link" reason="User"/>
+  <disable_collisions link1="MF_PIP_link" link2="RF_PIP_link" reason="User"/>
+  <disable_collisions link1="MF_PIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="RF_DIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="RF_MCP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+  <disable_collisions link1="RF_PIP_link" link2="Thumb_TMC_FE_link" reason="User"/>
+
+
+  <!--===== 虚拟关节 =====-->
+  <!-- The world->base_link connection is provided by the URDF (a `world` link +
+       `world_to_base` fixed joint, added under use_gazebo with the real mount
+       pose). An SRDF virtual_joint here would duplicate that connection: in
+       Gazebo runs move_group publishes the virtual joint's identity transform
+       while robot_state_publisher publishes the URDF joint's real mount pose,
+       so RViz draws the hand twice. The URDF joint is the single source. -->
+
+</robot>

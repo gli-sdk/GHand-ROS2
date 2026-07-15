@@ -16,6 +16,12 @@ Gazebo Harmonic simulation for the GHand dexterous hand.
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
 ```
 
+Select the left-hand model at launch time with:
+
+```bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py hand_side:=left
+```
+
 ## Dependencies
 
 - `gz_ros2_control`
