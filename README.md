@@ -164,6 +164,8 @@ source install/setup.bash
 ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ```
 
+Add `hand_side:=left` to use the left-hand model. The default is `right`.
+
 Simulation mode uses `mock_components/GenericSystem` and requires no hardware devices.
 
 ### Launch Real Hardware
@@ -182,6 +184,12 @@ Available communication profiles are located at `ghand_hardware/ghand_hardware_i
 ros2 launch ghand_moveit_config moveit.launch.py
 ```
 
+The right-hand model is used by default. Select the left hand with:
+
+```bash
+ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
+```
+
 For EtherCAT real hardware, also provide `ifname`:
 
 ```bash
@@ -192,6 +200,12 @@ ros2 launch ghand_moveit_config moveit.launch.py use_sim:=false profile:=etherca
 
 ```bash
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+Pass `hand_side:=left` to simulate the left hand instead:
+
+```bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py hand_side:=left
 ```
 
 After launch, you can plan trajectories in RViz using the MotionPlanning plugin; trajectories are sent to the `joint_trajectory_controller` running in Gazebo.

@@ -164,6 +164,8 @@ source install/setup.bash
 ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ```
 
+增加 `hand_side:=left` 可使用左手模型；默认值为 `right`。
+
 仿真模式使用 `mock_components/GenericSystem`，无需任何硬件设备。
 
 ### 启动真实硬件
@@ -182,10 +184,22 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 ros2 launch ghand_moveit_config moveit.launch.py
 ```
 
+默认使用右手模型；启动左手模型时传入：
+
+```bash
+ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
+```
+
 ### 启动 Gazebo 仿真
 
 ```bash
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+启动左手 Gazebo 仿真时传入：
+
+```bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py hand_side:=left
 ```
 
 启动后可在 RViz 中通过 MotionPlanning 插件规划轨迹，轨迹会发送到 Gazebo 中的 `joint_trajectory_controller` 物理执行。

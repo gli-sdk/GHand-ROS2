@@ -4,7 +4,7 @@ MoveIt 2 configuration for the GHand dexterous hand.
 
 ## Contents
 
-- `config/ghand5_right.srdf` — semantic robot description.
+- `config/ghand5_left.srdf`, `config/ghand5_right.srdf` — semantic robot descriptions.
 - `config/kinematics.yaml` — kinematics solver configuration.
 - `config/ompl_planning.yaml`, `config/chomp_planning.yaml` — planning pipeline
   settings.
@@ -17,6 +17,13 @@ MoveIt 2 configuration for the GHand dexterous hand.
 
 ```bash
 ros2 launch ghand_moveit_config moveit.launch.py
+```
+
+The right hand is selected by default. Use `hand_side:=left` to launch the
+left-hand model:
+
+```bash
+ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
 ```
 
 ## Dependencies

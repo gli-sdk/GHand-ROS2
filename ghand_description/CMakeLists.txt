@@ -10,51 +10,45 @@ find_package(ament_cmake REQUIRED)
 # via `vcs import . < ghand-ros2/ghand.repos` into the sibling
 # ghand_assets checkout under the workspace src directory.
 # ghand_assets is a raw asset repository (no package.xml), so this package
-# turns the G5 right-hand description into a standard ROS 2 description
-# package: it installs the meshes under share/ and rewrites the URDF's bare
+# turns the G5 left- and right-hand descriptions into a standard ROS 2
+# description package: it installs the meshes under share/ and rewrites the URDF's bare
 # mesh paths into package:// URIs that RViz / Gazebo / robot_state_publisher
 # can resolve.
 # --------------------------------------------------------------------------
 set(GHAND_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../ghand_assets/ghand5_system"
     CACHE PATH "Path to the ghand5_system assets directory")
 
-if(NOT EXISTS "${GHAND_ASSETS_DIR}/urdf/ghand5_right.urdf")
-  message(FATAL_ERROR
-    "ghand5_system assets not found at:\n"
-    "  ${GHAND_ASSETS_DIR}\n"
-    "Fetch them with `vcs import . < ghand-ros2/ghand.repos` from the "
-    "workspace src directory before building, or pass -DGHAND_ASSETS_DIR=<path>.")
-endif()
+foreach(_hand_side IN ITEMS left right)
+  set(_source_urdf "${GHAND_ASSETS_DIR}/urdf/ghand5_${_hand_side}.urdf")
+  if(NOT EXISTS "${_source_urdf}")
+    message(FATAL_ERROR
+      "GHand ${_hand_side}-hand assets not found at:\n"
+      "  ${_source_urdf}\n"
+      "Fetch them with `vcs import . < ghand-ros2/ghand.repos` from the "
+      "workspace src directory before building, or pass -DGHAND_ASSETS_DIR=<path>.")
+  endif()
 
-# Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
-file(READ "${GHAND_ASSETS_DIR}/urdf/ghand5_right.urdf" _urdf_contents)
-string(REPLACE
-  "ghand5_system/meshes/"
-  "package://${PROJECT_NAME}/meshes/"
-  _urdf_contents "${_urdf_contents}")
+  # Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
+  file(READ "${_source_urdf}" _urdf_contents)
+  string(REPLACE
+    "ghand5_system/meshes/"
+    "package://${PROJECT_NAME}/meshes/"
+    _urdf_contents "${_urdf_contents}")
 
-# The source URDF sets effort="0" velocity="0" on every joint limit. Gazebo
-# treats that as zero-force/zero-speed joints and the simulated hand cannot
-# move. Replace them with reasonable positive values so gz_ros2_control can
-# drive the fingers.
-string(REGEX REPLACE "effort=\"0\"" "effort=\"50\"" _urdf_contents "${_urdf_contents}")
-string(REGEX REPLACE "velocity=\"0\"" "velocity=\"50\"" _urdf_contents "${_urdf_contents}")
+  # Gazebo cannot drive joints whose source effort/velocity limits are zero.
+  string(REGEX REPLACE "effort=\"0\"" "effort=\"50\"" _urdf_contents "${_urdf_contents}")
+  string(REGEX REPLACE "velocity=\"0\"" "velocity=\"50\"" _urdf_contents "${_urdf_contents}")
 
-# Add damping/friction to every joint to suppress high-gain oscillations in
-# Gazebo. The source URDF has no <dynamics>; without damping the fingers jitter
-# when position_proportional_gain is raised enough for trajectory tracking.
-string(REGEX REPLACE "(<limit[^/]*/>)" "\\1\n      <dynamics damping=\"0.1\" friction=\"0.05\"/>" _urdf_contents "${_urdf_contents}")
-file(WRITE
-  "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_right_description.urdf"
-  "${_urdf_contents}")
+  # Add damping/friction to suppress high-gain oscillations in Gazebo.
+  string(REGEX REPLACE "(<limit[^/]*/>)" "\\1\n      <dynamics damping=\"0.1\" friction=\"0.05\"/>" _urdf_contents "${_urdf_contents}")
+  set(_output_urdf
+      "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_${_hand_side}_description.urdf")
+  file(WRITE "${_output_urdf}" "${_urdf_contents}")
+  install(FILES "${_output_urdf}" DESTINATION share/${PROJECT_NAME}/urdf)
+endforeach()
 
-# Install the rewritten URDF under the filename the consuming packages expect.
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_right_description.urdf"
-        DESTINATION share/${PROJECT_NAME}/urdf)
-
-# Install the right-hand visual meshes. Collision geometry reuses the same
-# STL files, so only the visual/right subtree is needed.
-install(DIRECTORY "${GHAND_ASSETS_DIR}/meshes/hands/visual/right"
+# Collision geometry reuses the visual STL files, so install both hands.
+install(DIRECTORY "${GHAND_ASSETS_DIR}/meshes/hands/visual/"
         DESTINATION share/${PROJECT_NAME}/meshes/hands/visual)
 
 if(BUILD_TESTING)

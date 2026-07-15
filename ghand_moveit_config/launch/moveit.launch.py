@@ -5,6 +5,7 @@
 """GHand MoveIt 2 launch file.
 
 Parameters:
+  hand_side: left or right hand model (default: right)
   use_sim:   true=mock hardware, false=real hardware (default: true)
   use_rviz:  whether to launch RViz (default: true)
   profile:   communication profile used when use_sim is false
@@ -29,12 +30,19 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def generate_launch_description():
+    hand_side = LaunchConfiguration("hand_side")
     use_sim = LaunchConfiguration("use_sim")
     use_rviz = LaunchConfiguration("use_rviz")
     profile = LaunchConfiguration("profile")
     ifname = LaunchConfiguration("ifname")
 
     declared_args = [
+        DeclareLaunchArgument(
+            "hand_side",
+            default_value="right",
+            choices=["left", "right"],
+            description="Hand model to launch.",
+        ),
         DeclareLaunchArgument(
             "use_sim",
             default_value="true",
@@ -71,6 +79,8 @@ def generate_launch_description():
                 "ghand_hardware_description.urdf.xacro",
             ]
         ),
+        " hand_side:=",
+        hand_side,
         " use_mock_hardware:=",
         PythonExpression(["'true' if '", use_sim, "' == 'true' else 'false'"]),
         " profile_file:=",
@@ -91,22 +101,6 @@ def generate_launch_description():
     # builder). The hand group is a multi-finger tree structure without an IK
     # solver, so we
     # default to and only use the OMPL pipeline.
-    moveit_config = (
-        MoveItConfigsBuilder("ghand5-right", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/ghand5_right.srdf")
-        .trajectory_execution(file_path="config/moveit_controllers.yaml")
-        .joint_limits(file_path="config/joint_limits.yaml")
-        .robot_description_kinematics(file_path="config/kinematics.yaml")
-        .planning_pipelines(
-            default_planning_pipeline="ompl",
-            pipelines=["ompl"],
-        )
-        .to_moveit_configs()
-    )
-    moveit_config.robot_description = {
-        "robot_description": robot_description_content
-    }
-
     # robot_state_publisher
     rsp = Node(
         package="robot_state_publisher",
@@ -178,37 +172,76 @@ def generate_launch_description():
         condition=UnlessCondition(use_sim),
     )
 
-    # MoveGroup
-    move_group = Node(
-        package="moveit_ros_move_group",
-        executable="move_group",
-        output="screen",
-        parameters=[moveit_config.to_dict()],
-    )
-
-    # RViz: pass robot_description_semantic so the MotionPlanning plugin can
-    # load SRDF.
-    rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=[
-            "-d",
-            PathJoinSubstitution(
+    # MoveIt needs a concrete robot/SRDF name at launch construction time.
+    # Build one conditioned node pair per side while sharing the dynamically
+    # selected robot_description and all side-independent planning settings.
+    moveit_nodes = []
+    for side in ("left", "right"):
+        moveit_config = (
+            MoveItConfigsBuilder(
+                f"ghand5-{side}", package_name="ghand_moveit_config"
+            )
+            .robot_description_semantic(
+                file_path=f"config/ghand5_{side}.srdf"
+            )
+            .trajectory_execution(file_path="config/moveit_controllers.yaml")
+            .joint_limits(file_path="config/joint_limits.yaml")
+            .robot_description_kinematics(file_path="config/kinematics.yaml")
+            .planning_pipelines(
+                default_planning_pipeline="ompl",
+                pipelines=["ompl"],
+            )
+            .to_moveit_configs()
+        )
+        moveit_config.robot_description = {
+            "robot_description": robot_description_content
+        }
+        side_condition = IfCondition(
+            PythonExpression(["'", hand_side, f"' == '{side}'"])
+        )
+        rviz_condition = IfCondition(
+            PythonExpression(
                 [
-                    FindPackageShare("ghand_moveit_config"),
-                    "config",
-                    "moveit.rviz",
+                    "'",
+                    use_rviz,
+                    "' == 'true' and '",
+                    hand_side,
+                    f"' == '{side}'",
                 ]
-            ),
-        ],
-        parameters=[
-            moveit_config.robot_description,
-            moveit_config.robot_description_semantic,
-            moveit_config.robot_description_kinematics,
-        ],
-        output="both",
-        condition=IfCondition(use_rviz),
-    )
+            )
+        )
+        moveit_nodes.extend(
+            [
+                Node(
+                    package="moveit_ros_move_group",
+                    executable="move_group",
+                    output="screen",
+                    parameters=[moveit_config.to_dict()],
+                    condition=side_condition,
+                ),
+                Node(
+                    package="rviz2",
+                    executable="rviz2",
+                    arguments=[
+                        "-d",
+                        PathJoinSubstitution(
+                            [
+                                FindPackageShare("ghand_moveit_config"),
+                                "config",
+                                "moveit.rviz",
+                            ]
+                        ),
+                    ],
+                    parameters=[
+                        moveit_config.robot_description,
+                        moveit_config.robot_description_semantic,
+                        moveit_config.robot_description_kinematics,
+                    ],
+                    output="both",
+                    condition=rviz_condition,
+                ),
+            ]
+        )
 
     return LaunchDescription(
         declared_args
@@ -219,7 +252,6 @@ def generate_launch_description():
             jstatus_spawner,
             tactile_spawner,
             jtc_spawner,
-            move_group,
-            rviz,
         ]
+        + moveit_nodes
     )
