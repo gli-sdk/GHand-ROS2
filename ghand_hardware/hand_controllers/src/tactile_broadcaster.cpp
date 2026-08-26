@@ -31,6 +31,7 @@ controller_interface::CallbackReturn TactileBroadcaster::on_init() {
   get_node()->declare_parameter<std::vector<int64_t>>("point_counts",
                                                       std::vector<int64_t>());
   get_node()->declare_parameter<double>("publish_rate", 100.0);
+  get_node()->declare_parameter<std::string>("topic", "/tactile_data");
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -74,6 +75,7 @@ controller_interface::CallbackReturn TactileBroadcaster::on_configure(
   finger_names_ = get_node()->get_parameter("fingers").as_string_array();
   point_counts_ = get_node()->get_parameter("point_counts").as_integer_array();
   publish_rate_ = get_node()->get_parameter("publish_rate").as_double();
+  const auto topic = get_node()->get_parameter("topic").as_string();
 
   if (point_counts_.size() != finger_names_.size()) {
     RCLCPP_FATAL(get_node()->get_logger(),
@@ -84,7 +86,7 @@ controller_interface::CallbackReturn TactileBroadcaster::on_configure(
   }
 
   publisher_ = get_node()->create_publisher<hand_msgs::msg::TactileData>(
-      "/tactile_data", 10);
+      topic, 10);
   return controller_interface::CallbackReturn::SUCCESS;
 }
 

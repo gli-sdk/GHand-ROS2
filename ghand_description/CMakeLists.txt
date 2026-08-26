@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(ghand_description)
 
 find_package(ament_cmake REQUIRED)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 # --------------------------------------------------------------------------
 # Source assets
@@ -46,6 +47,23 @@ foreach(_hand_side IN ITEMS left right)
   file(WRITE "${_output_urdf}" "${_urdf_contents}")
   install(FILES "${_output_urdf}" DESTINATION share/${PROJECT_NAME}/urdf)
 endforeach()
+
+# Generate a single robot description containing both hands. Link and joint
+# names are prefixed with left_ / right_, and each palm is mounted to a shared
+# world link so TF and ros2_control resources cannot collide.
+set(_dual_urdf "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_dual_description.urdf")
+execute_process(
+  COMMAND "${Python3_EXECUTABLE}"
+          "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dual_urdf.py"
+          --left "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_left_description.urdf"
+          --right "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5_right_description.urdf"
+          --output "${_dual_urdf}"
+  RESULT_VARIABLE _dual_generation_result
+)
+if(NOT _dual_generation_result EQUAL 0)
+  message(FATAL_ERROR "Failed to generate the dual-hand URDF")
+endif()
+install(FILES "${_dual_urdf}" DESTINATION share/${PROJECT_NAME}/urdf)
 
 # Collision geometry reuses the visual STL files, so install both hands.
 install(DIRECTORY "${GHAND_ASSETS_DIR}/meshes/hands/visual/"

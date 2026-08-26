@@ -32,6 +32,7 @@ controller_interface::CallbackReturn JointStatusBroadcaster::on_init() {
   get_node()->declare_parameter<std::vector<std::string>>(
       "joints", std::vector<std::string>());
   get_node()->declare_parameter<double>("publish_rate", 100.0);
+  get_node()->declare_parameter<std::string>("topic", "/joint_status");
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -63,9 +64,10 @@ controller_interface::CallbackReturn JointStatusBroadcaster::on_configure(
     const rclcpp_lifecycle::State& /*previous_state*/) {
   joint_names_ = get_node()->get_parameter("joints").as_string_array();
   publish_rate_ = get_node()->get_parameter("publish_rate").as_double();
+  const auto topic = get_node()->get_parameter("topic").as_string();
 
   publisher_ = get_node()->create_publisher<hand_msgs::msg::JointStatus>(
-      "/joint_status", 10);
+      topic, 10);
   return controller_interface::CallbackReturn::SUCCESS;
 }
 

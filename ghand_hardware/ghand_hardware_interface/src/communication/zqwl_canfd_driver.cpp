@@ -79,14 +79,55 @@ speed_t map_baud_rate(uint32_t baud) {
   }
 }
 
+const std::map<uint32_t, uint8_t>& common_bitrate_codes() {
+  static const std::map<uint32_t, uint8_t> codes = {
+      {1000000, 0x0}, {800000, 0x1}, {500000, 0x2}, {400000, 0x3},
+      {250000, 0x4},  {200000, 0x5}, {125000, 0x6}, {100000, 0x7},
+      {50000, 0x8},   {40000, 0x9},  {25000, 0xA},  {20000, 0xB},
+      {15000, 0xC},   {10000, 0xD},  {5000, 0xE}};
+  return codes;
+}
+
+const std::map<uint32_t, uint8_t>& common_data_bitrate_codes() {
+  static const std::map<uint32_t, uint8_t> codes = {
+      {5000000, 0x0}, {4000000, 0x1}, {2000000, 0x2}, {1000000, 0x3},
+      {800000, 0x4},  {500000, 0x5},  {400000, 0x6},  {250000, 0x7},
+      {200000, 0x8},  {125000, 0x9},  {100000, 0xA}};
+  return codes;
+}
+
+int payload_length_from_adapter_dlc(uint8_t value) {
+  switch (value) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+    case 12:
+    case 16:
+    case 20:
+    case 24:
+    case 32:
+    case 48:
+    case 64:
+      return value;
+    default:
+      return -1;
+  }
+}
+
 }  // namespace
 
-// Connection-establishment payload from the reference Python SDK.
+// GHand-Cpp-SDK G5 connection-management payloads.
 constexpr std::array<uint8_t, 6> kEstablishConnectionPayload = {
-    0x00, 0x31, 0x00, 0x01, 0x00, 0x00};  // NOLINT(whitespace/indent_namespace)
+    0x00, 0x31, 0x00, 0x01, 0x00, 0x00};
 constexpr std::array<uint8_t, 8> kDeleteConnectionPayload = {
     0x00, 0x30, 0x00, 0x02,
-    0x00, 0x00, 0x00, 0x00};  // NOLINT(whitespace/indent_namespace)
+    0x00, 0x00, 0x00, 0x00};
 constexpr uint8_t kDefaultSrcId = 0x0A;
 constexpr uint8_t kDefaultDstId = 0x31;
 
@@ -95,11 +136,13 @@ struct ZqwlCanfdDriver::Impl {
   uint32_t serial_baud_rate_ = 2000000;
   uint32_t can_bitrate_ = 1000000;
   uint32_t dbit_rate_ = 5000000;
+  uint32_t response_timeout_ms_ = 500;
   uint8_t can_channel_ = 0;
-  uint8_t device_id_ = 0x32;
+  uint8_t preferred_node_id_ = 0x31;
   uint8_t src_id_ = kDefaultSrcId;
   uint8_t dst_id_ = kDefaultDstId;
   CtrlMode control_mode_ = CtrlMode::POSITION;
+  bool control_mode_written_ = false;
 
   // Timeout tracking: if no CAN data received within this window,
   // write() returns false to trigger safe deactivation.
@@ -119,6 +162,9 @@ struct ZqwlCanfdDriver::Impl {
 
   std::vector<JointId> valid_joints_;
   std::vector<std::pair<std::string, size_t>> tactile_regions_;
+  std::map<JointId, JointCommand> last_sent_commands_;
+  std::chrono::steady_clock::time_point last_command_time_;
+  static constexpr auto kMinCommandInterval = std::chrono::milliseconds(40);
 
   // Persistent receive buffer shared by handshake and polling reads.
   std::vector<uint8_t> rx_buffer_;
@@ -130,6 +176,8 @@ struct ZqwlCanfdDriver::Impl {
   bool SetCanParameters();
   bool StartCanChannel();
   bool TransmitFrame(uint32_t can_id, const uint8_t* data, uint8_t len);
+  bool WriteRegisters(uint16_t addr, const std::vector<uint8_t>& data,
+                      uint32_t timeout_ms = 0);
   bool WriteHoldingRegister(uint16_t addr, uint16_t value);
 
   bool EstablishConnection();
@@ -137,7 +185,8 @@ struct ZqwlCanfdDriver::Impl {
   bool ReadInputRegisters(uint16_t addr, uint16_t count,
                           std::vector<uint8_t>& out);
   bool ReadModbusResponse(uint8_t expected_func, std::vector<uint8_t>& out,
-                          uint32_t timeout_ms);
+                          uint32_t timeout_ms,
+                          uint8_t* exception_code = nullptr);
   bool ReadNextCanFrame(canfd::Frame* out,
                         std::chrono::steady_clock::time_point deadline);
 
@@ -145,14 +194,13 @@ struct ZqwlCanfdDriver::Impl {
   void PollHandState();
   void PollJoints();
   void PollTactile();
-  void ProcessHeartbeat(const std::vector<uint8_t>& frame);
 };
 
 ZqwlCanfdDriver::ZqwlCanfdDriver() : impl_(std::make_unique<Impl>()) {}
 
 ZqwlCanfdDriver::~ZqwlCanfdDriver() { close(); }
 
-const char* ZqwlCanfdDriver::get_name() const { return "zqwl_canfd"; }
+const char* ZqwlCanfdDriver::get_name() const { return "canfd"; }
 
 bool ZqwlCanfdDriver::init(
     const std::unordered_map<std::string, std::string>& params) {
@@ -161,22 +209,44 @@ bool ZqwlCanfdDriver::init(
     impl_->device_path_ = it->second;
   }
 
+  // GHand-Cpp-SDK accepts "/dev/ttyACM0:0".  Keep can_channel as an
+  // explicit ROS parameter too, but let the device suffix select it when
+  // present.
+  const size_t channel_separator = impl_->device_path_.rfind(':');
+  if (channel_separator != std::string::npos) {
+    const std::string channel = impl_->device_path_.substr(channel_separator + 1);
+    if (!channel.empty()) {
+      impl_->can_channel_ = static_cast<uint8_t>(parse_int_default(channel, 0));
+      impl_->device_path_.resize(channel_separator);
+    }
+  }
+
   impl_->serial_baud_rate_ = static_cast<uint32_t>(parse_int_default(
-      params.count("baud_rate") ? params.at("baud_rate") : "", 2000000));
+      params.count("serial_baud_rate") ? params.at("serial_baud_rate") : "",
+      2000000));
   impl_->can_bitrate_ = static_cast<uint32_t>(parse_int_default(
-      params.count("bitrate") ? params.at("bitrate") : "", 1000000));
+      params.count("bitrate")   ? params.at("bitrate")
+      : params.count("baud_rate") ? params.at("baud_rate")
+                                    : "",
+      1000000));
   impl_->dbit_rate_ = static_cast<uint32_t>(
       parse_int_default(params.count("data_rate")   ? params.at("data_rate")
                         : params.count("dbit_rate") ? params.at("dbit_rate")
                                                     : "",
                         5000000));
-  impl_->can_channel_ = static_cast<uint8_t>(parse_int_default(
-      params.count("can_channel") ? params.at("can_channel") : "", 0));
-  impl_->device_id_ = static_cast<uint8_t>(
+  impl_->response_timeout_ms_ = static_cast<uint32_t>(parse_int_default(
+      params.count("response_timeout_ms") ? params.at("response_timeout_ms")
+                                            : "",
+      500));
+  if (params.count("can_channel")) {
+    impl_->can_channel_ = static_cast<uint8_t>(
+        parse_int_default(params.at("can_channel"), impl_->can_channel_));
+  }
+  impl_->preferred_node_id_ = static_cast<uint8_t>(
       parse_int_default(params.count("node_id")     ? params.at("node_id")
                         : params.count("device_id") ? params.at("device_id")
                                                     : "",
-                        50));
+                        49));
 
   auto cm = params.find("control_mode");
   if (cm != params.end()) {
@@ -209,20 +279,10 @@ bool ZqwlCanfdDriver::init(
     impl_->tactile_regions_ = parse_tactile_regions(tt->second);
   }
 
-  // Try multiple device paths (ZQWL can re-enumerate as ttyACM0 or ttyACM1).
-  {
-    std::vector<std::string> paths = {impl_->device_path_, "/dev/ttyACM0",
-                                      "/dev/ttyACM1", "/dev/ttyUSB0"};
-    bool opened = false;
-    for (const auto& p : paths) {
-      if (p.empty()) continue;
-      impl_->device_path_ = p;
-      if (impl_->OpenSerial()) {
-        opened = true;
-        break;
-      }
-    }
-    if (!opened) return false;
+  // Open the configured adapter only.  Falling back to another tty can bind
+  // the left ROS system to the right-hand adapter in a dual-hand setup.
+  if (!impl_->OpenSerial()) {
+    return false;
   }
 
   if (!impl_->SetCanParameters()) {
@@ -230,33 +290,20 @@ bool ZqwlCanfdDriver::init(
     return false;
   }
 
-  // Small delay for device to apply parameters.
-  std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
   if (!impl_->StartCanChannel()) {
     impl_->CloseSerial();
     return false;
   }
 
-  // ZQWL devices reset their USB interface after the CAN channel is enabled.
-  // Close the current serial handle, wait for re-enumeration, then reopen.
-  impl_->CloseSerial();
-  std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-
-  std::vector<std::string> candidates = {impl_->device_path_, "/dev/ttyACM0",
-                                         "/dev/ttyACM1", "/dev/ttyUSB0"};
-  bool reopened = false;
-  for (const auto& path : candidates) {
-    if (path.empty()) continue;
-    impl_->device_path_ = path;
-    if (impl_->OpenSerial()) {
-      reopened = true;
-      break;
-    }
+  // Match GHand-Cpp-SDK Connect(): clear stale sessions for both supported
+  // node IDs before establishing a fresh one.
+  const uint8_t original_dst = impl_->dst_id_;
+  for (uint8_t dst : {static_cast<uint8_t>(0x31),
+                      static_cast<uint8_t>(0x32)}) {
+    impl_->dst_id_ = dst;
+    impl_->DeleteConnection();
   }
-  if (!reopened) {
-    return false;
-  }
+  impl_->dst_id_ = original_dst;
 
   if (!impl_->EstablishConnection()) {
     impl_->CloseSerial();
@@ -270,9 +317,11 @@ bool ZqwlCanfdDriver::init(
 
   RCLCPP_INFO(
       rclcpp::get_logger("zqwl_canfd"),
-      "initialized: device=%s baud_rate=%u data_rate=%u node_id=%u channel=%u",
-      impl_->device_path_.c_str(), impl_->serial_baud_rate_, impl_->dbit_rate_,
-      impl_->device_id_, impl_->can_channel_);
+      "initialized from GHand-Cpp-SDK: device=%s serial_baud_rate=%u "
+      "bitrate=%u data_rate=%u node_id=0x%02X channel=%u",
+      impl_->device_path_.c_str(), impl_->serial_baud_rate_,
+      impl_->can_bitrate_, impl_->dbit_rate_, impl_->dst_id_,
+      impl_->can_channel_);
 
   // Seed latest_data_ so read() returns valid zero-values immediately,
   // avoiding the Jazzy framework segfault when controllers load without CAN
@@ -312,12 +361,15 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
   // Safety: if no CAN data has been received within the timeout window,
   // return false so the framework can deactivate cleanly instead of
   // triggering an inexplicable segfault in the controller_manager RT loop.
-  if (impl_->rx_timeout_initialized_) {
-    const auto elapsed =
-        std::chrono::steady_clock::now() - impl_->last_rx_time_;
-    if (elapsed > Impl::kRxTimeout) {
-      impl_->connected_.store(false);
-      return false;
+  {
+    std::lock_guard<std::mutex> data_lock(impl_->data_mutex_);
+    if (impl_->rx_timeout_initialized_) {
+      const auto elapsed =
+          std::chrono::steady_clock::now() - impl_->last_rx_time_;
+      if (elapsed > Impl::kRxTimeout) {
+        impl_->connected_.store(false);
+        return false;
+      }
     }
   }
 
@@ -325,15 +377,47 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
     return true;
   }
 
-  // Write control mode before joint commands.
-  const uint16_t mode_value =
-      static_cast<uint16_t>(static_cast<uint8_t>(impl_->control_mode_) << 8);
-  if (!impl_->WriteHoldingRegister(0x0010, mode_value)) {
-    return false;
+  bool commands_changed = commands.size() != impl_->last_sent_commands_.size();
+  for (const auto& cmd : commands) {
+    const auto previous = impl_->last_sent_commands_.find(cmd.id);
+    if (previous == impl_->last_sent_commands_.end() ||
+        previous->second.position != cmd.position ||
+        previous->second.velocity != cmd.velocity ||
+        previous->second.torque != cmd.torque) {
+      commands_changed = true;
+      break;
+    }
+  }
+  if (!commands_changed) {
+    return true;
   }
 
+  const auto now = std::chrono::steady_clock::now();
+  if (impl_->last_command_time_.time_since_epoch().count() != 0 &&
+      now - impl_->last_command_time_ < Impl::kMinCommandInterval) {
+    return true;
+  }
+
+  // The control mode is constant for the lifetime of this backend. Sending it
+  // once avoids an extra request/response transaction in every ros2_control
+  // cycle.
+  if (!impl_->control_mode_written_) {
+    const uint16_t mode_value =
+        static_cast<uint16_t>(static_cast<uint8_t>(impl_->control_mode_) << 8);
+    if (!impl_->WriteHoldingRegister(0x0010, mode_value)) {
+      return false;
+    }
+    impl_->control_mode_written_ = true;
+  }
+
+  // G5 active-joint command registers are contiguous (0x0011..0x002A).
+  // ros2_control supplies all commandable joints on every update, so combine
+  // adjacent joint commands into Modbus blocks. This preserves the SDK wire
+  // encoding while reducing the normal G5 update from 12 CANFD transactions
+  // to one and leaves time for the background feedback polling thread.
+  std::map<uint16_t, std::vector<uint8_t>> encoded_by_address;
+  const auto& reg_map = holding_register_map();
   for (const auto& cmd : commands) {
-    const auto& reg_map = holding_register_map();
     auto it = reg_map.find(cmd.id);
     if (it == reg_map.end()) continue;
 
@@ -344,17 +428,39 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
         static_cast<uint8_t>((regs.second >> 8) & 0xFF),
         static_cast<uint8_t>(regs.second & 0xFF)};
 
-    const auto payload =
-        canfd::encode_write_multiple_registers(it->second, data);
-    const uint32_t can_id = canfd::pack_modbus_arbitration_id(
-        impl_->src_id_, impl_->dst_id_, 0,
-        canfd::modbus::kWriteMultipleRegisters, 1, 1, 0, 0);
-
-    if (!impl_->TransmitFrame(can_id, payload.data(),
-                              static_cast<uint8_t>(payload.size()))) {
-      return false;
-    }
+    encoded_by_address[it->second] = data;
   }
+
+  uint16_t block_start = 0;
+  uint16_t next_address = 0;
+  std::vector<uint8_t> block_data;
+  auto flush_block = [&]() {
+    if (block_data.empty()) return true;
+    const bool ok = impl_->WriteRegisters(block_start, block_data);
+    block_data.clear();
+    return ok;
+  };
+
+  for (const auto& entry : encoded_by_address) {
+    if (block_data.empty()) {
+      block_start = entry.first;
+      next_address = entry.first;
+    } else if (entry.first != next_address) {
+      if (!flush_block()) return false;
+      block_start = entry.first;
+      next_address = entry.first;
+    }
+    block_data.insert(block_data.end(), entry.second.begin(), entry.second.end());
+    next_address = static_cast<uint16_t>(entry.first + entry.second.size() / 2);
+  }
+  if (!flush_block()) {
+    return false;
+  }
+  impl_->last_sent_commands_.clear();
+  for (const auto& cmd : commands) {
+    impl_->last_sent_commands_[cmd.id] = cmd;
+  }
+  impl_->last_command_time_ = now;
   return true;
 }
 
@@ -369,10 +475,13 @@ void ZqwlCanfdDriver::close() {
   }
   impl_->CloseSerial();
   impl_->connected_ = false;
+  impl_->control_mode_written_ = false;
+  impl_->last_sent_commands_.clear();
+  impl_->last_command_time_ = std::chrono::steady_clock::time_point{};
 }
 
 bool ZqwlCanfdDriver::Impl::OpenSerial() {
-  serial_fd_ = open(device_path_.c_str(), O_RDWR | O_NOCTTY);
+  serial_fd_ = open(device_path_.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
   if (serial_fd_ < 0) {
     RCLCPP_ERROR(rclcpp::get_logger("zqwl_canfd"),
                  "OpenSerial FAILED path=%s errno=%d %s", device_path_.c_str(),
@@ -381,23 +490,18 @@ bool ZqwlCanfdDriver::Impl::OpenSerial() {
   }
 
   struct termios tty;
+  std::memset(&tty, 0, sizeof(tty));
   if (tcgetattr(serial_fd_, &tty) != 0) {
     CloseSerial();
     return false;
   }
 
-  cfsetispeed(&tty, map_baud_rate(serial_baud_rate_));
-  cfsetospeed(&tty, map_baud_rate(serial_baud_rate_));
-
-  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;  // 8-bit
-  tty.c_cflag &= ~PARENB;                      // no parity
-  tty.c_cflag &= ~CSTOPB;                      // 1 stop bit
-  tty.c_cflag &= ~CRTSCTS;                     // no flow control
+  cfmakeraw(&tty);
+  const speed_t serial_speed = map_baud_rate(serial_baud_rate_);
+  cfsetispeed(&tty, serial_speed);
+  cfsetospeed(&tty, serial_speed);
   tty.c_cflag |= CREAD | CLOCAL;
-
-  tty.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-  tty.c_iflag &= ~(IXON | IXOFF | IXANY);
-  tty.c_oflag &= ~OPOST;
+  tty.c_cflag &= ~CRTSCTS;
 
   tty.c_cc[VMIN] = 0;
   tty.c_cc[VTIME] = 1;  // 100 ms timeout
@@ -432,37 +536,53 @@ bool ZqwlCanfdDriver::Impl::SendConfigFrame(uint8_t func_code,
   frame[20] = 0x45;
   frame[21] = 0x2E;
 
-  const ssize_t written = ::write(serial_fd_, frame, sizeof(frame));
-  return written == static_cast<ssize_t>(sizeof(frame));
+  size_t total = 0;
+  while (total < sizeof(frame)) {
+    const ssize_t written =
+        ::write(serial_fd_, frame + total, sizeof(frame) - total);
+    if (written < 0) {
+      if (errno == EINTR || errno == EAGAIN) continue;
+      return false;
+    }
+    if (written == 0) return false;
+    total += static_cast<size_t>(written);
+  }
+  return true;
 }
 
 bool ZqwlCanfdDriver::Impl::SetCanParameters() {
-  // Use timing values from the reference BrainCo hand project.
-  // Arbitration: 1.154 MHz, sample point ~77%
-  // Data phase:  4.615 MHz, sample point ~77%
+  // GHand-Cpp-SDK uses the ZQWL adapter's standard bitrate-code table.
+  const auto arbitration = common_bitrate_codes().find(can_bitrate_);
+  const auto data_phase = common_data_bitrate_codes().find(dbit_rate_);
+  if (arbitration == common_bitrate_codes().end() ||
+      data_phase == common_data_bitrate_codes().end()) {
+    RCLCPP_ERROR(rclcpp::get_logger("zqwl_canfd"),
+                 "Unsupported CANFD bitrate pair: %u/%u", can_bitrate_,
+                 dbit_rate_);
+    return false;
+  }
+
   uint8_t data[16] = {0};
-  data[0] = can_channel_;  // CAN channel
-  data[1] = 0x01;          // use custom baud rate
-  data[2] = 1;             // abit.sjw
-  data[3] = 7;             // abit.tseg1
-  data[4] = 2;             // abit.tseg2
-  data[5] = 0;             // abit.brp high
-  data[6] = 4;             // abit.brp low (= 4)
-  data[7] = 1;             // dbit.sjw
-  data[8] = 7;             // dbit.tseg1
-  data[9] = 2;             // dbit.tseg2
-  data[10] = 0;            // dbit.brp high
-  data[11] = 1;            // dbit.brp low (= 1)
-  // data[12..15] reserved
+  data[0] = can_channel_;
+  data[1] = 0x00;  // use standard bitrate codes
+  data[2] = static_cast<uint8_t>((arbitration->second << 4) |
+                                 data_phase->second);
   return SendConfigFrame(0x42, data);
 }
 
 bool ZqwlCanfdDriver::Impl::StartCanChannel() {
   uint8_t data[16] = {0};
-  data[0] = 0x01;                               // parameter effective
-  data[1] = (can_channel_ == 0) ? 0x01 : 0x00;  // CAN0 on
-  data[2] = (can_channel_ == 1) ? 0x01 : 0x00;  // CAN1 on
-  // data[3..15] reserved
+  data[0] = 0x01;  // parameter effective
+  if (can_channel_ == 0) {
+    data[2] = 0x01;
+  } else if (can_channel_ == 1) {
+    data[3] = 0x01;
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("zqwl_canfd"),
+                 "ZQWL adapter only supports CAN0/CAN1, got channel %u",
+                 can_channel_);
+    return false;
+  }
   return SendConfigFrame(0x44, data);
 }
 
@@ -471,24 +591,20 @@ bool ZqwlCanfdDriver::Impl::TransmitFrame(uint32_t can_id, const uint8_t* data,
   if (serial_fd_ < 0) return false;
 
   const uint8_t data_len = canfd::nearest_valid_canfd_length(len);
-  const uint8_t dlc = canfd::canfd_length_to_dlc(data_len);
-  if (dlc > 15) return false;
-
   std::vector<uint8_t> frame;
   frame.reserve(8 + data_len);
   frame.push_back(0x5A);
 
-  // Byte1: channel high bit + DLC code
+  // GHand-Cpp-SDK/ZQWL stores the actual valid CANFD payload length here,
+  // rather than the ISO DLC ordinal (9..15).
   uint8_t byte1 =
-      static_cast<uint8_t>((can_channel_ & 0x01) << 7) | (dlc & 0x7F);
+      static_cast<uint8_t>((can_channel_ & 0x01) << 7) | (data_len & 0x7F);
   frame.push_back(byte1);
 
   // Byte2: tx type, channel high bits, frame format, frame type, BRS
-  uint8_t byte2 = 0x00;
-  byte2 |= static_cast<uint8_t>((can_channel_ & 0x06) << 3);  // bits 4:3
-  byte2 |= 0x08;                                              // extended frame
-  byte2 |= 0x10;                                              // CANFD frame
-  byte2 |= 0x02;                                              // CANFD BRS
+  uint8_t byte2 = 0x01;  // BRS enabled
+  byte2 |= static_cast<uint8_t>(((can_channel_ >> 1) & 0x03) << 3);
+  byte2 |= 0x04;  // extended frame
   frame.push_back(byte2);
 
   // CAN ID: 4 bytes, MSB has CANFD flag
@@ -508,50 +624,113 @@ bool ZqwlCanfdDriver::Impl::TransmitFrame(uint32_t can_id, const uint8_t* data,
 
   frame.push_back(0xA5);
 
-  std::lock_guard<std::mutex> lock(io_mutex_);
-  const ssize_t written = ::write(serial_fd_, frame.data(), frame.size());
-  if (written != static_cast<ssize_t>(frame.size())) {
-    RCLCPP_ERROR(
-        rclcpp::get_logger("zqwl_canfd"),
-        "TransmitFrame failed: fd=%d expected=%zu written=%zd errno=%d",
-        serial_fd_, frame.size(), written, errno);
-    return false;
+  size_t total = 0;
+  while (total < frame.size()) {
+    const ssize_t written =
+        ::write(serial_fd_, frame.data() + total, frame.size() - total);
+    if (written < 0) {
+      if (errno == EINTR || errno == EAGAIN) continue;
+      RCLCPP_ERROR(rclcpp::get_logger("zqwl_canfd"),
+                   "CANFD serial write failed: errno=%d %s", errno,
+                   strerror(errno));
+      return false;
+    }
+    if (written == 0) return false;
+    total += static_cast<size_t>(written);
   }
   return true;
 }
 
 bool ZqwlCanfdDriver::Impl::WriteHoldingRegister(uint16_t addr,
                                                  uint16_t value) {
-  const auto payload = canfd::encode_write_single_register(addr, value);
-  const uint32_t can_id = canfd::pack_modbus_arbitration_id(
-      src_id_, dst_id_, 0, canfd::modbus::kWriteSingleRegister, 1, 1, 0, 0);
-  return TransmitFrame(can_id, payload.data(),
-                       static_cast<uint8_t>(payload.size()));
+  const std::vector<uint8_t> data = {
+      static_cast<uint8_t>((value >> 8) & 0xFF),
+      static_cast<uint8_t>(value & 0xFF)};
+  return WriteRegisters(addr, data);
+}
+
+bool ZqwlCanfdDriver::Impl::WriteRegisters(
+    uint16_t addr, const std::vector<uint8_t>& data, uint32_t timeout_ms) {
+  if (data.empty() || (data.size() % 2) != 0) return false;
+  if (timeout_ms == 0) timeout_ms = response_timeout_ms_;
+
+  std::lock_guard<std::mutex> transaction_lock(io_mutex_);
+  uint8_t function_code = canfd::modbus::kWriteMultipleRegisters;
+  std::vector<uint8_t> payload;
+  if (data.size() == 2) {
+    function_code = canfd::modbus::kWriteSingleRegister;
+    payload = canfd::encode_write_single_register(
+        addr, static_cast<uint16_t>((data[0] << 8) | data[1]));
+  } else {
+    payload = canfd::encode_write_multiple_registers(addr, data);
+  }
+
+  constexpr size_t kSegmentSize = 64;
+  const size_t segment_count =
+      (payload.size() + kSegmentSize - 1) / kSegmentSize;
+  for (size_t segment = 0; segment < segment_count; ++segment) {
+    const size_t offset = segment * kSegmentSize;
+    const size_t length =
+        std::min(kSegmentSize, payload.size() - offset);
+    const uint32_t can_id = canfd::pack_modbus_arbitration_id(
+        src_id_, dst_id_, 0, function_code, segment == 0,
+        segment + 1 == segment_count, segment % 2,
+        static_cast<uint8_t>(segment));
+    if (!TransmitFrame(can_id, payload.data() + offset,
+                       static_cast<uint8_t>(length))) {
+      return false;
+    }
+  }
+
+  std::vector<uint8_t> response;
+  return ReadModbusResponse(function_code, response, timeout_ms);
 }
 
 bool ZqwlCanfdDriver::Impl::EstablishConnection() {
   const std::vector<uint8_t> payload(kEstablishConnectionPayload.begin(),
                                      kEstablishConnectionPayload.end());
-  const std::vector<uint8_t> candidate_ids = {0x31, 0x32};
+  std::vector<uint8_t> candidate_ids;
+  if (preferred_node_id_ == 0x31 || preferred_node_id_ == 0x32) {
+    candidate_ids.push_back(preferred_node_id_);
+  }
+  for (uint8_t candidate : {static_cast<uint8_t>(0x31),
+                            static_cast<uint8_t>(0x32)}) {
+    if (std::find(candidate_ids.begin(), candidate_ids.end(), candidate) ==
+        candidate_ids.end()) {
+      candidate_ids.push_back(candidate);
+    }
+  }
 
   for (uint8_t dst : candidate_ids) {
     dst_id_ = dst;
     const uint32_t can_id = canfd::pack_modbus_arbitration_id(
         src_id_, dst_id_, 0, 0x02, 1, 1, 0, 0);
-    if (!TransmitFrame(can_id, payload.data(),
-                       static_cast<uint8_t>(payload.size()))) {
-      continue;
+    uint8_t exception_code = 0;
+    {
+      std::lock_guard<std::mutex> transaction_lock(io_mutex_);
+      if (!TransmitFrame(can_id, payload.data(),
+                         static_cast<uint8_t>(payload.size()))) {
+        continue;
+      }
+
+      std::vector<uint8_t> response;
+      if (ReadModbusResponse(0x02, response, 500, &exception_code)) {
+        return true;
+      }
     }
 
-    std::vector<uint8_t> response;
-    if (ReadModbusResponse(0x02, response, 500)) {
-      return true;
+    // SDK treats Modbus exception 0x03 as a possible existing session and
+    // verifies the node by reading the device-name register.
+    if (exception_code == 0x03) {
+      std::vector<uint8_t> device_name;
+      if (ReadInputRegisters(0x1000, 1, device_name)) return true;
     }
   }
   return false;
 }
 
 void ZqwlCanfdDriver::Impl::DeleteConnection() {
+  std::lock_guard<std::mutex> transaction_lock(io_mutex_);
   const std::vector<uint8_t> payload(kDeleteConnectionPayload.begin(),
                                      kDeleteConnectionPayload.end());
   const uint32_t can_id =
@@ -561,6 +740,7 @@ void ZqwlCanfdDriver::Impl::DeleteConnection() {
 
 bool ZqwlCanfdDriver::Impl::ReadInputRegisters(uint16_t addr, uint16_t count,
                                                std::vector<uint8_t>& out) {
+  std::lock_guard<std::mutex> transaction_lock(io_mutex_);
   const std::vector<uint8_t> payload = {
       static_cast<uint8_t>((addr >> 8) & 0xFF),
       static_cast<uint8_t>(addr & 0xFF),
@@ -575,12 +755,13 @@ bool ZqwlCanfdDriver::Impl::ReadInputRegisters(uint16_t addr, uint16_t count,
     return false;
   }
 
-  return ReadModbusResponse(0x04, out, 500);
+  return ReadModbusResponse(0x04, out, response_timeout_ms_);
 }
 
 bool ZqwlCanfdDriver::Impl::ReadModbusResponse(uint8_t expected_func,
                                                std::vector<uint8_t>& out,
-                                               uint32_t timeout_ms) {
+                                               uint32_t timeout_ms,
+                                               uint8_t* exception_code) {
   const auto deadline =
       std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
   std::map<uint8_t, std::vector<uint8_t>> segments;
@@ -597,6 +778,9 @@ bool ZqwlCanfdDriver::Impl::ReadModbusResponse(uint8_t expected_func,
     }
 
     if (arb.func_code() == (0x80 | expected_func)) {
+      if (exception_code != nullptr && frame.len > 0) {
+        *exception_code = frame.data[0];
+      }
       return false;
     }
     if (arb.func_code() != expected_func) {
@@ -676,18 +860,22 @@ bool ZqwlCanfdDriver::Impl::ReadNextCanFrame(
         data_len = 24;
         expected_len = 32;
       } else {
-        data_len = canfd::dlc_to_canfd_length(byte1 & 0x7F);
+        const int decoded_length =
+            payload_length_from_adapter_dlc(byte1 & 0x7F);
+        if (decoded_length < 0) {
+          ++rx_parse_offset_;
+          continue;
+        }
+        data_len = static_cast<size_t>(decoded_length);
         expected_len = 8 + data_len;
       }
 
       if (rx_buffer_.size() - rx_parse_offset_ >= expected_len) {
         if (rx_buffer_[rx_parse_offset_ + expected_len - 1] == 0xA5) {
-          if (byte1 == 0xFF || byte1 == 0xFE) {
-            std::vector<uint8_t> frame(
-                rx_buffer_.begin() + rx_parse_offset_,
-                rx_buffer_.begin() + rx_parse_offset_ + expected_len);
-            ProcessHeartbeat(frame);
-          } else {
+          // The adapter heartbeat is informational.  Match the official
+          // GHand C++ SDK and ignore it instead of interpreting adapter bytes
+          // as a CAN bus state and disconnecting a healthy hand.
+          if (byte1 != 0xFF && byte1 != 0xFE) {
             out->id =
                 (static_cast<uint32_t>(rx_buffer_[rx_parse_offset_ + 3] & 0x7F)
                  << 24) |
@@ -700,7 +888,8 @@ bool ZqwlCanfdDriver::Impl::ReadNextCanFrame(
             std::memcpy(out->data, rx_buffer_.data() + rx_parse_offset_ + 7,
                         out->len);
             out->is_fd = (rx_buffer_[rx_parse_offset_ + 3] & 0x80) != 0;
-            out->is_extended = (rx_buffer_[rx_parse_offset_ + 2] & 0x08) != 0;
+            out->is_extended =
+                (rx_buffer_[rx_parse_offset_ + 2] & 0x04) != 0;
             rx_parse_offset_ += expected_len;
             return true;
           }
@@ -730,6 +919,7 @@ bool ZqwlCanfdDriver::Impl::ReadNextCanFrame(
 
 void ZqwlCanfdDriver::Impl::ReceiveLoop() {
   static constexpr auto kPollInterval = std::chrono::milliseconds(10);
+  auto last_tactile_poll = std::chrono::steady_clock::time_point{};
 
   while (run_thread_.load()) {
     if (serial_fd_ < 0) {
@@ -737,10 +927,14 @@ void ZqwlCanfdDriver::Impl::ReceiveLoop() {
       continue;
     }
 
-    PollHandState();
     PollJoints();
-    if (!tactile_regions_.empty()) {
+    PollHandState();
+    const auto now = std::chrono::steady_clock::now();
+    if (!tactile_regions_.empty() &&
+        (last_tactile_poll.time_since_epoch().count() == 0 ||
+         now - last_tactile_poll >= std::chrono::milliseconds(100))) {
       PollTactile();
+      last_tactile_poll = now;
     }
 
     std::this_thread::sleep_for(kPollInterval);
@@ -810,31 +1004,28 @@ void ZqwlCanfdDriver::Impl::PollTactile() {
   }
 
   const size_t region_count = tactile_regions_.size();
-  size_t distributed_bytes = 0;
-  for (const auto& region : tactile_regions_) {
-    distributed_bytes += region.second * 3;
-  }
-  const size_t total_bytes = 2 + region_count * 6 + distributed_bytes;
-  const uint16_t count = static_cast<uint16_t>((total_bytes + 1) / 2);
-
-  std::vector<uint8_t> payload;
-  if (!ReadInputRegisters(0x1080, count, payload)) {
+  // The SDK first reads the 16-register tactile status/resultant block, then
+  // reads each region's distributed samples separately.
+  std::vector<uint8_t> status_payload;
+  if (!ReadInputRegisters(0x1080, 16, status_payload)) {
     return;
   }
-  if (payload.size() < 2 + region_count * 6) {
+  if (status_payload.size() < 32 || 1 + region_count * 3 > 16) {
     return;
   }
 
-  std::vector<uint16_t> regs(count, 0);
-  for (size_t i = 0; i < count; ++i) {
-    if (2 * i + 1 < payload.size()) {
+  std::vector<uint16_t> regs(16, 0);
+  for (size_t i = 0; i < regs.size(); ++i) {
+    if (2 * i + 1 < status_payload.size()) {
       regs[i] =
-          static_cast<uint16_t>((payload[2 * i] << 8) | payload[2 * i + 1]);
+          static_cast<uint16_t>((status_payload[2 * i] << 8) |
+                                status_payload[2 * i + 1]);
     }
   }
 
   std::vector<TactileRegion> regions;
   regions.reserve(region_count);
+  uint16_t current_addr = 0x1080 + 16;
   for (size_t i = 0; i < region_count; ++i) {
     TactileRegion tr;
     tr.name = tactile_regions_[i].first;
@@ -843,17 +1034,18 @@ void ZqwlCanfdDriver::Impl::PollTactile() {
 
     const size_t sensor_count = tactile_regions_[i].second;
     if (sensor_count > 0) {
-      const size_t dist_off = 2 + region_count * 6;
-      size_t dist_start = dist_off;
-      for (size_t j = 0; j < i; ++j) {
-        dist_start += tactile_regions_[j].second * 3;
+      const uint16_t distributed_registers =
+          static_cast<uint16_t>((sensor_count * 3 + 1) / 2);
+      std::vector<uint8_t> distributed_payload;
+      if (!ReadInputRegisters(current_addr, distributed_registers,
+                              distributed_payload)) {
+        return;
       }
-      const size_t dist_len = sensor_count * 3;
-      if (dist_start + dist_len <= payload.size()) {
-        tr.distributed_forces =
-            parse_tactile_distributed(payload.data() + dist_start, dist_len,
-                                      static_cast<int>(sensor_count));
-      }
+      tr.distributed_forces = parse_tactile_distributed(
+          distributed_payload.data(), distributed_payload.size(),
+          static_cast<int>(sensor_count));
+      current_addr = static_cast<uint16_t>(current_addr +
+                                           distributed_registers);
     }
     regions.push_back(std::move(tr));
   }
@@ -863,16 +1055,6 @@ void ZqwlCanfdDriver::Impl::PollTactile() {
   latest_data_.valid = true;
   last_rx_time_ = std::chrono::steady_clock::now();
   rx_timeout_initialized_ = true;
-}
-
-void ZqwlCanfdDriver::Impl::ProcessHeartbeat(
-    const std::vector<uint8_t>& frame) {
-  if (frame.size() < 4) return;
-  const uint8_t status_byte = frame[3];
-  const uint8_t bus_status = status_byte & 0x03;
-  if (bus_status == 0x03) {
-    connected_.store(false);
-  }
 }
 
 }  // namespace ghand_comm

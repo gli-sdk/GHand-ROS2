@@ -99,7 +99,7 @@ Only needed when connecting to real hardware; pure simulation development can sk
 | ------- | -------------------- | ----- |
 | EtherCAT | `libsoem` / SOEM | Build from source; CMake auto-detects |
 | RS485 | `libmodbus` | System package |
-| CANFD | ZLG CAN SDK | ZLG USB-CANFD library|
+| CANFD | GHand-Cpp-SDK | ZQWL CDC serial CANFD adapter |
 
 ## 📦 Installation
 
@@ -176,7 +176,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 > Replace `enx000000000000` with your actual EtherCAT network interface name. Use `ip link` to list available interfaces.
 
-Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_usb`, `zqwl_canfd_left`, and `zqwl_canfd_right`.
+Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_left`, and `canfd_right`. The `zqwl_canfd_left/right` names remain as compatibility aliases.
 
 ### Launch MoveIt 2
 

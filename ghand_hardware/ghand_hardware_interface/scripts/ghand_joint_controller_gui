@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+# Copyright (c) 2026 GHand ROS2 Maintainers
+# SPDX-License-Identifier: Apache-2.0
+
+"""Launch the joint trajectory controller GUI with Jazzy compatibility.
+
+Recent controller_manager releases removed the
+``reload_controller_libraries`` service.  Older released versions of
+rqt_joint_trajectory_controller still require that service while discovering
+controller managers, which leaves both selector boxes empty even though the
+manager and controllers are active.
+
+Keep the workaround local to this launcher instead of modifying the ROS
+installation under /opt/ros.
+"""
+
+import sys
+
+
+def main():
+    """Run the upstream RQT plugin with its obsolete discovery check removed."""
+    from rqt_joint_trajectory_controller import utils
+    from rqt_joint_trajectory_controller import update_combo as combo_utils
+
+    utils.cm_services.pop("reload_controller_libraries", None)
+
+    # The upstream widget deliberately leaves newly discovered combo-box
+    # entries unselected.  GHand launches one controller manager and one joint
+    # trajectory controller, so select the sole entry automatically.  Setting
+    # the index emits Qt's change signal and lets the plugin load the next
+    # level, ultimately creating the joint sliders without extra clicks.
+    upstream_update_combo = combo_utils.update_combo
+
+    def update_and_select_single(combo, new_values):
+        upstream_update_combo(combo, new_values)
+        if combo.currentIndex() < 0 and len(new_values) == 1:
+            combo.setCurrentIndex(0)
+
+    combo_utils.update_combo = update_and_select_single
+
+    from rqt_gui.main import Main
+
+    return Main().main(
+        sys.argv,
+        standalone="rqt_joint_trajectory_controller",
+    )
+
+
+if __name__ == "__main__":
+    sys.exit(main())

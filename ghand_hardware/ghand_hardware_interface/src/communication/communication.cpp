@@ -39,28 +39,39 @@ const std::map<JointId, uint16_t> kHoldingRegMap = {
 }  // namespace
 
 std::optional<JointId> joint_name_to_id(const std::string& name) {
-  if (name == "Thumb_TMC_PS") return JointId::THUMB_TMC_PS;
-  if (name == "Thumb_TMC_AA") return JointId::THUMB_TMC_AA;
-  if (name == "Thumb_TMC_FE") return JointId::THUMB_TMC_FE;
-  if (name == "Thumb_MCP") return JointId::THUMB_MCP;
-  if (name == "Thumb_IP") return JointId::THUMB_DIP;
+  // Dual-hand descriptions prefix ros2_control resources to keep the two
+  // systems collision-free. The wire protocol continues to use the canonical
+  // unprefixed GHand joint IDs.
+  std::string canonical_name = name;
+  for (const std::string prefix : {"left_", "right_"}) {
+    if (canonical_name.rfind(prefix, 0) == 0) {
+      canonical_name.erase(0, prefix.size());
+      break;
+    }
+  }
 
-  if (name == "FF_MCP_AA") return JointId::INDEX_MCP_AA;
-  if (name == "FF_MCP") return JointId::INDEX_MCP;
-  if (name == "FF_PIP") return JointId::INDEX_PIP;
-  if (name == "FF_DIP") return JointId::INDEX_DIP;
+  if (canonical_name == "Thumb_TMC_PS") return JointId::THUMB_TMC_PS;
+  if (canonical_name == "Thumb_TMC_AA") return JointId::THUMB_TMC_AA;
+  if (canonical_name == "Thumb_TMC_FE") return JointId::THUMB_TMC_FE;
+  if (canonical_name == "Thumb_MCP") return JointId::THUMB_MCP;
+  if (canonical_name == "Thumb_IP") return JointId::THUMB_DIP;
 
-  if (name == "MF_MCP") return JointId::MIDDLE_MCP;
-  if (name == "MF_PIP") return JointId::MIDDLE_PIP;
-  if (name == "MF_DIP") return JointId::MIDDLE_DIP;
+  if (canonical_name == "FF_MCP_AA") return JointId::INDEX_MCP_AA;
+  if (canonical_name == "FF_MCP") return JointId::INDEX_MCP;
+  if (canonical_name == "FF_PIP") return JointId::INDEX_PIP;
+  if (canonical_name == "FF_DIP") return JointId::INDEX_DIP;
 
-  if (name == "RF_MCP") return JointId::RING_MCP;
-  if (name == "RF_PIP") return JointId::RING_PIP;
-  if (name == "RF_DIP") return JointId::RING_DIP;
+  if (canonical_name == "MF_MCP") return JointId::MIDDLE_MCP;
+  if (canonical_name == "MF_PIP") return JointId::MIDDLE_PIP;
+  if (canonical_name == "MF_DIP") return JointId::MIDDLE_DIP;
 
-  if (name == "LF_MCP") return JointId::LITTLE_MCP;
-  if (name == "LF_PIP") return JointId::LITTLE_PIP;
-  if (name == "LF_DIP") return JointId::LITTLE_DIP;
+  if (canonical_name == "RF_MCP") return JointId::RING_MCP;
+  if (canonical_name == "RF_PIP") return JointId::RING_PIP;
+  if (canonical_name == "RF_DIP") return JointId::RING_DIP;
+
+  if (canonical_name == "LF_MCP") return JointId::LITTLE_MCP;
+  if (canonical_name == "LF_PIP") return JointId::LITTLE_PIP;
+  if (canonical_name == "LF_DIP") return JointId::LITTLE_DIP;
 
   return std::nullopt;
 }
@@ -86,10 +97,16 @@ std::unique_ptr<CommunicationBase> create_communication(
     return std::make_unique<Rs485Driver>();
   }
   if (type == "canfd") {
-    return std::make_unique<CanfdDriver>();
+    // The canonical CANFD backend follows GHand-Cpp-SDK: a ZQWL CDC serial
+    // adapter carrying Modbus-over-CANFD frames.  Keep the old ZLG/VCI
+    // implementation available under an explicit legacy name only.
+    return std::make_unique<ZqwlCanfdDriver>();
   }
   if (type == "zqwl_canfd") {
     return std::make_unique<ZqwlCanfdDriver>();
+  }
+  if (type == "zlg_canfd") {
+    return std::make_unique<CanfdDriver>();
   }
   return nullptr;
 }

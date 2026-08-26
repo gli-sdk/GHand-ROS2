@@ -47,7 +47,7 @@ Visualization Manager:
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
       Name: TF
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48

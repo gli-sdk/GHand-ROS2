@@ -6,6 +6,6 @@ hardware:
   data_bits: 8
   stop_bits: 1
   parity: N
-  response_timeout_ms: 100
+  response_timeout_ms: 500
   read_timeout_ms: 500
   tactile_region_counts: "38,31,31,31,31"

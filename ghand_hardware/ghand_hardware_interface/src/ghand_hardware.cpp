@@ -461,8 +461,9 @@ hardware_interface::return_type GHandHardwareInterface::read(
 
   const rclcpp::Duration elapsed = time - last_successful_read_;
   if (elapsed.nanoseconds() > static_cast<int64_t>(read_timeout_ms_ * 1e6)) {
+    static rclcpp::Clock throttle_clock(RCL_STEADY_TIME);
     RCLCPP_ERROR_THROTTLE(rclcpp::get_logger("GHandHardwareInterface"),
-                          *rclcpp::Clock::make_shared(), 1000,
+                          throttle_clock, 1000,
                           "Hardware read timeout: no valid data for %.1f ms.",
                           read_timeout_ms_);
     return hardware_interface::return_type::ERROR;

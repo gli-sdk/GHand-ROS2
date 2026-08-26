@@ -1,0 +1,50 @@
+moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControllerManager
+
+trajectory_execution:
+  allowed_execution_duration_scaling: 3.0
+  allowed_goal_duration_margin: 2.0
+  allowed_start_tolerance: 0.05
+  execution_duration_monitoring: false
+
+moveit_simple_controller_manager:
+  controller_names:
+    - left_joint_trajectory_controller
+    - right_joint_trajectory_controller
+
+  left_joint_trajectory_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints:
+      - left_Thumb_MCP
+      - left_Thumb_TMC_FE
+      - left_Thumb_TMC_AA
+      - left_Thumb_TMC_PS
+      - left_FF_PIP
+      - left_FF_MCP
+      - left_FF_MCP_AA
+      - left_MF_PIP
+      - left_MF_MCP
+      - left_RF_PIP
+      - left_RF_MCP
+      - left_LF_PIP
+      - left_LF_MCP
+
+  right_joint_trajectory_controller:
+    type: FollowJointTrajectory
+    action_ns: follow_joint_trajectory
+    default: true
+    joints:
+      - right_Thumb_MCP
+      - right_Thumb_TMC_FE
+      - right_Thumb_TMC_AA
+      - right_Thumb_TMC_PS
+      - right_FF_PIP
+      - right_FF_MCP
+      - right_FF_MCP_AA
+      - right_MF_PIP
+      - right_MF_MCP
+      - right_RF_PIP
+      - right_RF_MCP
+      - right_LF_PIP
+      - right_LF_MCP

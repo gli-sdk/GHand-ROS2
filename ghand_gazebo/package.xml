@@ -17,6 +17,7 @@
   <exec_depend>controller_manager</exec_depend>
   <exec_depend>control_msgs</exec_depend>
   <exec_depend>ghand_description</exec_depend>
+  <exec_depend>ghand_hardware_interface</exec_depend>
   <exec_depend>ghand_moveit_config</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_trajectory_controller</exec_depend>

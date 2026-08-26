@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.8)
 project(hand_msgs)
 
+# Keep generated message libraries discoverable when a process runs with Linux
+# capabilities. In that mode the dynamic loader ignores LD_LIBRARY_PATH. The
+# first entry covers libraries installed together under lib; the second lets
+# generated Python extension modules find that lib directory.
+set(CMAKE_INSTALL_RPATH "$ORIGIN;$ORIGIN/../../..")
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()

@@ -26,6 +26,20 @@ left-hand model:
 ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
 ```
 
+Launch the combined dual-hand model and both controllers with:
+
+```bash
+# Mock hardware
+ros2 launch ghand_moveit_config dual_moveit.launch.py use_sim:=true
+
+# Real hardware using two serial devices
+ros2 launch ghand_moveit_config dual_moveit.launch.py \
+  use_sim:=false left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
+```
+
+The dual SRDF provides `left_hand`, `right_hand`, and `dual_hands` planning
+groups plus combined `open` and `fist` named states.
+
 ## Dependencies
 
 - `moveit_ros_move_group`

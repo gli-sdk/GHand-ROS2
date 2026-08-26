@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cerrno>
 #include <cctype>
 #include <chrono>
 #include <cmath>
@@ -67,7 +68,7 @@ struct Rs485Driver::Impl {
   int data_bits_ = 8;
   int stop_bits_ = 1;
   char parity_ = 'N';
-  int response_timeout_ms_ = 100;
+  int response_timeout_ms_ = 500;
 
   std::atomic<bool> connected_{false};
   std::atomic<bool> poll_stop_{false};
@@ -122,7 +123,7 @@ bool Rs485Driver::init(
   impl_->response_timeout_ms_ = parse_int_default(
       params.count("response_timeout_ms") ? params.at("response_timeout_ms")
                                           : "",
-      100);
+      500);
 
   if (params.count("parity")) {
     const std::string& p = params.at("parity");
@@ -154,14 +155,20 @@ bool Rs485Driver::init(
 
   const std::vector<int> candidate_bauds =
       impl_->baud_rate_ > 0 ? std::vector<int>{impl_->baud_rate_}
-                            : std::vector<int>{1000000, 6000000, 115200, 57600,
-                                               38400,   19200,   9600};
+                            : std::vector<int>{1000000};
+
+  RCLCPP_INFO(rclcpp::get_logger("rs485"),
+              "probing: device=%s configured_baud=%d configured_node_id=%d",
+              impl_->device_.c_str(), impl_->baud_rate_, impl_->slave_id_);
 
   for (int baud : candidate_bauds) {
     impl_->CloseContext();
     impl_->ctx_ = modbus_new_rtu(impl_->device_.c_str(), baud, impl_->parity_,
                                  impl_->data_bits_, impl_->stop_bits_);
     if (!impl_->ctx_) {
+      RCLCPP_WARN(rclcpp::get_logger("rs485"),
+                  "modbus_new_rtu failed: device=%s baud=%d",
+                  impl_->device_.c_str(), baud);
       continue;
     }
 
@@ -170,19 +177,28 @@ bool Rs485Driver::init(
     modbus_set_response_timeout(impl_->ctx_, 0, response_us);
 
     if (modbus_connect(impl_->ctx_) == -1) {
+      RCLCPP_WARN(rclcpp::get_logger("rs485"),
+                  "serial connect failed: device=%s baud=%d error=%s",
+                  impl_->device_.c_str(), baud, modbus_strerror(errno));
       modbus_free(impl_->ctx_);
       impl_->ctx_ = nullptr;
       continue;
     }
 
+    // Match the GHand-CPP-SDK: allow the USB-RS485 adapter and hand UART to
+    // settle before sending the first Modbus request.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
     if (impl_->slave_id_ != 0) {
       if (impl_->ProbeSlave(impl_->slave_id_)) {
+        impl_->baud_rate_ = baud;
         break;
       }
     } else {
       bool found = false;
-      for (int sid : {0x31, 0x32, 0x71, 0x01, 0x02}) {
+      for (int sid : {0x32, 0x31}) {
         if (impl_->ProbeSlave(sid)) {
+          impl_->baud_rate_ = baud;
           found = true;
           break;
         }
@@ -198,6 +214,10 @@ bool Rs485Driver::init(
   }
 
   if (!impl_->ctx_ || !impl_->connected_.load()) {
+    RCLCPP_ERROR(rclcpp::get_logger("rs485"),
+                 "no Modbus slave responded: device=%s configured_baud=%d "
+                 "configured_node_id=%d",
+                 impl_->device_.c_str(), impl_->baud_rate_, impl_->slave_id_);
     impl_->CloseContext();
     return false;
   }
@@ -296,6 +316,9 @@ bool Rs485Driver::Impl::ProbeSlave(int sid) {
     connected_.store(true);
     return true;
   }
+  RCLCPP_DEBUG(rclcpp::get_logger("rs485"),
+               "probe failed: node_id=%d error=%s", sid,
+               modbus_strerror(errno));
   return false;
 }
 

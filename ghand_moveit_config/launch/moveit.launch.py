@@ -13,8 +13,12 @@ Parameters:
   ifname:    EtherCAT network interface override (default: "")
 """
 
+import os
+
+from ament_index_python.packages import get_package_prefix
+
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     Command,
@@ -35,6 +39,27 @@ def generate_launch_description():
     use_rviz = LaunchConfiguration("use_rviz")
     profile = LaunchConfiguration("profile")
     ifname = LaunchConfiguration("ifname")
+
+    # MoveIt/OMPL and RViz vendor libraries live in ROS-specific library
+    # directories which are not always inherited by processes spawned from a
+    # launch file. Add them explicitly so a normal ros2 launch invocation works.
+    ros_lib_multiarch = os.path.join(
+        get_package_prefix("moveit_ros_move_group"),
+        "lib",
+        "x86_64-linux-gnu",
+    )
+    rviz_ogre_lib = os.path.join(
+        get_package_prefix("rviz_ogre_vendor"),
+        "opt",
+        "rviz_ogre_vendor",
+        "lib",
+    )
+    env_actions = []
+    for library_path in (ros_lib_multiarch, rviz_ogre_lib):
+        if os.path.isdir(library_path):
+            env_actions.append(
+                AppendEnvironmentVariable("LD_LIBRARY_PATH", library_path)
+            )
 
     declared_args = [
         DeclareLaunchArgument(
@@ -245,6 +270,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         declared_args
+        + env_actions
         + [
             rsp,
             ros2_control_node,
