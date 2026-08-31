@@ -1,8 +1,15 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="G5_right">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-$(arg hand_side)">
+  <xacro:arg name="hand_side" default="right"/>
 
   <!-- Base robot description from the external ghand_description package -->
-  <xacro:include filename="$(find ghand_description)/urdf/G5_right_description.urdf"/>
+  <xacro:property name="hand_side" value="$(arg hand_side)"/>
+  <xacro:if value="${hand_side == 'left'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_left_description.urdf"/>
+  </xacro:if>
+  <xacro:if value="${hand_side == 'right'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_right_description.urdf"/>
+  </xacro:if>
 
   <!-- Gazebo-specific macros (world fixed joint, plugin, link properties) -->
   <xacro:include filename="$(find ghand_gazebo)/config/ghand.gazebo.xacro"/>
@@ -17,45 +24,45 @@
        controller fight a steady load. World gravity still acts on any grasp
        objects. -->
   <xacro:ghand_gazebo_disable_gravity link_name="base_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="little_mcp_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="little_pip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="little_dip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="ring_mcp_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="ring_pip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="ring_dip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="middle_mcp_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="middle_pip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="middle_dip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="index_mcp_aa_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="index_mcp_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="index_pip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="index_dip_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="thumb_tmc_ps_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="thumb_tmc_aa_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="thumb_tmc_fe_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="thumb_mcp_link"/>
-  <xacro:ghand_gazebo_disable_gravity link_name="thumb_dip_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="LF_MCP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="LF_PIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="LF_DIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="RF_MCP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="RF_PIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="RF_DIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="MF_MCP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="MF_PIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="MF_DIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="FF_MCP_AA_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="FF_MCP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="FF_PIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="FF_DIP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="Thumb_TMC_PS_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="Thumb_TMC_AA_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="Thumb_TMC_FE_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="Thumb_MCP_link"/>
+  <xacro:ghand_gazebo_disable_gravity link_name="Thumb_IP_link"/>
 
   <!-- Apply soft contact/self-collision properties to every link. -->
   <xacro:ghand_gazebo_link_properties link_name="base_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="little_mcp_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="little_pip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="little_dip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="ring_mcp_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="ring_pip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="ring_dip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="middle_mcp_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="middle_pip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="middle_dip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="index_mcp_aa_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="index_mcp_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="index_pip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="index_dip_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_ps_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_aa_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="thumb_tmc_fe_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="thumb_mcp_link"/>
-  <xacro:ghand_gazebo_link_properties link_name="thumb_dip_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="LF_MCP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="LF_PIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="LF_DIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="RF_MCP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="RF_PIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="RF_DIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="MF_MCP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="MF_PIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="MF_DIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="FF_MCP_AA_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="FF_MCP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="FF_PIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="FF_DIP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="Thumb_TMC_PS_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="Thumb_TMC_AA_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="Thumb_TMC_FE_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="Thumb_MCP_link"/>
+  <xacro:ghand_gazebo_link_properties link_name="Thumb_IP_link"/>
 
   <!-- Gazebo ros2_control system: GazeboSimSystem drives the actuated joints.
        The DIP joints are passive and only expose state interfaces. -->
@@ -67,79 +74,79 @@
     <!-- Actuated joints (13 DOF used by the trajectory controller).
          Initial values match the SRDF "fist" group_state so Gazebo starts
          in a curled pose. -->
-    <joint name="thumb_mcp">
+    <joint name="Thumb_MCP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="thumb_tmc_fe">
+    <joint name="Thumb_TMC_FE">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">0</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="thumb_tmc_aa">
+    <joint name="Thumb_TMC_AA">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">0.349065850398866</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="thumb_tmc_ps">
+    <joint name="Thumb_TMC_PS">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="index_pip">
+    <joint name="FF_PIP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="index_mcp">
+    <joint name="FF_MCP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="index_mcp_aa">
+    <joint name="FF_MCP_AA">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">0</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="middle_pip">
+    <joint name="MF_PIP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="middle_mcp">
+    <joint name="MF_MCP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="ring_pip">
+    <joint name="RF_PIP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="ring_mcp">
+    <joint name="RF_MCP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="little_pip">
+    <joint name="LF_PIP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="little_mcp">
+    <joint name="LF_MCP">
       <command_interface name="position"/>
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
@@ -148,27 +155,27 @@
 
     <!-- Passive DIP joints (state only). Values follow the PIP/MCP mimic
          coupling so the fingertips start curled in the fist pose. -->
-    <joint name="thumb_dip">
+    <joint name="Thumb_IP">
       <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="index_dip">
+    <joint name="FF_DIP">
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="middle_dip">
+    <joint name="MF_DIP">
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="ring_dip">
+    <joint name="RF_DIP">
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
     </joint>
-    <joint name="little_dip">
+    <joint name="LF_DIP">
       <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>

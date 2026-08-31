@@ -24,8 +24,8 @@ endforeach()
 # GHAND_ENABLE_<BACKEND> can be AUTO (default, detect), ON (require), or OFF (disable).
 set(GHAND_ENABLE_ETHERCAT AUTO CACHE STRING "Enable EtherCAT backend (AUTO/ON/OFF)")
 set_property(CACHE GHAND_ENABLE_ETHERCAT PROPERTY STRINGS AUTO ON OFF)
-set(GHAND_ENABLE_CANFD AUTO CACHE STRING "Enable CANFD backend (AUTO/ON/OFF)")
-set_property(CACHE GHAND_ENABLE_CANFD PROPERTY STRINGS AUTO ON OFF)
+set(GHAND_ENABLE_ZLG_CANFD AUTO CACHE STRING "Enable legacy ZLG CANFD backend (AUTO/ON/OFF)")
+set_property(CACHE GHAND_ENABLE_ZLG_CANFD PROPERTY STRINGS AUTO ON OFF)
 
 find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
@@ -40,8 +40,18 @@ endif()
 # <prefix>/lib/cmake/soem, so probe common prefixes explicitly.
 if(NOT "${GHAND_ENABLE_ETHERCAT}" STREQUAL "OFF")
   if(NOT SOEM_FOUND)
+    set(SOEM_CONFIG_SEARCH_PATHS "")
+    set(SOEM_PREFIX_PATHS ${CMAKE_PREFIX_PATH})
+    if(DEFINED ENV{CMAKE_PREFIX_PATH})
+      string(REPLACE ":" ";" SOEM_ENV_PREFIX_PATHS
+        "$ENV{CMAKE_PREFIX_PATH}")
+      list(APPEND SOEM_PREFIX_PATHS ${SOEM_ENV_PREFIX_PATHS})
+    endif()
+    foreach(PREFIX IN LISTS SOEM_PREFIX_PATHS)
+      list(APPEND SOEM_CONFIG_SEARCH_PATHS "${PREFIX}/cmake")
+    endforeach()
     find_package(soem QUIET PATHS
-      ${CMAKE_PREFIX_PATH}/cmake
+      ${SOEM_CONFIG_SEARCH_PATHS}
       /usr/local/cmake
       /usr/cmake
       $ENV{HOME}/SOEM/build/install/cmake
@@ -60,11 +70,16 @@ set(GHAND_VENDOR_DIR "${GHAND_WORKSPACE_ROOT}/vendor" CACHE PATH "Root of vendor
 # Falls back to a system libzlgcan.so if present.
 set(VENDOR_ZLG_DIR "${GHAND_VENDOR_DIR}/usbcanfd_libusb_x64_1.0.12_251029")
 set(VENDOR_ZLG_INCLUDE_DIR "${GHAND_VENDOR_DIR}/dist/include/zlgcan")
-if(NOT "${GHAND_ENABLE_CANFD}" STREQUAL "OFF")
-  find_library(ZLGCAN_LIBRARY NAMES usbcanfd libusbcanfd usbcanfd.so.1.0.12 libusbcanfd.so.1.0.12 HINTS ${VENDOR_ZLG_DIR} /usr/lib /usr/local/lib NO_DEFAULT_PATH)
+if(NOT "${GHAND_ENABLE_ZLG_CANFD}" STREQUAL "OFF")
+  find_library(ZLGCAN_LIBRARY
+    NAMES usbcanfd libusbcanfd usbcanfd.so.1.0.12 libusbcanfd.so.1.0.12
+    HINTS ${VENDOR_ZLG_DIR} /usr/lib /usr/local/lib
+    NO_DEFAULT_PATH)
   find_library(ZLGUDS_LIBRARY NAMES zuds libzuds HINTS ${VENDOR_ZLG_DIR} /usr/lib /usr/local/lib NO_DEFAULT_PATH)
-  if("${GHAND_ENABLE_CANFD}" STREQUAL "ON" AND (NOT ZLGCAN_LIBRARY OR NOT ZLGUDS_LIBRARY OR NOT EXISTS ${VENDOR_ZLG_INCLUDE_DIR}/zcan.h))
-    message(FATAL_ERROR "GHAND_ENABLE_CANFD=ON but ZLG CAN library was not found")
+  if("${GHAND_ENABLE_ZLG_CANFD}" STREQUAL "ON" AND
+    (NOT ZLGCAN_LIBRARY OR NOT ZLGUDS_LIBRARY OR
+    NOT EXISTS ${VENDOR_ZLG_INCLUDE_DIR}/zcan.h))
+    message(FATAL_ERROR "GHAND_ENABLE_ZLG_CANFD=ON but ZLG CAN library was not found")
   endif()
 else()
   set(ZLGCAN_LIBRARY "")
@@ -129,11 +144,13 @@ elseif(ZLGCAN_LIBRARY)
   target_compile_definitions(ghand_hardware_interface PRIVATE GHAND_HAS_ZLG_CAN)
   message(STATUS "Found system ZLG CAN library: ${ZLGCAN_LIBRARY}")
 else()
-  if("${GHAND_ENABLE_CANFD}" STREQUAL "ON")
-    message(FATAL_ERROR "GHAND_ENABLE_CANFD=ON but ZLG CAN library was not found")
+  if("${GHAND_ENABLE_ZLG_CANFD}" STREQUAL "ON")
+    message(FATAL_ERROR "GHAND_ENABLE_ZLG_CANFD=ON but ZLG CAN library was not found")
   endif()
-  message(WARNING "ZLG CAN library not found; CANFD backend will be disabled at runtime")
+  message(STATUS "ZLG CAN library not found; optional zlg_canfd backend disabled")
 endif()
+
+message(STATUS "GHand-Cpp-SDK compatible ZQWL CANFD backend enabled")
 
 ament_target_dependencies(ghand_hardware_interface PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
@@ -150,6 +167,11 @@ install(DIRECTORY include/ DESTINATION include)
 
 install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
 
+install(PROGRAMS
+  scripts/ghand_joint_controller_gui
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_export_targets(export_ghand_hardware_interface HAS_LIBRARY_TARGET)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 
@@ -157,5 +179,11 @@ ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(test_zqwl_canfd test/test_zqwl_canfd.cpp)
+  if(TARGET test_zqwl_canfd)
+    target_link_libraries(test_zqwl_canfd ghand_hardware_interface util)
+    ament_target_dependencies(test_zqwl_canfd rclcpp)
+  endif()
 endif()
 ament_package()

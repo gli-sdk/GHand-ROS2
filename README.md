@@ -99,7 +99,7 @@ Only needed when connecting to real hardware; pure simulation development can sk
 | ------- | -------------------- | ----- |
 | EtherCAT | `libsoem` / SOEM | Build from source; CMake auto-detects |
 | RS485 | `libmodbus` | System package |
-| CANFD | ZLG CAN SDK | ZLG USB-CANFD library|
+| CANFD | GHand-Cpp-SDK | ZQWL CDC serial CANFD adapter |
 
 ## 📦 Installation
 
@@ -164,6 +164,8 @@ source install/setup.bash
 ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ```
 
+Add `hand_side:=left` to use the left-hand model. The default is `right`.
+
 Simulation mode uses `mock_components/GenericSystem` and requires no hardware devices.
 
 ### Launch Real Hardware
@@ -174,12 +176,18 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 > Replace `enx000000000000` with your actual EtherCAT network interface name. Use `ip link` to list available interfaces.
 
-Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_usb`, `zqwl_canfd_left`, and `zqwl_canfd_right`.
+Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_left`, and `canfd_right`. The `zqwl_canfd_left/right` names remain as compatibility aliases.
 
 ### Launch MoveIt 2
 
 ```bash
 ros2 launch ghand_moveit_config moveit.launch.py
+```
+
+The right-hand model is used by default. Select the left hand with:
+
+```bash
+ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
 ```
 
 For EtherCAT real hardware, also provide `ifname`:
@@ -192,6 +200,12 @@ ros2 launch ghand_moveit_config moveit.launch.py use_sim:=false profile:=etherca
 
 ```bash
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+Pass `hand_side:=left` to simulate the left hand instead:
+
+```bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py hand_side:=left
 ```
 
 After launch, you can plan trajectories in RViz using the MotionPlanning plugin; trajectories are sent to the `joint_trajectory_controller` running in Gazebo.
@@ -227,11 +241,11 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.0, 0.0, 0.349, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       time_from_start: {sec: 1}
@@ -245,11 +259,11 @@ ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.5, 0.0, 0.349, 0.5, 1.2, 1.2, 0.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
       time_from_start: {sec: 2}

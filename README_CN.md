@@ -99,7 +99,7 @@ sudo apt install -y \
 | ---------- | -------------------------------------- | --------------------------------- |
 | EtherCAT   | `libsoem` / SOEM                       | 从源码编译， CMake 会自动探测      |
 | RS485      | `libmodbus`                            | 系统包         |
-| CANFD      | ZLG CAN SDK | 周立功 USB-CANFD 库 |
+| CANFD      | GHand-Cpp-SDK | 中创智控 ZQWL CDC 串口 CANFD 适配器 |
 
 ## 📦 安装
 
@@ -164,6 +164,8 @@ source install/setup.bash
 ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ```
 
+增加 `hand_side:=left` 可使用左手模型；默认值为 `right`。
+
 仿真模式使用 `mock_components/GenericSystem`，无需任何硬件设备。
 
 ### 启动真实硬件
@@ -174,7 +176,7 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 
 > 请将 `enx000000000000` 替换为你本机的 EtherCAT 网卡接口名。可通过 `ip link` 命令查看可用接口。
 
-可用的通讯配置文件位于 `ghand_hardware/ghand_hardware_interface/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_usb`、`zqwl_canfd_left`、`zqwl_canfd_right`。
+可用的通讯配置文件位于 `ghand_hardware/ghand_hardware_interface/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_left`、`canfd_right`。`zqwl_canfd_left/right` 保留为兼容配置名。
 
 ### 启动 MoveIt 2
 
@@ -182,10 +184,56 @@ ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default i
 ros2 launch ghand_moveit_config moveit.launch.py
 ```
 
+默认使用右手模型；启动左手模型时传入：
+
+```bash
+ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
+```
+
+### 同时启动左右手
+
+双手模式使用一个组合机器人模型，关节统一加 `left_`、`right_` 前缀，并分别
+交给左右两个轨迹控制器。原来的单手启动保持无前缀命名，兼容已有程序。
+
+```bash
+# 双手 mock
+ros2 launch ghand_hardware_interface dual_hand.launch.py \
+  use_mock_hardware:=true
+
+# 双手真机（默认假设两路独立 RS485 串口）
+ros2 launch ghand_hardware_interface dual_hand.launch.py \
+  use_mock_hardware:=false \
+  left_profile:=rs485_left right_profile:=rs485_dual_right \
+  left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
+
+# 双手 MoveIt mock
+ros2 launch ghand_moveit_config dual_moveit.launch.py use_sim:=true
+```
+
+双手控制 Action 分别为：
+
+- `/left_joint_trajectory_controller/follow_joint_trajectory`
+- `/right_joint_trajectory_controller/follow_joint_trajectory`
+
+真机状态和触觉反馈分别位于 `/left/joint_status`、`/right/joint_status`、
+`/left/tactile_data`、`/right/tactile_data`。
+
 ### 启动 Gazebo 仿真
 
 ```bash
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
+```
+
+启动左手 Gazebo 仿真时传入：
+
+```bash
+ros2 launch ghand_gazebo ghand_gazebo.launch.py hand_side:=left
+```
+
+双手 Gazebo：
+
+```bash
+ros2 launch ghand_gazebo dual_hand_gazebo.launch.py
 ```
 
 启动后可在 RViz 中通过 MotionPlanning 插件规划轨迹，轨迹会发送到 Gazebo 中的 `joint_trajectory_controller` 物理执行。
@@ -221,11 +269,11 @@ ros2 launch ghand_gazebo ghand_gazebo.launch.py
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.0, 0.0, 0.349, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       time_from_start: {sec: 1}
@@ -239,11 +287,11 @@ ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
 ros2 topic pub --once /joint_trajectory_controller/joint_trajectory \
   trajectory_msgs/msg/JointTrajectory \
   '{
-    joint_names: ["thumb_mcp", "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-                  "index_pip", "index_mcp", "index_mcp_aa",
-                  "middle_pip", "middle_mcp",
-                  "ring_pip", "ring_mcp",
-                  "little_pip", "little_mcp"],
+    joint_names: ["Thumb_MCP", "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+                  "FF_PIP", "FF_MCP", "FF_MCP_AA",
+                  "MF_PIP", "MF_MCP",
+                  "RF_PIP", "RF_MCP",
+                  "LF_PIP", "LF_MCP"],
     points: [{
       positions: [0.5, 0.0, 0.349, 0.5, 1.2, 1.2, 0.0, 1.2, 1.2, 1.2, 1.2, 1.2, 1.2],
       time_from_start: {sec: 2}

@@ -20,10 +20,10 @@ namespace {
 constexpr size_t kJointCount = static_cast<size_t>(JointId::NUM_JOINTS);
 
 const std::array<std::string, kJointCount + 1> kJointIdNames = {
-    "thumb_dip",  "thumb_mcp",  "thumb_tmc_fe", "thumb_tmc_aa", "thumb_tmc_ps",
-    "index_dip",  "index_pip",  "index_mcp",    "index_mcp_aa", "middle_dip",
-    "middle_pip", "middle_mcp", "ring_dip",     "ring_pip",     "ring_mcp",
-    "little_dip", "little_pip", "little_mcp",   "UNKNOWN",
+    "Thumb_IP",  "Thumb_MCP",  "Thumb_TMC_FE", "Thumb_TMC_AA", "Thumb_TMC_PS",
+    "FF_DIP",  "FF_PIP",  "FF_MCP",    "FF_MCP_AA", "MF_DIP",
+    "MF_PIP", "MF_MCP", "RF_DIP",     "RF_PIP",     "RF_MCP",
+    "LF_DIP", "LF_PIP", "LF_MCP",   "UNKNOWN",
 };
 
 const std::map<JointId, uint16_t> kHoldingRegMap = {
@@ -39,28 +39,39 @@ const std::map<JointId, uint16_t> kHoldingRegMap = {
 }  // namespace
 
 std::optional<JointId> joint_name_to_id(const std::string& name) {
-  if (name == "thumb_tmc_ps") return JointId::THUMB_TMC_PS;
-  if (name == "thumb_tmc_aa") return JointId::THUMB_TMC_AA;
-  if (name == "thumb_tmc_fe") return JointId::THUMB_TMC_FE;
-  if (name == "thumb_mcp") return JointId::THUMB_MCP;
-  if (name == "thumb_dip") return JointId::THUMB_DIP;
+  // Dual-hand descriptions prefix ros2_control resources to keep the two
+  // systems collision-free. The wire protocol continues to use the canonical
+  // unprefixed GHand joint IDs.
+  std::string canonical_name = name;
+  for (const std::string prefix : {"left_", "right_"}) {
+    if (canonical_name.rfind(prefix, 0) == 0) {
+      canonical_name.erase(0, prefix.size());
+      break;
+    }
+  }
 
-  if (name == "index_mcp_aa") return JointId::INDEX_MCP_AA;
-  if (name == "index_mcp") return JointId::INDEX_MCP;
-  if (name == "index_pip") return JointId::INDEX_PIP;
-  if (name == "index_dip") return JointId::INDEX_DIP;
+  if (canonical_name == "Thumb_TMC_PS") return JointId::THUMB_TMC_PS;
+  if (canonical_name == "Thumb_TMC_AA") return JointId::THUMB_TMC_AA;
+  if (canonical_name == "Thumb_TMC_FE") return JointId::THUMB_TMC_FE;
+  if (canonical_name == "Thumb_MCP") return JointId::THUMB_MCP;
+  if (canonical_name == "Thumb_IP") return JointId::THUMB_DIP;
 
-  if (name == "middle_mcp") return JointId::MIDDLE_MCP;
-  if (name == "middle_pip") return JointId::MIDDLE_PIP;
-  if (name == "middle_dip") return JointId::MIDDLE_DIP;
+  if (canonical_name == "FF_MCP_AA") return JointId::INDEX_MCP_AA;
+  if (canonical_name == "FF_MCP") return JointId::INDEX_MCP;
+  if (canonical_name == "FF_PIP") return JointId::INDEX_PIP;
+  if (canonical_name == "FF_DIP") return JointId::INDEX_DIP;
 
-  if (name == "ring_mcp") return JointId::RING_MCP;
-  if (name == "ring_pip") return JointId::RING_PIP;
-  if (name == "ring_dip") return JointId::RING_DIP;
+  if (canonical_name == "MF_MCP") return JointId::MIDDLE_MCP;
+  if (canonical_name == "MF_PIP") return JointId::MIDDLE_PIP;
+  if (canonical_name == "MF_DIP") return JointId::MIDDLE_DIP;
 
-  if (name == "little_mcp") return JointId::LITTLE_MCP;
-  if (name == "little_pip") return JointId::LITTLE_PIP;
-  if (name == "little_dip") return JointId::LITTLE_DIP;
+  if (canonical_name == "RF_MCP") return JointId::RING_MCP;
+  if (canonical_name == "RF_PIP") return JointId::RING_PIP;
+  if (canonical_name == "RF_DIP") return JointId::RING_DIP;
+
+  if (canonical_name == "LF_MCP") return JointId::LITTLE_MCP;
+  if (canonical_name == "LF_PIP") return JointId::LITTLE_PIP;
+  if (canonical_name == "LF_DIP") return JointId::LITTLE_DIP;
 
   return std::nullopt;
 }
@@ -86,10 +97,16 @@ std::unique_ptr<CommunicationBase> create_communication(
     return std::make_unique<Rs485Driver>();
   }
   if (type == "canfd") {
-    return std::make_unique<CanfdDriver>();
+    // The canonical CANFD backend follows GHand-Cpp-SDK: a ZQWL CDC serial
+    // adapter carrying Modbus-over-CANFD frames.  Keep the old ZLG/VCI
+    // implementation available under an explicit legacy name only.
+    return std::make_unique<ZqwlCanfdDriver>();
   }
   if (type == "zqwl_canfd") {
     return std::make_unique<ZqwlCanfdDriver>();
+  }
+  if (type == "zlg_canfd") {
+    return std::make_unique<CanfdDriver>();
   }
   return nullptr;
 }

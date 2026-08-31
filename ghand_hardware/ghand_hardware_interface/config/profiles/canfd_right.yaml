@@ -1,0 +1,11 @@
+hardware:
+  communication_type: canfd
+  device: "/dev/ttyACM1:0"
+  serial_baud_rate: 2000000
+  bitrate: 1000000
+  baud_rate: 1000000
+  data_rate: 5000000
+  node_id: 50
+  can_channel: 0
+  response_timeout_ms: 500
+  tactile_region_counts: "38,31,31,31,31"

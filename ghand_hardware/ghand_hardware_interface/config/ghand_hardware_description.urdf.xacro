@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="G5_right">
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-$(arg hand_side)">
+  <xacro:arg name="hand_side" default="right"/>
   <xacro:arg name="use_mock_hardware" default="false"/>
   <xacro:arg name="profile_file" default=""/>
   <xacro:arg name="communication_type" default=""/>
@@ -10,7 +11,13 @@
   <xacro:arg name="ifname" default=""/>
 
   <!-- Base robot description from the external ghand_description package -->
-  <xacro:include filename="$(find ghand_description)/urdf/G5_right_description.urdf"/>
+  <xacro:property name="hand_side" value="$(arg hand_side)"/>
+  <xacro:if value="${hand_side == 'left'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_left_description.urdf"/>
+  </xacro:if>
+  <xacro:if value="${hand_side == 'right'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghand5_right_description.urdf"/>
+  </xacro:if>
 
   <!-- Real-hardware / mock ros2_control configuration -->
   <xacro:include filename="$(find ghand_hardware_interface)/config/ghand.ros2_control.xacro"/>

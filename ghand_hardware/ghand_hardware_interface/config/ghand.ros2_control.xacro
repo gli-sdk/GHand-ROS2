@@ -4,6 +4,8 @@
   <xacro:macro name="ghand_ros2_control"
                params="use_mock_hardware:=false
                        use_gazebo:=false
+                       prefix:=''
+                       system_name:='ghand_hardware'
                        profile_file:=''
                        communication_type:=''
                        device:=''
@@ -11,7 +13,7 @@
                        dbit_rate:=''
                        slave_id:=''
                        ifname:=''">
-    <ros2_control name="ghand_hardware" type="system">
+    <ros2_control name="${system_name}" type="system">
       <hardware>
         <!-- Normalize the mock/gazebo flags so both '1' and 'true' are treated as enabled. -->
         <xacro:property name="_use_mock" scope="local"
@@ -70,6 +72,12 @@
           <xacro:if value="${'can_channel' in profile}">
             <param name="can_channel">${profile['can_channel']}</param>
           </xacro:if>
+          <xacro:if value="${'serial_baud_rate' in profile}">
+            <param name="serial_baud_rate">${profile['serial_baud_rate']}</param>
+          </xacro:if>
+          <xacro:if value="${'bitrate' in profile}">
+            <param name="bitrate">${profile['bitrate']}</param>
+          </xacro:if>
           <xacro:if value="${'can_clk' in profile}">
             <param name="can_clk">${profile['can_clk']}</param>
           </xacro:if>
@@ -94,7 +102,7 @@
           </xacro:unless>
         </xacro:unless>
       </hardware>
-      <joint name="thumb_dip">
+      <joint name="${prefix}Thumb_IP">
         <state_interface name="position">
           <xacro:if value="${_use_mock}">
             <param name="initial_value">0.0</param>
@@ -107,7 +115,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="thumb_mcp">
+      <joint name="${prefix}Thumb_MCP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -123,7 +131,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="thumb_tmc_fe">
+      <joint name="${prefix}Thumb_TMC_FE">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -135,7 +143,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="thumb_tmc_aa">
+      <joint name="${prefix}Thumb_TMC_AA">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -154,7 +162,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="thumb_tmc_ps">
+      <joint name="${prefix}Thumb_TMC_PS">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -171,7 +179,7 @@
         </xacro:unless>
       </joint>
 
-      <joint name="index_dip">
+      <joint name="${prefix}FF_DIP">
         <state_interface name="position">
           <xacro:if value="${_use_mock}">
             <param name="initial_value">0.0</param>
@@ -184,7 +192,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="index_pip">
+      <joint name="${prefix}FF_PIP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -200,7 +208,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="index_mcp">
+      <joint name="${prefix}FF_MCP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -216,7 +224,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="index_mcp_aa">
+      <joint name="${prefix}FF_MCP_AA">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -229,7 +237,7 @@
         </xacro:unless>
       </joint>
 
-      <joint name="middle_dip">
+      <joint name="${prefix}MF_DIP">
         <state_interface name="position">
           <xacro:if value="${_use_mock}">
             <param name="initial_value">0.0</param>
@@ -242,7 +250,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="middle_pip">
+      <joint name="${prefix}MF_PIP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -258,53 +266,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="middle_mcp">
-        <command_interface name="position"/>
-        <command_interface name="velocity"/>
-        <command_interface name="effort"/>
-        <state_interface name="position">
-          <xacro:if value="${_use_mock}">
-            <param name="initial_value">0.0</param>
-          </xacro:if>
-        </state_interface>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-        <xacro:unless value="${_use_mock}">
-          <state_interface name="state"/>
-          <state_interface name="error"/>
-        </xacro:unless>
-      </joint>
-
-      <joint name="ring_dip">
-        <state_interface name="position">
-          <xacro:if value="${_use_mock}">
-            <param name="initial_value">0.0</param>
-          </xacro:if>
-        </state_interface>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-        <xacro:unless value="${_use_mock}">
-          <state_interface name="state"/>
-          <state_interface name="error"/>
-        </xacro:unless>
-      </joint>
-      <joint name="ring_pip">
-        <command_interface name="position"/>
-        <command_interface name="velocity"/>
-        <command_interface name="effort"/>
-        <state_interface name="position">
-          <xacro:if value="${_use_mock}">
-            <param name="initial_value">0.0</param>
-          </xacro:if>
-        </state_interface>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-        <xacro:unless value="${_use_mock}">
-          <state_interface name="state"/>
-          <state_interface name="error"/>
-        </xacro:unless>
-      </joint>
-      <joint name="ring_mcp">
+      <joint name="${prefix}MF_MCP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -321,7 +283,7 @@
         </xacro:unless>
       </joint>
 
-      <joint name="little_dip">
+      <joint name="${prefix}RF_DIP">
         <state_interface name="position">
           <xacro:if value="${_use_mock}">
             <param name="initial_value">0.0</param>
@@ -334,7 +296,7 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="little_pip">
+      <joint name="${prefix}RF_PIP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -350,7 +312,53 @@
           <state_interface name="error"/>
         </xacro:unless>
       </joint>
-      <joint name="little_mcp">
+      <joint name="${prefix}RF_MCP">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position">
+          <xacro:if value="${_use_mock}">
+            <param name="initial_value">0.0</param>
+          </xacro:if>
+        </state_interface>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+
+      <joint name="${prefix}LF_DIP">
+        <state_interface name="position">
+          <xacro:if value="${_use_mock}">
+            <param name="initial_value">0.0</param>
+          </xacro:if>
+        </state_interface>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="${prefix}LF_PIP">
+        <command_interface name="position"/>
+        <command_interface name="velocity"/>
+        <command_interface name="effort"/>
+        <state_interface name="position">
+          <xacro:if value="${_use_mock}">
+            <param name="initial_value">0.0</param>
+          </xacro:if>
+        </state_interface>
+        <state_interface name="velocity"/>
+        <state_interface name="effort"/>
+        <xacro:unless value="${_use_mock}">
+          <state_interface name="state"/>
+          <state_interface name="error"/>
+        </xacro:unless>
+      </joint>
+      <joint name="${prefix}LF_MCP">
         <command_interface name="position"/>
         <command_interface name="velocity"/>
         <command_interface name="effort"/>
@@ -368,7 +376,7 @@
       </joint>
 
       <xacro:unless value="${_use_mock}">
-      <sensor name="thumb">
+      <sensor name="${prefix}thumb">
         <state_interface name="resultant_force_x"/>
         <state_interface name="resultant_force_y"/>
         <state_interface name="resultant_force_z"/>
@@ -487,7 +495,7 @@
         <state_interface name="distributed_force_37_y"/>
         <state_interface name="distributed_force_37_z"/>
       </sensor>
-      <sensor name="index">
+      <sensor name="${prefix}index">
         <state_interface name="resultant_force_x"/>
         <state_interface name="resultant_force_y"/>
         <state_interface name="resultant_force_z"/>
@@ -585,7 +593,7 @@
         <state_interface name="distributed_force_30_y"/>
         <state_interface name="distributed_force_30_z"/>
       </sensor>
-      <sensor name="middle">
+      <sensor name="${prefix}middle">
         <state_interface name="resultant_force_x"/>
         <state_interface name="resultant_force_y"/>
         <state_interface name="resultant_force_z"/>
@@ -683,7 +691,7 @@
         <state_interface name="distributed_force_30_y"/>
         <state_interface name="distributed_force_30_z"/>
       </sensor>
-      <sensor name="ring">
+      <sensor name="${prefix}ring">
         <state_interface name="resultant_force_x"/>
         <state_interface name="resultant_force_y"/>
         <state_interface name="resultant_force_z"/>
@@ -781,7 +789,7 @@
         <state_interface name="distributed_force_30_y"/>
         <state_interface name="distributed_force_30_z"/>
       </sensor>
-      <sensor name="little">
+      <sensor name="${prefix}little">
         <state_interface name="resultant_force_x"/>
         <state_interface name="resultant_force_y"/>
         <state_interface name="resultant_force_z"/>

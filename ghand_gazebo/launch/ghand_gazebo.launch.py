@@ -5,6 +5,7 @@
 """GHand Gazebo simulation launch file.
 
 Parameters:
+  hand_side:      left or right hand model (default: right)
   use_rviz: whether to launch RViz (default: true)
   world:    Gazebo world file path (default: grasp_world.world)
 """
@@ -30,6 +31,7 @@ from launch.substitutions import (
     FindExecutable,
     LaunchConfiguration,
     PathJoinSubstitution,
+    PythonExpression,
 )
 from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
@@ -37,11 +39,18 @@ from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def generate_launch_description():
+    hand_side = LaunchConfiguration("hand_side")
     use_rviz = LaunchConfiguration("use_rviz")
     world = LaunchConfiguration("world")
     limit_tolerance = LaunchConfiguration("limit_tolerance")
 
     declared_args = [
+        DeclareLaunchArgument(
+            "hand_side",
+            default_value="right",
+            choices=["left", "right"],
+            description="Hand model to launch.",
+        ),
         DeclareLaunchArgument(
             "use_rviz",
             default_value="true",
@@ -141,6 +150,8 @@ def generate_launch_description():
             ),
             " --limit-tolerance ",
             limit_tolerance,
+            " --xacro-arg hand_side:=",
+            hand_side,
         ],
         # The helper script writes diagnostic info (e.g. "Patched N joint
         # limit(s)") to stderr while the URDF goes to stdout. Command defaults
@@ -183,7 +194,7 @@ def generate_launch_description():
             "-topic",
             "/robot_description",
             "-entity",
-            "GHand",
+            ["GHand-", hand_side],
             "-x",
             "0.0",
             "-y",
@@ -228,49 +239,72 @@ def generate_launch_description():
         ],
     )
 
-    # Build MoveIt configs (use the same config as moveit.launch.py).
-    moveit_config = (
-        MoveItConfigsBuilder("G5_right", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/G5_right.srdf")
-        .trajectory_execution(file_path="config/moveit_controllers.yaml")
-        .joint_limits(file_path="config/joint_limits.yaml")
-        .robot_description_kinematics(file_path="config/kinematics.yaml")
-        .to_moveit_configs()
-    )
-    moveit_config.robot_description = {
-        "robot_description": robot_description_content
-    }
-
-    # MoveGroup
-    move_group = Node(
-        package="moveit_ros_move_group",
-        executable="move_group",
-        output="screen",
-        parameters=[moveit_config.to_dict()],
-        additional_env={
-            "DISPLAY": os.environ.get("DISPLAY", ""),
-        },
-    )
-
-    # RViz
-    rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=[
-            "-d",
-            PathJoinSubstitution(
+    # Build one conditioned MoveIt/RViz pair for each concrete SRDF name.
+    moveit_nodes = []
+    for side in ("left", "right"):
+        moveit_config = (
+            MoveItConfigsBuilder(
+                f"ghand5-{side}", package_name="ghand_moveit_config"
+            )
+            .robot_description_semantic(
+                file_path=f"config/ghand5_{side}.srdf"
+            )
+            .trajectory_execution(file_path="config/moveit_controllers.yaml")
+            .joint_limits(file_path="config/joint_limits.yaml")
+            .robot_description_kinematics(file_path="config/kinematics.yaml")
+            .to_moveit_configs()
+        )
+        moveit_config.robot_description = {
+            "robot_description": robot_description_content
+        }
+        side_condition = IfCondition(
+            PythonExpression(["'", hand_side, f"' == '{side}'"])
+        )
+        rviz_condition = IfCondition(
+            PythonExpression(
                 [
-                    FindPackageShare("ghand_moveit_config"),
-                    "config",
-                    "moveit.rviz",
+                    "'",
+                    use_rviz,
+                    "' == 'true' and '",
+                    hand_side,
+                    f"' == '{side}'",
                 ]
-            ),
-        ],
-        parameters=[moveit_config.to_dict()],
-        condition=IfCondition(use_rviz),
-        output="both",
-        additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
-    )
+            )
+        )
+        moveit_nodes.extend(
+            [
+                Node(
+                    package="moveit_ros_move_group",
+                    executable="move_group",
+                    output="screen",
+                    parameters=[moveit_config.to_dict()],
+                    condition=side_condition,
+                    additional_env={
+                        "DISPLAY": os.environ.get("DISPLAY", ""),
+                    },
+                ),
+                Node(
+                    package="rviz2",
+                    executable="rviz2",
+                    arguments=[
+                        "-d",
+                        PathJoinSubstitution(
+                            [
+                                FindPackageShare("ghand_moveit_config"),
+                                "config",
+                                "moveit.rviz",
+                            ]
+                        ),
+                    ],
+                    parameters=[moveit_config.to_dict()],
+                    condition=rviz_condition,
+                    output="both",
+                    additional_env={
+                        "DISPLAY": os.environ.get("DISPLAY", "")
+                    },
+                ),
+            ]
+        )
 
     return LaunchDescription(
         declared_args
@@ -283,7 +317,6 @@ def generate_launch_description():
             spawn_entity,
             jsb_spawner,
             jtc_spawner,
-            move_group,
-            rviz,
         ]
+        + moveit_nodes
     )

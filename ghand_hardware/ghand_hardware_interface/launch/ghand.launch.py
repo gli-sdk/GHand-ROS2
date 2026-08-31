@@ -7,11 +7,17 @@
 Launches the robot state publisher, controller manager, and default controllers
 for either mock hardware or a real GHand communication backend. The backend is
 selected via the `profile` argument (a YAML file under
-ghand_hardware_interface/config/profiles).
+ghand_hardware_interface/config/profiles), while `hand_side` selects the left-
+or right-hand description.
 """
+
+import os
+
+from ament_index_python.packages import get_package_prefix
 
 from launch import LaunchDescription
 from launch.actions import (
+    AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
 )
@@ -27,6 +33,28 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    # ROS vendor libraries are installed outside the regular lib directory.
+    # Make the path explicit for processes spawned by launch (notably RViz).
+    rviz_ogre_lib = os.path.join(
+        get_package_prefix("rviz_ogre_vendor"),
+        "opt",
+        "rviz_ogre_vendor",
+        "lib",
+    )
+    env_actions = []
+    if os.path.isdir(rviz_ogre_lib):
+        env_actions.append(
+            AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
+        )
+
+    hand_side_arg = DeclareLaunchArgument(
+        "hand_side",
+        default_value="right",
+        choices=["left", "right"],
+        description="Hand model to launch.",
+    )
+    hand_side = LaunchConfiguration("hand_side")
+
     # Launch argument: use mock hardware
     use_mock_hardware_arg = DeclareLaunchArgument(
         "use_mock_hardware",
@@ -52,7 +80,7 @@ def generate_launch_description():
         default_value="",
         description=(
             "Override: communication backend "
-            "(ethercat, rs485, canfd, zqwl_canfd)."
+            "(ethercat, rs485, canfd; zqwl_canfd is a compatibility alias)."
         ),
     )
     communication_type = LaunchConfiguration("communication_type")
@@ -112,6 +140,8 @@ def generate_launch_description():
                     "ghand_hardware_description.urdf.xacro",
                 ]
             ),
+            " hand_side:=",
+            hand_side,
             " use_mock_hardware:=",
             use_mock_hardware,
             " profile_file:=",
@@ -259,7 +289,8 @@ def generate_launch_description():
         output="both",
     )
 
-    nodes = [
+    nodes = env_actions + [
+        hand_side_arg,
         use_mock_hardware_arg,
         profile_arg,
         communication_type_arg,

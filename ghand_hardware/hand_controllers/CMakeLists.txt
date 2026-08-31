@@ -26,11 +26,21 @@ add_library(hand_controllers SHARED
   src/joint_status_broadcaster.cpp
   src/tactile_broadcaster.cpp
 )
+set_target_properties(hand_controllers PROPERTIES
+  INSTALL_RPATH "$ORIGIN;$ORIGIN/../../hand_msgs/lib"
+)
 target_include_directories(hand_controllers PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 ament_target_dependencies(hand_controllers PUBLIC ${THIS_PACKAGE_INCLUDE_DEPENDS})
+# rosidl_typesupport_cpp normally dlopens the selected RMW implementation via
+# LD_LIBRARY_PATH. Processes with network capabilities run in secure-loader
+# mode, so keep the Fast DDS implementation as an explicit dependency instead.
+target_link_options(hand_controllers PRIVATE "LINKER:--no-as-needed")
+target_link_libraries(hand_controllers PRIVATE
+  hand_msgs::hand_msgs__rosidl_typesupport_fastrtps_cpp
+)
 
 pluginlib_export_plugin_description_file(controller_interface hand_controllers.xml)
 
