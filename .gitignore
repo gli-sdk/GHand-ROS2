@@ -31,3 +31,4 @@ src/SOEM/
 # These are not part of the released artifact set; keep them out of commits.
 .claude/
 openspec/
+.agents/
