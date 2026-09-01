@@ -1,5 +1,5 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package hand_msgs
+Changelog for package ghand_msgs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1.0.0 (2026-06-30)

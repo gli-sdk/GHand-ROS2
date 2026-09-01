@@ -13,7 +13,7 @@ file. See also the per-package `CHANGELOG.rst` files.
   repository into `<workspace>/src` and import dependencies with
   `vcs import . < ghand-ros2/ghand.repos` from the workspace src directory.
 * Reorganized hardware packages: moved `ghand_hardware_interface`,
-  `hand_controllers`, and `hand_msgs` under `ghand_hardware/`. Removed the
+  `ghand_controllers`, and `ghand_msgs` under `ghand_hardware/`. Removed the
   deprecated `hand_bringup` and standalone `ghand_hardware_interface/`
   layouts. Launch files and configurations now live in
   `ghand_hardware/ghand_hardware_interface`.
@@ -27,8 +27,8 @@ file. See also the per-package `CHANGELOG.rst` files.
 ### Added
 
 * Initial public release of the GHand-ROS2 control stack.
-* Packages: `ghand_description`, `ghand_hardware_interface`, `hand_controllers`,
-  `hand_msgs`, `hand_bringup`, `ghand_moveit_config`, `ghand_gazebo`.
+* Packages: `ghand_description`, `ghand_hardware_interface`, `ghand_controllers`,
+  `ghand_msgs`, `hand_bringup`, `ghand_moveit_config`, `ghand_gazebo`.
 * `ros2_control` integration with optional EtherCAT, RS485, and CANFD backends.
 * Gazebo Harmonic simulation support.
 * MoveIt 2 motion planning configuration.

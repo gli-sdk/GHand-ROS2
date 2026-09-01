@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(hand_msgs)
+project(ghand_msgs)
 
 # Keep generated message libraries discoverable when a process runs with Linux
 # capabilities. In that mode the dynamic loader ignores LD_LIBRARY_PATH. The

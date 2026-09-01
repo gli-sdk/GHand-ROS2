@@ -1,11 +1,11 @@
-<library path="hand_controllers">
-  <class name="hand_controllers/JointStatusBroadcaster"
-         type="hand_controllers::JointStatusBroadcaster"
+<library path="ghand_controllers">
+  <class name="ghand_controllers/JointStatusBroadcaster"
+         type="ghand_controllers::JointStatusBroadcaster"
          base_class_type="controller_interface::ControllerInterface">
     <description>Broadcasts joint status data.</description>
   </class>
-  <class name="hand_controllers/TactileBroadcaster"
-         type="hand_controllers::TactileBroadcaster"
+  <class name="ghand_controllers/TactileBroadcaster"
+         type="ghand_controllers::TactileBroadcaster"
          base_class_type="controller_interface::ControllerInterface">
     <description>Broadcasts tactile sensor data.</description>
   </class>

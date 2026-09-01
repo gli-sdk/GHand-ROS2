@@ -6,14 +6,14 @@ controller_manager:
       type: joint_state_broadcaster/JointStateBroadcaster
 
     left_joint_status_broadcaster:
-      type: hand_controllers/JointStatusBroadcaster
+      type: ghand_controllers/JointStatusBroadcaster
     right_joint_status_broadcaster:
-      type: hand_controllers/JointStatusBroadcaster
+      type: ghand_controllers/JointStatusBroadcaster
 
     left_tactile_broadcaster:
-      type: hand_controllers/TactileBroadcaster
+      type: ghand_controllers/TactileBroadcaster
     right_tactile_broadcaster:
-      type: hand_controllers/TactileBroadcaster
+      type: ghand_controllers/TactileBroadcaster
 
     left_joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController

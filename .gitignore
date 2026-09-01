@@ -10,6 +10,7 @@ docs/*
 # Re-add specific docs files that are part of the release artifact set
 !docs/gazebo_demo.gif
 !docs/moveit_demo.gif
+!docs/ROS2_INTERFACE_REFERENCE.md
 
 # Python artifacts
 __pycache__/

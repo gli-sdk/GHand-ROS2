@@ -1,8 +1,8 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef HAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_
-#define HAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_
+#ifndef GHAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_
+#define GHAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_
 
 #include <cstddef>
 #include <memory>
@@ -10,13 +10,13 @@
 #include <vector>
 
 #include "controller_interface/controller_interface.hpp"
-#include "hand_msgs/msg/tactile_data.hpp"
+#include "ghand_msgs/msg/tactile_data.hpp"
 #include "hardware_interface/handle.hpp"
 #include "hardware_interface/loaned_state_interface.hpp"
 #include "rclcpp/publisher.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
-namespace hand_controllers {
+namespace ghand_controllers {
 
 struct FingerTactileState {
   std::string name;
@@ -51,7 +51,7 @@ class TactileBroadcaster : public controller_interface::ControllerInterface {
       const rclcpp::Time& time, const rclcpp::Duration& period) override;
 
  private:
-  std::shared_ptr<rclcpp::Publisher<hand_msgs::msg::TactileData>> publisher_;
+  std::shared_ptr<rclcpp::Publisher<ghand_msgs::msg::TactileData>> publisher_;
   std::vector<std::string> finger_names_;
   std::vector<int64_t> point_counts_;
   std::vector<FingerTactileState> finger_states_;
@@ -61,6 +61,6 @@ class TactileBroadcaster : public controller_interface::ControllerInterface {
   void cache_state_interface_pointers();
 };
 
-}  // namespace hand_controllers
+}  // namespace ghand_controllers
 
-#endif  // HAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_
+#endif  // GHAND_CONTROLLERS_TACTILE_BROADCASTER_HPP_

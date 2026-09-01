@@ -1,7 +1,7 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hand_controllers/tactile_broadcaster.hpp"
+#include "ghand_controllers/tactile_broadcaster.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -23,7 +23,7 @@ double safe_state_value(const hardware_interface::LoanedStateInterface* iface) {
 
 }  // namespace
 
-namespace hand_controllers {
+namespace ghand_controllers {
 
 controller_interface::CallbackReturn TactileBroadcaster::on_init() {
   get_node()->declare_parameter<std::vector<std::string>>(
@@ -85,7 +85,7 @@ controller_interface::CallbackReturn TactileBroadcaster::on_configure(
     return controller_interface::CallbackReturn::ERROR;
   }
 
-  publisher_ = get_node()->create_publisher<hand_msgs::msg::TactileData>(
+  publisher_ = get_node()->create_publisher<ghand_msgs::msg::TactileData>(
       topic, 10);
   return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -115,7 +115,7 @@ controller_interface::return_type TactileBroadcaster::update(
   }
   last_publish_time_ = time;
 
-  auto msg = hand_msgs::msg::TactileData();
+  auto msg = ghand_msgs::msg::TactileData();
   msg.resultant_force.resize(finger_names_.size() * 3, 0.0);
 
   size_t distributed_total_size = 0;
@@ -205,9 +205,9 @@ void TactileBroadcaster::cache_state_interface_pointers() {
   }
 }
 
-}  // namespace hand_controllers
+}  // namespace ghand_controllers
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(hand_controllers::TactileBroadcaster,
+PLUGINLIB_EXPORT_CLASS(ghand_controllers::TactileBroadcaster,
                        controller_interface::ControllerInterface)

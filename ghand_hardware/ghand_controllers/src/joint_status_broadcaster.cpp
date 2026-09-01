@@ -1,7 +1,7 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
-#include "hand_controllers/joint_status_broadcaster.hpp"
+#include "ghand_controllers/joint_status_broadcaster.hpp"
 
 #include <cmath>
 #include <string>
@@ -26,7 +26,7 @@ int8_t state_to_int8(double value) {
 
 }  // namespace
 
-namespace hand_controllers {
+namespace ghand_controllers {
 
 controller_interface::CallbackReturn JointStatusBroadcaster::on_init() {
   get_node()->declare_parameter<std::vector<std::string>>(
@@ -66,7 +66,7 @@ controller_interface::CallbackReturn JointStatusBroadcaster::on_configure(
   publish_rate_ = get_node()->get_parameter("publish_rate").as_double();
   const auto topic = get_node()->get_parameter("topic").as_string();
 
-  publisher_ = get_node()->create_publisher<hand_msgs::msg::JointStatus>(
+  publisher_ = get_node()->create_publisher<ghand_msgs::msg::JointStatus>(
       topic, 10);
   return controller_interface::CallbackReturn::SUCCESS;
 }
@@ -95,7 +95,7 @@ controller_interface::return_type JointStatusBroadcaster::update(
   }
   last_publish_time_ = time;
 
-  auto msg = hand_msgs::msg::JointStatus();
+  auto msg = ghand_msgs::msg::JointStatus();
   msg.status.resize(joint_names_.size(), 0);
   msg.error.resize(joint_names_.size(), 0);
 
@@ -115,9 +115,9 @@ controller_interface::return_type JointStatusBroadcaster::update(
   return controller_interface::return_type::OK;
 }
 
-}  // namespace hand_controllers
+}  // namespace ghand_controllers
 
 #include "pluginlib/class_list_macros.hpp"
 
-PLUGINLIB_EXPORT_CLASS(hand_controllers::JointStatusBroadcaster,
+PLUGINLIB_EXPORT_CLASS(ghand_controllers::JointStatusBroadcaster,
                        controller_interface::ControllerInterface)

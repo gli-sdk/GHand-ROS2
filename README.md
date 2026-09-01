@@ -1,4 +1,4 @@
-# GHand-ROS2
+﻿# GHand-ROS2
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -46,6 +46,9 @@ GHand-ROS2 is a ROS 2 control stack for the GHand five-finger dexterous hand, bu
 ## 📖 Official Documentation
 
 For detailed technical specifications, API reference, and tutorials, see the [GHand Dexterous Hand Documentation](https://fcnzogxju7xr.feishu.cn/docx/AhZ6ds2iCoguaAxIzBxciYHinNo).
+
+The frozen core ROS 2 API is documented in
+[docs/ROS2_INTERFACE_REFERENCE.md](docs/ROS2_INTERFACE_REFERENCE.md).
 
 ## 📑 Table of Contents
 
@@ -215,8 +218,8 @@ After launch, you can plan trajectories in RViz using the MotionPlanning plugin;
 ### Topic Interfaces
 
 - **Joint States**: `/joint_states` (`sensor_msgs/JointState`)
-- **Joint Status / Error Codes**: `/joint_status_broadcaster/joint_status` (`hand_msgs/JointStatus`)
-- **Tactile Feedback**: `/tactile_broadcaster/tactile_data` (`hand_msgs/TactileData`)
+- **Joint Status / Error Codes**: `/joint_status` (`ghand_msgs/JointStatus`)
+- **Tactile Feedback**: `/tactile_data` (`ghand_msgs/TactileData`)
 - **Trajectory Commands**: `/joint_trajectory_controller/joint_trajectory` (`trajectory_msgs/JointTrajectory`)
 
 ### Action Interfaces
@@ -293,8 +296,8 @@ ros2 topic echo /joint_states
 GHand-Ros2/
 ├── ghand_hardware/
 │   ├── ghand_hardware_interface/   # Hardware interface and comm drivers
-│   ├── hand_controllers/           # Custom broadcasters
-│   └── hand_msgs/                  # Custom message types
+│   ├── ghand_controllers/          # Custom broadcasters
+│   └── ghand_msgs/                 # Custom message types
 ├── ghand_moveit_config/            # MoveIt 2 configuration
 ├── ghand_gazebo/                   # Gazebo physical simulation
 ├── ghand_description/              # Robot description model

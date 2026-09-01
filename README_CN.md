@@ -1,4 +1,4 @@
-# GHand-ROS2
+﻿# GHand-ROS2
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
@@ -243,8 +243,8 @@ ros2 launch ghand_gazebo dual_hand_gazebo.launch.py
 ### Topic 接口
 
 - **关节状态**：`/joint_states`（`sensor_msgs/JointState`）
-- **关节状态码 / 错误码**：`/joint_status_broadcaster/joint_status`（`hand_msgs/JointStatus`）
-- **触觉反馈**：`/tactile_broadcaster/tactile_data`（`hand_msgs/TactileData`）
+- **关节状态码 / 错误码**：`/joint_status`（`ghand_msgs/JointStatus`）
+- **触觉反馈**：`/tactile_data`（`ghand_msgs/TactileData`）
 - **轨迹命令**：`/joint_trajectory_controller/joint_trajectory`（`trajectory_msgs/JointTrajectory`）
 
 ### Action 接口
@@ -321,8 +321,8 @@ ros2 topic echo /joint_states
 ghand-ros2/
 ├── ghand_hardware/
 │   ├── ghand_hardware_interface/   # 硬件接口与通讯驱动
-│   ├── hand_controllers/           # 自定义 broadcaster
-│   └── hand_msgs/                  # 自定义消息类型
+│   ├── ghand_controllers/          # 自定义 broadcaster
+│   └── ghand_msgs/                 # 自定义消息类型
 ├── ghand_moveit_config/            # MoveIt 2 配置
 ├── ghand_gazebo/                   # Gazebo 物理仿真
 ├── ghand_description/              # 机器人描述模型

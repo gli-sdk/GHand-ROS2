@@ -1,19 +1,19 @@
 // Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef HAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
-#define HAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
+#ifndef GHAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
+#define GHAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
 
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "controller_interface/controller_interface.hpp"
-#include "hand_msgs/msg/joint_status.hpp"
+#include "ghand_msgs/msg/joint_status.hpp"
 #include "rclcpp/publisher.hpp"
 #include "rclcpp_lifecycle/lifecycle_publisher.hpp"
 
-namespace hand_controllers {
+namespace ghand_controllers {
 
 class JointStatusBroadcaster
     : public controller_interface::ControllerInterface {
@@ -39,12 +39,12 @@ class JointStatusBroadcaster
       const rclcpp::Time& time, const rclcpp::Duration& period) override;
 
  private:
-  std::shared_ptr<rclcpp::Publisher<hand_msgs::msg::JointStatus>> publisher_;
+  std::shared_ptr<rclcpp::Publisher<ghand_msgs::msg::JointStatus>> publisher_;
   std::vector<std::string> joint_names_;
   double publish_rate_ = 100.0;
   rclcpp::Time last_publish_time_{0, 0, RCL_ROS_TIME};
 };
 
-}  // namespace hand_controllers
+}  // namespace ghand_controllers
 
-#endif  // HAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
+#endif  // GHAND_CONTROLLERS_JOINT_STATUS_BROADCASTER_HPP_
