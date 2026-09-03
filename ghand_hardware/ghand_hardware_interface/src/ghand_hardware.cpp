@@ -1,4 +1,4 @@
-// Copyright (c) 2026 GHand ROS2 Maintainers
+﻿// Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ghand_hardware_interface/ghand_hardware.hpp"
@@ -497,7 +497,7 @@ hardware_interface::return_type GHandHardwareInterface::write(
       // velocity in rad/s, but the motor driver expects a percentage velocity
       // limit
       // (-100~100). Small rad/s values get truncated to 0 and the hand does not
-      // move. Always use the maximum velocity/torque limits and let the
+      // move. Always use the maximum velocity/current limits and let the
       // position trajectory govern the motion.
       velocity = 100.0;
       effort = 100.0;
@@ -535,7 +535,7 @@ hardware_interface::return_type GHandHardwareInterface::write(
         static_cast<float>(hw_joint_commands_[idx].position * kRadToDeg);
     cmd.velocity = static_cast<int8_t>(
         std::clamp(hw_joint_commands_[idx].velocity, -100.0, 100.0));
-    cmd.torque = static_cast<int8_t>(
+    cmd.current = static_cast<int8_t>(
         std::clamp(hw_joint_commands_[idx].effort, 0.0, 100.0));
     commands.push_back(cmd);
   }

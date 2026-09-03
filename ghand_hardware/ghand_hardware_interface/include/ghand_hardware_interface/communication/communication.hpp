@@ -1,9 +1,10 @@
-// Copyright (c) 2026 GHand ROS2 Maintainers
+﻿// Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
 #ifndef GHAND_HARDWARE_INTERFACE_COMMUNICATION_COMMUNICATION_HPP_
 #define GHAND_HARDWARE_INTERFACE_COMMUNICATION_COMMUNICATION_HPP_
 
+#include <array>
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -43,17 +44,31 @@ struct Force {
 };
 
 struct JointState {
-  float position = 0.0f;  // degrees
-  float velocity = 0.0f;  // percent (-100~100)
   uint8_t status = 0;
   uint8_t error = 0;
+  uint8_t mode = 0;
+  uint8_t stop = 0;
+  float position = 0.0f;  // degrees
+  float velocity = 0.0f;  // percent (-100~100)
+  float current = 0.0f;   // percent (-100~100)
+};
+
+enum class CtrlMode : uint8_t {
+  POSITION = 0,
+  SPEED = 1,
+  CURRENT = 2,
+  MIT = 3,
 };
 
 struct JointCommand {
   JointId id = JointId::NUM_JOINTS;
   float position = 0.0f;  // degrees
+  CtrlMode mode = CtrlMode::POSITION;
+  uint8_t stop = 1;
   int8_t velocity = 0;    // percent (-100~100)
-  int8_t torque = 0;      // percent (-100~100)
+  int8_t current = 0;     // target current percent (-100~100)
+  int16_t kp = 0;
+  int16_t kd = 0;
 };
 
 struct TactileRegion {
@@ -62,16 +77,12 @@ struct TactileRegion {
   std::vector<Force> distributed_forces;
 };
 
-enum class CtrlMode : uint8_t {
-  POSITION = 0,
-  TORQUE = 1,
-  SPEED = 2,
-};
-
 struct HandState {
   uint8_t state = 0;
-  uint8_t error = 0;
-  int16_t temperature = 0;
+  std::array<uint8_t, 6> error_warn{};
+  std::array<uint8_t, 6> error_fault{};
+  std::array<uint8_t, 6> error_critical{};
+  int16_t temperature = 0;  // Back-of-hand temperature, 0.1 degC units.
 };
 
 struct CommunicationData {

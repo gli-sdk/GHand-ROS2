@@ -1,4 +1,4 @@
-// Copyright (c) 2026 GHand ROS2 Maintainers
+﻿// Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ghand_hardware_interface/communication/ethercat_driver.hpp"
@@ -288,13 +288,13 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
   for (const auto& joint_id : impl_->valid_joints) {
     float angle = 0.0f;
     uint8_t velocity = 100;
-    uint8_t torque = 100;
+    uint8_t current = 100;
 
     for (const auto& cmd : commands) {
       if (cmd.id == joint_id) {
         angle = cmd.position * static_cast<float>(kPi) / 180.0f;
         velocity = static_cast<uint8_t>(cmd.velocity);
-        torque = static_cast<uint8_t>(cmd.torque);
+        current = static_cast<uint8_t>(cmd.current);
         break;
       }
     }
@@ -302,7 +302,7 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
     std::memcpy(buffer.data() + offset, &angle, sizeof(angle));
     offset += sizeof(angle);
     buffer[offset++] = velocity;
-    buffer[offset++] = torque;
+    buffer[offset++] = current;
   }
 
   const size_t copy_size = std::min(buffer.size(), sizeof(impl_->rxpdo_buffer));
@@ -526,7 +526,7 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     uint8_t joint_error = 0;
     float joint_angle = 0.0f;
     uint8_t joint_velocity = 0;
-    uint8_t joint_torque = 0;
+    uint8_t joint_current = 0;
 
     std::memcpy(&joint_state, data + *offset, sizeof(joint_state));
     *offset += sizeof(joint_state);
@@ -536,15 +536,15 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     *offset += sizeof(joint_angle);
     std::memcpy(&joint_velocity, data + *offset, sizeof(joint_velocity));
     *offset += sizeof(joint_velocity);
-    std::memcpy(&joint_torque, data + *offset, sizeof(joint_torque));
-    *offset += sizeof(joint_torque);
+    std::memcpy(&joint_current, data + *offset, sizeof(joint_current));
+    *offset += sizeof(joint_current);
 
     JointState js;
     js.status = joint_state;
     js.error = joint_error;
     js.position = joint_angle * (180.0f / static_cast<float>(kPi));
     js.velocity = static_cast<float>(static_cast<int8_t>(joint_velocity));
-    (void)joint_torque;
+    (void)joint_current;
     out_data->joints[urdf_idx] = js;
   }
 

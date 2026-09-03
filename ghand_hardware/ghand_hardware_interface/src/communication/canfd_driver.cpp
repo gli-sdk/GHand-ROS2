@@ -1,4 +1,4 @@
-// Copyright (c) 2026 GHand ROS2 Maintainers
+﻿// Copyright (c) 2026 GHand ROS2 Maintainers
 // SPDX-License-Identifier: Apache-2.0
 
 #include "ghand_hardware_interface/communication/canfd_driver.hpp"
@@ -305,7 +305,7 @@ bool CanfdDriver::write(const std::vector<JointCommand>& commands) {
     return true;
   }
 
-  if (!impl_->WriteHoldingRegister(0x0010, 0x0000)) {
+  if (!impl_->WriteHoldingRegister(0x0260, 0x0000)) {
     return false;
   }
 
@@ -316,12 +316,8 @@ bool CanfdDriver::write(const std::vector<JointCommand>& commands) {
       continue;
     }
 
-    const auto regs = encode_joint_command(cmd);
-    const std::vector<uint8_t> data = {
-        static_cast<uint8_t>((regs.first >> 8) & 0xFF),
-        static_cast<uint8_t>(regs.first & 0xFF),
-        static_cast<uint8_t>((regs.second >> 8) & 0xFF),
-        static_cast<uint8_t>(regs.second & 0xFF)};
+    const auto regs = encode_joint_command(cmd, CtrlMode::POSITION);
+    std::vector<uint8_t> data = registers_to_bytes(regs);
 
     if (!impl_->WriteHoldingRegisters(it->second, data)) {
       return false;
@@ -444,7 +440,7 @@ void CanfdDriver::Impl::ParseReport(const std::vector<uint8_t>& payload) {
 
 void CanfdDriver::Impl::ParseJointReport(const std::vector<uint8_t>& payload) {
   // Payload layout (after function code):
-  //   6 bytes per joint: state, error, angle_hi, angle_lo, velocity, torque
+  //   6 bytes per joint: state, error, angle_hi, angle_lo, velocity, current
   std::vector<JointState> all_joints;
   for (size_t i = 1; i + 5 < payload.size(); i += 6) {
     const uint8_t* p = payload.data() + i;

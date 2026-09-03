@@ -261,14 +261,14 @@ bool Rs485Driver::write(const std::vector<JointCommand>& commands) {
   modbus_set_slave(impl_->ctx_, impl_->slave_id_);
 
   // Set control mode register to position mode (0x0000).
-  if (modbus_write_register(impl_->ctx_, 0x0010, 0x0000) != 1) {
+  if (modbus_write_register(impl_->ctx_, 0x0260, 0x0000) != 1) {
     return false;
   }
 
   // Build a single contiguous write for all active joints.
-  // Holding registers for active joints span 0x0011 .. 0x002A (26 regs).
-  constexpr uint16_t kFirstHoldingReg = 0x0011;
-  constexpr uint16_t kHoldingRegCount = 26;
+  // Holding registers for active joints span 0x0261 .. 0x02AA (78 regs).
+  constexpr uint16_t kFirstHoldingReg = 0x0261;
+  constexpr uint16_t kHoldingRegCount = 78;
   std::vector<uint16_t> regs(kHoldingRegCount, 0);
 
   for (const auto& cmd : commands) {
@@ -280,14 +280,15 @@ bool Rs485Driver::write(const std::vector<JointCommand>& commands) {
 
     const uint16_t base = it->second;
     if (base < kFirstHoldingReg ||
-        base + 1 > kFirstHoldingReg + kHoldingRegCount) {
+        base + 5 >= kFirstHoldingReg + kHoldingRegCount) {
       continue;
     }
 
-    const auto encoded = encode_joint_command(cmd);
+    const auto encoded = encode_joint_command(cmd, CtrlMode::POSITION);
     const size_t idx = static_cast<size_t>(base - kFirstHoldingReg);
-    regs[idx] = encoded.first;
-    regs[idx + 1] = encoded.second;
+    for (size_t i = 0; i < encoded.size(); ++i) {
+      regs[idx + i] = encoded[i];
+    }
   }
 
   if (modbus_write_registers(impl_->ctx_, kFirstHoldingReg, kHoldingRegCount,
@@ -351,7 +352,7 @@ bool Rs485Driver::Impl::ReadJoints(std::vector<JointState>* joints) {
   for (auto id : valid_joints_) {
     max_id = std::max(max_id, static_cast<uint8_t>(id));
   }
-  const int count = (max_id + 1) * 3;
+  const int count = (max_id + 1) * 5;
 
   std::vector<uint8_t> bytes;
   if (!ReadInputRegistersBytes(0x1023, count, &bytes)) {
@@ -372,7 +373,7 @@ bool Rs485Driver::Impl::ReadTactile(std::vector<TactileRegion>* regions) {
   if (!regions || tactile_regions_.empty()) return false;
 
   std::vector<uint8_t> bytes;
-  if (!ReadInputRegistersBytes(0x1080, 16, &bytes)) {
+  if (!ReadInputRegistersBytes(0x1110, 16, &bytes)) {
     return false;
   }
 
@@ -388,7 +389,7 @@ bool Rs485Driver::Impl::ReadTactile(std::vector<TactileRegion>* regions) {
   regions->clear();
   regions->reserve(tactile_regions_.size());
 
-  int current_addr = 0x1080 + 16;
+  int current_addr = 0x1110 + 16;
   for (size_t i = 0; i < tactile_regions_.size(); ++i) {
     const auto& region = tactile_regions_[i];
     TactileRegion tr;

@@ -260,7 +260,7 @@ TEST(ZqwlCanfdDriver, MatchesGiteeSdkWireProtocol) {
   command.id = ghand_comm::JointId::THUMB_MCP;
   command.position = 25.0f;
   command.velocity = 30;
-  command.torque = 40;
+  command.current = 40;
   EXPECT_TRUE(driver.write({command}));
   EXPECT_TRUE(adapter.mode_write_seen.load());
   EXPECT_TRUE(adapter.joint_write_seen.load());

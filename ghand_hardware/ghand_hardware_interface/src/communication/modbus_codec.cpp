@@ -5,7 +5,6 @@
 
 #include <cmath>
 #include <string>
-#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -56,33 +55,45 @@ uint8_t parse_hand_type(const uint8_t* raw_bytes, size_t len) {
   return raw_bytes[1];
 }
 
-std::tuple<uint8_t, uint8_t, int16_t> parse_hand_info(const uint16_t* raw,
-                                                      size_t count) {
-  uint8_t state = 0;
-  uint8_t error = 0;
-  int16_t temperature = 0;
+HandState parse_hand_info(const uint16_t* raw, size_t count) {
+  HandState hand_state;
   if (count >= 1) {
-    state = static_cast<uint8_t>((raw[0] >> 8) & 0xFF);
-    error = static_cast<uint8_t>(raw[0] & 0xFF);
+    hand_state.state = static_cast<uint8_t>(raw[0] & 0xFF);
   }
-  if (count >= 2) {
-    temperature = static_cast<int16_t>(raw[1]);
+  const auto copy_low_high = [raw](size_t start,
+                                   std::array<uint8_t, 6>* out) {
+    for (size_t i = 0; i < out->size(); ++i) {
+      const uint16_t reg = raw[start + i / 2];
+      (*out)[i] = static_cast<uint8_t>((i % 2 == 0) ? reg : (reg >> 8));
+    }
+  };
+  if (count >= 4) {
+    copy_low_high(1, &hand_state.error_warn);
   }
-  return {state, error, temperature};
+  if (count >= 7) {
+    copy_low_high(4, &hand_state.error_fault);
+  }
+  if (count >= 10) {
+    copy_low_high(7, &hand_state.error_critical);
+  }
+  if (count >= 11) {
+    hand_state.temperature = static_cast<int16_t>(raw[10]);
+  }
+  return hand_state;
 }
 
 JointState parse_joint_data(const uint16_t* raw, JointId joint_id) {
   JointState joint;
-  joint.status = static_cast<uint8_t>((raw[0] >> 8) & 0xFF);
-  joint.error = static_cast<uint8_t>(raw[0] & 0xFF);
+  joint.status = static_cast<uint8_t>(raw[0] & 0xFF);
+  joint.error = static_cast<uint8_t>((raw[0] >> 8) & 0xFF);
+  joint.mode = static_cast<uint8_t>(raw[1] & 0xFF);
+  joint.stop = static_cast<uint8_t>((raw[1] >> 8) & 0xFF);
 
-  const int16_t angle_raw = static_cast<int16_t>(raw[1]);
-  joint.position = angle_raw / 10.0f;
+  const int16_t angle_raw = static_cast<int16_t>(raw[2]);
+  joint.position = angle_raw / 100.0f;
 
-  const uint8_t speed = (raw[2] >> 8) & 0xFF;
-  const uint8_t torque = raw[2] & 0xFF;
-  joint.velocity = static_cast<float>(static_cast<int8_t>(speed));
-  (void)torque;
+  joint.velocity = static_cast<float>(static_cast<int16_t>(raw[3]));
+  joint.current = static_cast<float>(static_cast<int16_t>(raw[4]));
 
   (void)joint_id;
   return joint;
@@ -94,8 +105,8 @@ std::vector<JointState> parse_joints(const uint16_t* raw, size_t count,
   joints.reserve(valid_joints.size());
 
   for (JointId joint_id : valid_joints) {
-    const size_t offset = static_cast<size_t>(joint_id) * 3;
-    if (offset + 2 >= count) continue;
+    const size_t offset = static_cast<size_t>(joint_id) * 5;
+    if (offset + 4 >= count) continue;
     joints.push_back(parse_joint_data(raw + offset, joint_id));
   }
   return joints;
@@ -139,13 +150,23 @@ std::vector<Force> parse_tactile_distributed(const uint8_t* data_bytes,
   return forces;
 }
 
-std::pair<uint16_t, uint16_t> encode_joint_command(const JointCommand& joint) {
+std::vector<uint16_t> encode_joint_command(const JointCommand& joint,
+                                           CtrlMode mode) {
   const int16_t angle_raw =
       static_cast<int16_t>(std::lround(joint.position * 10.0f));
-  const uint16_t reg0 = static_cast<uint16_t>(angle_raw);
-  const uint16_t reg1 = ((static_cast<uint16_t>(joint.velocity) & 0xFF) << 8) |
-                        (static_cast<uint16_t>(joint.torque) & 0xFF);
-  return {reg0, reg1};
+  const CtrlMode joint_mode =
+      joint.mode == CtrlMode::POSITION ? mode : joint.mode;
+  const uint16_t mode_stop =
+      static_cast<uint16_t>(((joint.stop & 0xFFu) << 8) |
+                            (static_cast<uint8_t>(joint_mode) & 0x0Fu));
+  return {
+      mode_stop,
+      static_cast<uint16_t>(angle_raw),
+      static_cast<uint16_t>(static_cast<int16_t>(joint.velocity)),
+      static_cast<uint16_t>(static_cast<int16_t>(joint.current)),
+      static_cast<uint16_t>(joint.kp),
+      static_cast<uint16_t>(joint.kd),
+  };
 }
 
 }  // namespace ghand_comm

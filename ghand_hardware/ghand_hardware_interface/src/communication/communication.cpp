@@ -27,13 +27,13 @@ const std::array<std::string, kJointCount + 1> kJointIdNames = {
 };
 
 const std::map<JointId, uint16_t> kHoldingRegMap = {
-    {JointId::THUMB_MCP, 0x0011},    {JointId::THUMB_TMC_FE, 0x0013},
-    {JointId::THUMB_TMC_AA, 0x0015}, {JointId::THUMB_TMC_PS, 0x0017},
-    {JointId::INDEX_PIP, 0x0019},    {JointId::INDEX_MCP, 0x001B},
-    {JointId::INDEX_MCP_AA, 0x001D}, {JointId::MIDDLE_PIP, 0x001F},
-    {JointId::MIDDLE_MCP, 0x0021},   {JointId::RING_PIP, 0x0023},
-    {JointId::RING_MCP, 0x0025},     {JointId::LITTLE_PIP, 0x0027},
-    {JointId::LITTLE_MCP, 0x0029},
+    {JointId::THUMB_MCP, 0x0261},    {JointId::THUMB_TMC_FE, 0x0267},
+    {JointId::THUMB_TMC_AA, 0x026D}, {JointId::THUMB_TMC_PS, 0x0273},
+    {JointId::INDEX_PIP, 0x0279},    {JointId::INDEX_MCP, 0x027F},
+    {JointId::INDEX_MCP_AA, 0x0285}, {JointId::MIDDLE_PIP, 0x028B},
+    {JointId::MIDDLE_MCP, 0x0291},   {JointId::RING_PIP, 0x0297},
+    {JointId::RING_MCP, 0x029D},     {JointId::LITTLE_PIP, 0x02A3},
+    {JointId::LITTLE_MCP, 0x02A9},
 };
 
 }  // namespace
