@@ -87,7 +87,7 @@ struct Rs485Driver::Impl {
 
   bool ReadInputRegistersBytes(int addr, int count,
                                std::vector<uint8_t>* bytes);
-  bool ReadJoints(std::vector<JointState>* joints);
+  bool ReadJoints(CommunicationData* data);
   bool ReadTactile(std::vector<TactileRegion>* regions);
 };
 
@@ -99,6 +99,10 @@ const char* Rs485Driver::get_name() const { return "rs485"; }
 
 bool Rs485Driver::init(
     const std::unordered_map<std::string, std::string>& params) {
+  const auto mode = parse_hand_control_mode(
+      params.count("control_mode") ? params.at("control_mode") : "position");
+  if (!mode) return false;
+  hand_mode_ = *mode;
 #ifndef GHAND_HAS_LIBMODBUS
   (void)params;
   return false;
@@ -260,8 +264,9 @@ bool Rs485Driver::write(const std::vector<JointCommand>& commands) {
   std::lock_guard<std::mutex> lock(impl_->io_mutex_);
   modbus_set_slave(impl_->ctx_, impl_->slave_id_);
 
-  // Set control mode register to position mode (0x0000).
-  if (modbus_write_register(impl_->ctx_, 0x0260, 0x0000) != 1) {
+  // Enable the hand in the configured mode.
+  if (modbus_write_register(impl_->ctx_, 0x0260,
+                            encode_hand_mode(hand_mode_)) != 1) {
     return false;
   }
 
@@ -270,25 +275,9 @@ bool Rs485Driver::write(const std::vector<JointCommand>& commands) {
   constexpr uint16_t kFirstHoldingReg = 0x0261;
   constexpr uint16_t kHoldingRegCount = 78;
   std::vector<uint16_t> regs(kHoldingRegCount, 0);
-
-  for (const auto& cmd : commands) {
-    const auto& reg_map = holding_register_map();
-    auto it = reg_map.find(cmd.id);
-    if (it == reg_map.end()) {
-      continue;
-    }
-
-    const uint16_t base = it->second;
-    if (base < kFirstHoldingReg ||
-        base + 5 >= kFirstHoldingReg + kHoldingRegCount) {
-      continue;
-    }
-
-    const auto encoded = encode_joint_command(cmd, CtrlMode::POSITION);
-    const size_t idx = static_cast<size_t>(base - kFirstHoldingReg);
-    for (size_t i = 0; i < encoded.size(); ++i) {
-      regs[idx + i] = encoded[i];
-    }
+  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+    const size_t offset = block.first - kFirstHoldingReg;
+    std::copy(block.second.begin(), block.second.end(), regs.begin() + offset);
   }
 
   if (modbus_write_registers(impl_->ctx_, kFirstHoldingReg, kHoldingRegCount,
@@ -345,8 +334,8 @@ bool Rs485Driver::Impl::ReadInputRegistersBytes(int addr, int count,
   return true;
 }
 
-bool Rs485Driver::Impl::ReadJoints(std::vector<JointState>* joints) {
-  if (!joints || valid_joints_.empty()) return false;
+bool Rs485Driver::Impl::ReadJoints(CommunicationData* data) {
+  if (!data || valid_joints_.empty()) return false;
 
   uint8_t max_id = 0;
   for (auto id : valid_joints_) {
@@ -355,7 +344,7 @@ bool Rs485Driver::Impl::ReadJoints(std::vector<JointState>* joints) {
   const int count = (max_id + 1) * 5;
 
   std::vector<uint8_t> bytes;
-  if (!ReadInputRegistersBytes(0x1023, count, &bytes)) {
+  if (!ReadInputRegistersBytes(kHandFeedbackRegister, count + kHandFeedbackRegisterCount, &bytes)) {
     return false;
   }
 
@@ -365,15 +354,18 @@ bool Rs485Driver::Impl::ReadJoints(std::vector<JointState>* joints) {
     regs.push_back(static_cast<uint16_t>((bytes[i] << 8) | bytes[i + 1]));
   }
 
-  *joints = parse_joints(regs.data(), regs.size(), valid_joints_);
-  return !joints->empty();
+  data->hand_state = parse_hand_info(regs.data(), regs.size());
+  data->hand_state_valid = true;
+  data->joints = parse_joints(regs.data() + kHandFeedbackRegisterCount,
+                            regs.size() - kHandFeedbackRegisterCount, valid_joints_);
+  return !data->joints.empty();
 }
 
 bool Rs485Driver::Impl::ReadTactile(std::vector<TactileRegion>* regions) {
   if (!regions || tactile_regions_.empty()) return false;
 
   std::vector<uint8_t> bytes;
-  if (!ReadInputRegistersBytes(0x1110, 16, &bytes)) {
+  if (!ReadInputRegistersBytes(kTactileStatusRegister, 16, &bytes)) {
     return false;
   }
 
@@ -389,7 +381,7 @@ bool Rs485Driver::Impl::ReadTactile(std::vector<TactileRegion>* regions) {
   regions->clear();
   regions->reserve(tactile_regions_.size());
 
-  int current_addr = 0x1110 + 16;
+  int current_addr = kTactileStatusRegister + 16;
   for (size_t i = 0; i < tactile_regions_.size(); ++i) {
     const auto& region = tactile_regions_[i];
     TactileRegion tr;
@@ -422,7 +414,7 @@ void Rs485Driver::Impl::PollLoop() {
     CommunicationData data;
     data.valid = true;
 
-    if (ReadJoints(&data.joints)) {
+    if (ReadJoints(&data)) {
       data.valid = true;
     } else {
       data.valid = false;

@@ -4,6 +4,7 @@
 #ifndef GHAND_HARDWARE_INTERFACE_GHAND_HARDWARE_HPP_
 #define GHAND_HARDWARE_INTERFACE_GHAND_HARDWARE_HPP_
 
+#include <array>
 #include <limits>
 #include <memory>
 #include <string>
@@ -69,13 +70,12 @@ class GHandHardwareInterface : public hardware_interface::SystemInterface {
     double effort = std::numeric_limits<double>::quiet_NaN();
     double status = 0.0;
     double error = 0.0;
+    double current_percent = 0.0;
+    double control_mode = 0.0;
+    double loop_type = 0.0;
   };
 
-  struct JointCommand {
-    double position = std::numeric_limits<double>::quiet_NaN();
-    double velocity = std::numeric_limits<double>::quiet_NaN();
-    double effort = std::numeric_limits<double>::quiet_NaN();
-  };
+  using JointCommand = ghand_comm::JointCommandInput;
 
   std::vector<JointState> hw_joint_states_;
   std::vector<JointCommand> hw_joint_commands_;
@@ -84,6 +84,9 @@ class GHandHardwareInterface : public hardware_interface::SystemInterface {
   std::unique_ptr<ghand_comm::CommunicationBase> comm_;
   std::vector<ghand_comm::JointId> joint_id_map_;
   std::vector<size_t> command_joint_indices_;
+  ghand_comm::HandControlMode hand_mode_ = ghand_comm::HandControlMode::POSITION;
+  // state, raw temperature, then warning/fault/critical bytes.
+  std::array<double, 26> hw_hand_state_{};
   static constexpr double kDefaultReadTimeoutMs = 500.0;
   double read_timeout_ms_ = kDefaultReadTimeoutMs;
   rclcpp::Time last_successful_read_{0, 0};

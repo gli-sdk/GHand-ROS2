@@ -33,3 +33,6 @@ src/SOEM/
 .claude/
 openspec/
 .agents/
+reviews/sdk-sync/*
+ghand_hardware/ghand_hardware_interface/test/*
+.tmp/

@@ -140,6 +140,10 @@ const char* CanfdDriver::get_name() const { return "canfd"; }
 
 bool CanfdDriver::init(
     const std::unordered_map<std::string, std::string>& params) {
+  const auto mode = parse_hand_control_mode(
+      params.count("control_mode") ? params.at("control_mode") : "position");
+  if (!mode) return false;
+  hand_mode_ = *mode;
 #ifndef GHAND_HAS_ZLG_CAN
   (void)params;
   return false;
@@ -305,21 +309,13 @@ bool CanfdDriver::write(const std::vector<JointCommand>& commands) {
     return true;
   }
 
-  if (!impl_->WriteHoldingRegister(0x0260, 0x0000)) {
+  if (!impl_->WriteHoldingRegister(
+          0x0260, encode_hand_mode(hand_mode_))) {
     return false;
   }
 
-  for (const auto& cmd : commands) {
-    const auto& reg_map = holding_register_map();
-    auto it = reg_map.find(cmd.id);
-    if (it == reg_map.end()) {
-      continue;
-    }
-
-    const auto regs = encode_joint_command(cmd, CtrlMode::POSITION);
-    std::vector<uint8_t> data = registers_to_bytes(regs);
-
-    if (!impl_->WriteHoldingRegisters(it->second, data)) {
+  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+    if (!impl_->WriteHoldingRegisters(block.first, registers_to_bytes(block.second))) {
       return false;
     }
   }
@@ -444,13 +440,15 @@ void CanfdDriver::Impl::ParseJointReport(const std::vector<uint8_t>& payload) {
   std::vector<JointState> all_joints;
   for (size_t i = 1; i + 5 < payload.size(); i += 6) {
     const uint8_t* p = payload.data() + i;
-    uint16_t raw[3] = {
-        static_cast<uint16_t>((p[0] << 8) | p[1]),
-        static_cast<uint16_t>((p[2] << 8) | p[3]),
-        static_cast<uint16_t>((p[4] << 8) | p[5]),
-    };
-    all_joints.push_back(
-        parse_joint_data(raw, static_cast<JointId>(all_joints.size())));
+    JointState joint;
+    joint.status = p[0];
+    joint.error = p[1];
+    joint.position = static_cast<int16_t>((p[2] << 8) | p[3]) / 10.0f;
+    joint.velocity = static_cast<int8_t>(p[4]);
+    joint.current = static_cast<int8_t>(p[5]);
+    // Legacy reports do not carry mode/loop feedback. Do not pass their
+    // three-word payload to the five-word register feedback decoder.
+    all_joints.push_back(joint);
   }
 
   CommunicationData data;

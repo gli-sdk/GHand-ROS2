@@ -28,7 +28,6 @@ namespace ghand_comm {
 
 namespace {
 
-constexpr double kPi = 3.14159265358979323846;
 constexpr int kEcTimeoutMon = 500;
 constexpr int kMaxOpRetries = 5000;
 
@@ -76,7 +75,9 @@ struct EthercatDriver::Impl {
   int in_op = 0;
   bool is_connected = false;
   int wkc_check = 0;
-  uint8_t rxpdo_buffer[80] = {0};
+  // GHand5 RxPDO: 2 header bytes + 18 joints x 12 bytes (SDK layout).
+  uint8_t rxpdo_buffer[2 + 12 * static_cast<size_t>(JointId::NUM_JOINTS)] = {
+      0};
 
   std::mutex rt_mutex;
   std::mutex data_mutex;
@@ -85,6 +86,7 @@ struct EthercatDriver::Impl {
   std::vector<JointId> valid_joints;
   std::vector<std::pair<std::string, size_t>> tactile_regions;
   CommunicationData latest_data;
+  std::map<JointId, JointCommand> last_commands;
 
   std::atomic<bool> threads_started{false};
   std::thread rt_thread;
@@ -93,7 +95,7 @@ struct EthercatDriver::Impl {
   void ecat_thread();
   void ecat_check();
   void parse_and_notify(const uint8_t* data, size_t size);
-  void parse_hand_and_joints(const uint8_t* data, size_t* offset,
+  void parse_hand_and_joints(const uint8_t* data, size_t size, size_t* offset,
                              CommunicationData* out_data) const;
   void parse_tactile_data(const uint8_t* data, size_t size, size_t* offset,
                           CommunicationData* out_data) const;
@@ -107,6 +109,10 @@ const char* EthercatDriver::get_name() const { return "ethercat"; }
 
 bool EthercatDriver::init(
     const std::unordered_map<std::string, std::string>& params) {
+  const auto mode = parse_hand_control_mode(
+      params.count("control_mode") ? params.at("control_mode") : "position");
+  if (!mode) return false;
+  hand_mode_ = *mode;
 #ifndef GHAND_HAS_SOEM
   (void)params;
   return false;
@@ -143,7 +149,7 @@ bool EthercatDriver::init(
   }
 
   std::memset(impl_->rxpdo_buffer, 0, sizeof(impl_->rxpdo_buffer));
-  impl_->rxpdo_buffer[1] = 0x00;  // run (0x01 = stop)
+  impl_->rxpdo_buffer[1] = 0x00;  // disabled until the first write()
 
   std::lock_guard<std::mutex> lock(impl_->rt_mutex);
 
@@ -268,6 +274,7 @@ void EthercatDriver::close() {
   }
 #endif
   impl_->is_connected = false;
+  impl_->last_commands.clear();
 }
 
 bool EthercatDriver::read(CommunicationData& out_data) {
@@ -280,29 +287,26 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
 #ifdef GHAND_HAS_SOEM
   if (!impl_->is_connected) return false;
 
-  std::vector<uint8_t> buffer(impl_->valid_joints.size() * 6 + 2, 0);
-  size_t offset = 0;
-  buffer[offset++] = 0x00;  // position control mode
-  buffer[offset++] = 0x00;  // run flag (0x00 = run)
+  // SDK RxPDO: hand mode + enabled byte, then one little-endian
+  // BBhhhHH block per controlled joint. Joints without a command are
+  // disabled until first commanded; subsequent writes retain their commands.
+  std::vector<uint8_t> buffer = {
+      static_cast<uint8_t>(hand_mode_), 0x01};
+  buffer.reserve(2 + impl_->valid_joints.size() * 12);
 
+  for (const auto& cmd : commands) impl_->last_commands[cmd.id] = cmd;
   for (const auto& joint_id : impl_->valid_joints) {
-    float angle = 0.0f;
-    uint8_t velocity = 100;
-    uint8_t current = 100;
+    JointCommand joint;
+    joint.id = joint_id;
+    joint.control_state = JointControlState::DISABLED;
+    const auto previous = impl_->last_commands.find(joint_id);
+    if (previous != impl_->last_commands.end()) joint = previous->second;
 
-    for (const auto& cmd : commands) {
-      if (cmd.id == joint_id) {
-        angle = cmd.position * static_cast<float>(kPi) / 180.0f;
-        velocity = static_cast<uint8_t>(cmd.velocity);
-        current = static_cast<uint8_t>(cmd.current);
-        break;
-      }
+    const auto regs = encode_joint_command(joint);
+    for (uint16_t word : regs) {
+      buffer.push_back(static_cast<uint8_t>(word & 0xFF));
+      buffer.push_back(static_cast<uint8_t>(word >> 8));
     }
-
-    std::memcpy(buffer.data() + offset, &angle, sizeof(angle));
-    offset += sizeof(angle);
-    buffer[offset++] = velocity;
-    buffer[offset++] = current;
   }
 
   const size_t copy_size = std::min(buffer.size(), sizeof(impl_->rxpdo_buffer));
@@ -310,9 +314,6 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
     std::lock_guard<std::mutex> lock(impl_->rt_mutex);
     std::memcpy(impl_->rxpdo_buffer, buffer.data(), copy_size);
   }
-
-  static int write_cnt = 0;
-  ++write_cnt;
 
   return true;
 #else
@@ -338,7 +339,10 @@ void EthercatDriver::Impl::ecat_thread() {
   {
     std::lock_guard<std::mutex> lock(rt_mutex);
     if (ctx.slavecount > 0) {
-      std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer, sizeof(rxpdo_buffer));
+      const size_t output_size =
+          std::min(sizeof(rxpdo_buffer),
+                   static_cast<size_t>(ctx.slavelist[1].Obytes));
+      std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer, output_size);
     }
     ecx_send_processdata(&ctx);
   }
@@ -399,8 +403,10 @@ void EthercatDriver::Impl::ecat_thread() {
       {
         std::lock_guard<std::mutex> lock(rt_mutex);
         if (ctx.slavecount > 0) {
-          std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer,
-                      sizeof(rxpdo_buffer));
+          const size_t output_size =
+              std::min(sizeof(rxpdo_buffer),
+                       static_cast<size_t>(ctx.slavelist[1].Obytes));
+          std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer, output_size);
         }
         ecx_send_processdata(&ctx);
       }
@@ -499,39 +505,57 @@ std::vector<Force> parse_sample_forces(const uint8_t* data, int sensor_count) {
 }  // namespace
 
 void EthercatDriver::Impl::parse_hand_and_joints(
-    const uint8_t* data, size_t* offset, CommunicationData* out_data) const {
-  uint8_t hand_state = 0;
-  uint8_t hand_error = 0;
+    const uint8_t* data, size_t size, size_t* offset,
+    CommunicationData* out_data) const {
+  constexpr size_t kHandHeaderBytes = 2 + kHandWarningBytes + kHandFaultBytes +
+                                      kHandCriticalBytes + 2;
+  if (*offset + kHandHeaderBytes > size) return;
+
+  uint16_t hand_state = 0;
   int16_t temperature = 0;
 
   std::memcpy(&hand_state, data + *offset, sizeof(hand_state));
   *offset += sizeof(hand_state);
-  std::memcpy(&hand_error, data + *offset, sizeof(hand_error));
-  *offset += sizeof(hand_error);
+  std::memcpy(out_data->hand_state.error_warn.data(), data + *offset,
+              kHandWarningBytes);
+  *offset += kHandWarningBytes;
+  std::memcpy(out_data->hand_state.error_fault.data(), data + *offset,
+              kHandFaultBytes);
+  *offset += kHandFaultBytes;
+  std::memcpy(out_data->hand_state.error_critical.data(), data + *offset,
+              kHandCriticalBytes);
+  *offset += kHandCriticalBytes;
   std::memcpy(&temperature, data + *offset, sizeof(temperature));
   *offset += sizeof(temperature);
 
-  (void)hand_state;
-  (void)hand_error;
-  (void)temperature;
+  out_data->hand_state_valid = true;
+  out_data->hand_state.state = hand_state;
+  out_data->hand_state.temperature = temperature;
 
   // The slave reports all 18 joints in canonical URDF/xacro order (including
-  // DIP joints). Read them sequentially and place each at its corresponding
-  // URDF index.
+  // DIP joints), 10 bytes each: state, error, mode/loop, reserved, then
+  // int16 angle (0.1 deg), velocity and current.
   constexpr size_t kUrdfJointCount = 18;
+  constexpr size_t kJointFeedbackBytes = 10;
   out_data->joints.resize(kUrdfJointCount);
 
   for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx) {
+    if (*offset + kJointFeedbackBytes > size) break;
+
     uint8_t joint_state = 0;
     uint8_t joint_error = 0;
-    float joint_angle = 0.0f;
-    uint8_t joint_velocity = 0;
-    uint8_t joint_current = 0;
+    uint8_t joint_mode = 0;
+    int16_t joint_angle = 0;
+    int16_t joint_velocity = 0;
+    int16_t joint_current = 0;
 
     std::memcpy(&joint_state, data + *offset, sizeof(joint_state));
     *offset += sizeof(joint_state);
     std::memcpy(&joint_error, data + *offset, sizeof(joint_error));
     *offset += sizeof(joint_error);
+    std::memcpy(&joint_mode, data + *offset, sizeof(joint_mode));
+    *offset += sizeof(joint_mode);
+    *offset += 1;  // Reserved feedback byte.
     std::memcpy(&joint_angle, data + *offset, sizeof(joint_angle));
     *offset += sizeof(joint_angle);
     std::memcpy(&joint_velocity, data + *offset, sizeof(joint_velocity));
@@ -542,9 +566,12 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     JointState js;
     js.status = joint_state;
     js.error = joint_error;
-    js.position = joint_angle * (180.0f / static_cast<float>(kPi));
-    js.velocity = static_cast<float>(static_cast<int8_t>(joint_velocity));
-    (void)joint_current;
+    js.mode = static_cast<uint8_t>(joint_mode & 0x0F);
+    js.loop_type = static_cast<JointLoopType>((joint_mode >> 4) & 0x0F);
+    js.control_info_valid = true;
+    js.position = static_cast<float>(joint_angle) / 10.0f;
+    js.velocity = static_cast<float>(joint_velocity);
+    js.current = static_cast<float>(joint_current);
     out_data->joints[urdf_idx] = js;
   }
 
@@ -605,7 +632,7 @@ void EthercatDriver::Impl::parse_and_notify(const uint8_t* data, size_t size) {
   CommunicationData parsed;
   parsed.valid = true;
   size_t offset = 0;
-  parse_hand_and_joints(data, &offset, &parsed);
+  parse_hand_and_joints(data, size, &offset, &parsed);
 
   if (!tactile_regions.empty() && offset < size) {
     parse_tactile_data(data, size, &offset, &parsed);

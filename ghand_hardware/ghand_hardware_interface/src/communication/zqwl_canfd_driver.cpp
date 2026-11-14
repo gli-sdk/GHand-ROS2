@@ -139,7 +139,6 @@ struct ZqwlCanfdDriver::Impl {
   uint8_t preferred_node_id_ = 0x31;
   uint8_t src_id_ = kDefaultSrcId;
   uint8_t dst_id_ = kDefaultDstId;
-  CtrlMode control_mode_ = CtrlMode::POSITION;
   bool control_mode_written_ = false;
 
   // Timeout tracking: if no CAN data received within this window,
@@ -202,6 +201,10 @@ const char* ZqwlCanfdDriver::get_name() const { return "canfd"; }
 
 bool ZqwlCanfdDriver::init(
     const std::unordered_map<std::string, std::string>& params) {
+  const auto mode = parse_hand_control_mode(
+      params.count("control_mode") ? params.at("control_mode") : "position");
+  if (!mode) return false;
+  hand_mode_ = *mode;
   auto it = params.find("device");
   if (it != params.end() && !it->second.empty()) {
     impl_->device_path_ = it->second;
@@ -245,17 +248,6 @@ bool ZqwlCanfdDriver::init(
                         : params.count("device_id") ? params.at("device_id")
                                                     : "",
                         49));
-
-  auto cm = params.find("control_mode");
-  if (cm != params.end()) {
-    if (cm->second == "current" || cm->second == "CURRENT" || cm->second == "1") {
-      impl_->control_mode_ = CtrlMode::CURRENT;
-    } else if (cm->second == "speed" || cm->second == "2") {
-      impl_->control_mode_ = CtrlMode::SPEED;
-    } else {
-      impl_->control_mode_ = CtrlMode::POSITION;
-    }
-  }
 
   auto jt = params.find("joint_names");
   if (jt != params.end()) {
@@ -385,7 +377,8 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
         previous->second.kp != cmd.kp ||
         previous->second.kd != cmd.kd ||
         previous->second.mode != cmd.mode ||
-        previous->second.stop != cmd.stop) {
+        previous->second.loop_type != cmd.loop_type ||
+        previous->second.control_state != cmd.control_state) {
       commands_changed = true;
       break;
     }
@@ -404,8 +397,7 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
   // once avoids an extra request/response transaction in every ros2_control
   // cycle.
   if (!impl_->control_mode_written_) {
-    const uint16_t mode_value =
-        static_cast<uint16_t>(static_cast<uint8_t>(impl_->control_mode_) << 8);
+    const uint16_t mode_value = encode_hand_mode(hand_mode_);
     if (!impl_->WriteHoldingRegister(0x0260, mode_value)) {
       return false;
     }
@@ -418,15 +410,8 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
   // encoding while reducing the normal G5 update from 12 CANFD transactions
   // to one and leaves time for the background feedback polling thread.
   std::map<uint16_t, std::vector<uint8_t>> encoded_by_address;
-  const auto& reg_map = holding_register_map();
-  for (const auto& cmd : commands) {
-    auto it = reg_map.find(cmd.id);
-    if (it == reg_map.end()) continue;
-
-    const auto regs = encode_joint_command(cmd, impl_->control_mode_);
-    std::vector<uint8_t> data = registers_to_bytes(regs);
-
-    encoded_by_address[it->second] = data;
+  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+    encoded_by_address[block.first] = registers_to_bytes(block.second);
   }
 
   uint16_t block_start = 0;
@@ -941,20 +926,23 @@ void ZqwlCanfdDriver::Impl::ReceiveLoop() {
 
 void ZqwlCanfdDriver::Impl::PollHandState() {
   std::vector<uint8_t> payload;
-  if (!ReadInputRegisters(0x1047, 11, payload)) {
+  if (!ReadInputRegisters(kHandFeedbackRegister, kHandFeedbackRegisterCount,
+                          payload)) {
     return;
   }
-  if (payload.size() < 22) {
+  if (payload.size() < kHandFeedbackRegisterCount * 2) {
     return;
   }
 
-  uint16_t raw[11] = {0};
-  for (size_t i = 0; i < 11; ++i) {
+  std::vector<uint16_t> raw(kHandFeedbackRegisterCount, 0);
+  for (size_t i = 0; i < raw.size(); ++i) {
     raw[i] = static_cast<uint16_t>((payload[i * 2] << 8) | payload[i * 2 + 1]);
   }
 
   std::lock_guard<std::mutex> lock(data_mutex_);
-  latest_data_.hand_state = parse_hand_info(raw, 11);
+  latest_data_.hand_state_valid = true;
+  latest_data_.hand_state =
+      parse_hand_info(raw.data(), kHandFeedbackRegisterCount);
   latest_data_.valid = true;
   last_rx_time_ = std::chrono::steady_clock::now();
   rx_timeout_initialized_ = true;
@@ -972,7 +960,7 @@ void ZqwlCanfdDriver::Impl::PollJoints() {
   const uint16_t count = static_cast<uint16_t>((max_id + 1) * 5);
 
   std::vector<uint8_t> payload;
-  if (!ReadInputRegisters(0x1023, count, payload)) {
+  if (!ReadInputRegisters(kJointInputRegister, count, payload)) {
     return;
   }
   if (payload.size() < count * 2) {
@@ -1002,7 +990,7 @@ void ZqwlCanfdDriver::Impl::PollTactile() {
   // The SDK first reads the 16-register tactile status/resultant block, then
   // reads each region's distributed samples separately.
   std::vector<uint8_t> status_payload;
-  if (!ReadInputRegisters(0x1110, 16, status_payload)) {
+  if (!ReadInputRegisters(kTactileStatusRegister, 16, status_payload)) {
     return;
   }
   if (status_payload.size() < 32 || 1 + region_count * 3 > 16) {
@@ -1020,7 +1008,7 @@ void ZqwlCanfdDriver::Impl::PollTactile() {
 
   std::vector<TactileRegion> regions;
   regions.reserve(region_count);
-  uint16_t current_addr = 0x1110 + 16;
+  uint16_t current_addr = kTactileStatusRegister + 16;
   for (size_t i = 0; i < region_count; ++i) {
     TactileRegion tr;
     tr.name = tactile_regions_[i].first;

@@ -1,6 +1,23 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+  <!-- Percentages and SDK control fields are exposed only by real hardware. -->
+  <xacro:macro name="ghand_sdk_joint_interfaces" params="commandable enabled">
+    <xacro:if value="${enabled}">
+      <xacro:if value="${commandable}">
+        <command_interface name="current_percent"/>
+        <command_interface name="control_mode"/>
+        <command_interface name="loop_type"/>
+        <command_interface name="control_state"/>
+        <command_interface name="kp"/>
+        <command_interface name="kd"/>
+      </xacro:if>
+      <state_interface name="current_percent"/>
+      <state_interface name="control_mode"/>
+      <state_interface name="loop_type"/>
+    </xacro:if>
+  </xacro:macro>
+
   <xacro:macro name="ghand_ros2_control"
                params="use_mock_hardware:=false
                        use_gazebo:=false
@@ -68,6 +85,8 @@
             <param name="ifname">${_ifname}</param>
           </xacro:if>
 
+          <param name="control_mode">${profile.get('control_mode', 'position')}</param>
+
           <!-- Backend-specific settings carried by the profile. -->
           <xacro:if value="${'can_channel' in profile}">
             <param name="can_channel">${profile['can_channel']}</param>
@@ -114,6 +133,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="false"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}Thumb_MCP">
         <command_interface name="position"/>
@@ -130,6 +151,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}Thumb_TMC_FE">
         <command_interface name="position"/>
@@ -142,6 +165,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}Thumb_TMC_AA">
         <command_interface name="position"/>
@@ -161,6 +186,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}Thumb_TMC_PS">
         <command_interface name="position"/>
@@ -177,6 +204,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
 
       <joint name="${prefix}FF_DIP">
@@ -191,6 +220,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="false"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}FF_PIP">
         <command_interface name="position"/>
@@ -207,6 +238,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}FF_MCP">
         <command_interface name="position"/>
@@ -223,6 +256,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}FF_MCP_AA">
         <command_interface name="position"/>
@@ -235,6 +270,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
 
       <joint name="${prefix}MF_DIP">
@@ -249,6 +286,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="false"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}MF_PIP">
         <command_interface name="position"/>
@@ -265,6 +304,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}MF_MCP">
         <command_interface name="position"/>
@@ -281,6 +322,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
 
       <joint name="${prefix}RF_DIP">
@@ -295,6 +338,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="false"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}RF_PIP">
         <command_interface name="position"/>
@@ -311,6 +356,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}RF_MCP">
         <command_interface name="position"/>
@@ -327,6 +374,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
 
       <joint name="${prefix}LF_DIP">
@@ -341,6 +390,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="false"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}LF_PIP">
         <command_interface name="position"/>
@@ -357,6 +408,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
       <joint name="${prefix}LF_MCP">
         <command_interface name="position"/>
@@ -373,6 +426,8 @@
           <state_interface name="state"/>
           <state_interface name="error"/>
         </xacro:unless>
+        <xacro:ghand_sdk_joint_interfaces commandable="true"
+            enabled="${not _use_mock and not _use_gazebo}"/>
       </joint>
 
       <xacro:unless value="${_use_mock}">
@@ -889,6 +944,36 @@
       </sensor>
       </xacro:unless>
 
+      <xacro:if value="${not _use_mock and not _use_gazebo}">
+        <sensor name="${prefix}hand">
+          <state_interface name="hand_state"/>
+          <state_interface name="temperature_raw"/>
+          <state_interface name="warning_0"/>
+          <state_interface name="warning_1"/>
+          <state_interface name="warning_2"/>
+          <state_interface name="warning_3"/>
+          <state_interface name="warning_4"/>
+          <state_interface name="warning_5"/>
+          <state_interface name="fault_0"/>
+          <state_interface name="fault_1"/>
+          <state_interface name="fault_2"/>
+          <state_interface name="fault_3"/>
+          <state_interface name="fault_4"/>
+          <state_interface name="fault_5"/>
+          <state_interface name="fault_6"/>
+          <state_interface name="fault_7"/>
+          <state_interface name="fault_8"/>
+          <state_interface name="fault_9"/>
+          <state_interface name="fault_10"/>
+          <state_interface name="fault_11"/>
+          <state_interface name="critical_0"/>
+          <state_interface name="critical_1"/>
+          <state_interface name="critical_2"/>
+          <state_interface name="critical_3"/>
+          <state_interface name="critical_4"/>
+          <state_interface name="critical_5"/>
+        </sensor>
+      </xacro:if>
     </ros2_control>
   </xacro:macro>
 

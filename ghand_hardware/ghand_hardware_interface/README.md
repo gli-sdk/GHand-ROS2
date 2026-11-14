@@ -104,3 +104,52 @@ and one right entry:
 ```bash
 ros2 run ghand_hardware_interface ghand_joint_controller_gui
 ```
+
+### SDK control fields (real hardware)
+
+Set `hardware.control_mode` in the selected profile to `position` (default),
+`speed`/`velocity`, `current`, `mit`, or `custom`. The mode is fixed until the
+backend is reconfigured. EtherCAT, RS485, ZQWL CANFD and legacy ZLG writes use
+the same selection; invalid values fail initialization.
+
+```yaml
+hardware:
+  # Keep the connection fields from your existing profile.
+  control_mode: custom
+```
+
+Real-hardware joint command interfaces additionally expose `current_percent`,
+`control_mode` (0 position, 1 speed, 2 current, 3 MIT), `loop_type` (0 semi-closed,
+1 closed), `control_state` (0 disabled, 1 running, 2 stopped/holding), `kp` and
+`kd`. Select `custom` to choose different modes or loop types per joint.
+Outside CUSTOM, the joint mode must match the configured hand mode and the
+loop type must be closed. Gains are signed 16-bit integer values.
+
+Position commands use radians. In position mode, trajectory velocity remains
+in rad/s and the hardware uses a 100% velocity limit; current defaults to a
+100% limit. `current_percent` can explicitly set that limit to 0–100%.
+In speed/current/MIT modes, velocity is a signed percentage and current is
+clamped to -100–100%. Explicit `current_percent` takes precedence over the
+legacy `effort` command. Position trajectory controllers are intended for
+the default position mode; other modes need controllers claiming the relevant
+percentage and SDK command interfaces. The new command interfaces start as
+NaN until a controller writes them; do not initialize unused fields to zero.
+
+Additional joint feedback interfaces are `current_percent`, `control_mode`
+and `loop_type`. The existing `effort` feedback remains zero because current
+percentage is not a measured torque. The `${prefix}hand` sensor exposes
+`hand_state`, `temperature_raw`, `warning_0` through `warning_5`, `fault_0`
+through `fault_11` and `critical_0` through `critical_5`. Temperature retains
+the protocol integer until its physical unit is confirmed. Unavailable hand
+feedback is NaN. RS485 reads the hand header with the joint block; legacy ZLG
+does not provide this header or mode/loop feedback, so those values are NaN.
+Mock and Gazebo interfaces remain unchanged.
+
+Modbus writes stop and hold omitted active joints; explicitly requested
+DISABLED joints remain disabled. EtherCAT retains earlier commands for
+omitted joints, matching the SDK backend. Both codecs truncate angle targets
+toward zero at 0.1-degree resolution.
+
+These changes have offline codec coverage. Build the ROS2 package on Linux
+before testing the device; the current Windows session does not verify the
+ROS2 plugin or the slave PDO mapping.

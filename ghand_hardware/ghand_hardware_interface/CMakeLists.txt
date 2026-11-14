@@ -177,6 +177,12 @@ ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 
 if(BUILD_TESTING)
+  add_executable(test_modbus_codec
+    test/test_modbus_codec.cpp
+    src/communication/modbus_codec.cpp
+  )
+  target_include_directories(test_modbus_codec PRIVATE include)
+  add_test(NAME test_modbus_codec COMMAND test_modbus_codec)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
   find_package(ament_cmake_gtest REQUIRED)

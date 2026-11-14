@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "ghand_hardware_interface/communication/communication.hpp"
+#include "ghand_hardware_interface/communication/modbus_codec.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
 namespace ghand_hardware {
@@ -21,6 +22,17 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
       hardware_interface::CallbackReturn::SUCCESS) {
     return hardware_interface::CallbackReturn::ERROR;
   }
+
+  const auto mode = ghand_comm::parse_hand_control_mode(
+      info_.hardware_parameters.count("control_mode")
+          ? info_.hardware_parameters.at("control_mode") : "position");
+  if (!mode) {
+    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+                 "Invalid control_mode hardware parameter.");
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+  hand_mode_ = *mode;
+  hw_hand_state_.fill(std::numeric_limits<double>::quiet_NaN());
 
   const size_t joint_count = info_.joints.size();
   hw_joint_states_.resize(joint_count);
@@ -115,7 +127,10 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
       for (const auto& ci : joint.command_interfaces) {
         if (ci.name != hardware_interface::HW_IF_POSITION &&
             ci.name != hardware_interface::HW_IF_VELOCITY &&
-            ci.name != hardware_interface::HW_IF_EFFORT) {
+            ci.name != hardware_interface::HW_IF_EFFORT &&
+            ci.name != "current_percent" && ci.name != "control_mode" &&
+            ci.name != "loop_type" && ci.name != "control_state" &&
+            ci.name != "kp" && ci.name != "kd") {
           RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
                        "Joint '%s' has unsupported command interface '%s'.",
                        joint.name.c_str(), ci.name.c_str());
@@ -167,6 +182,10 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
 
   for (size_t i = 0; i < info_.sensors.size(); ++i) {
     const hardware_interface::ComponentInfo& sensor = info_.sensors[i];
+    if (std::any_of(sensor.state_interfaces.begin(), sensor.state_interfaces.end(),
+                    [](const auto& si) { return si.name == "hand_state"; })) {
+      continue;
+    }
     bool has_resultant_force_x = false;
     bool has_resultant_force_y = false;
     bool has_resultant_force_z = false;
@@ -261,6 +280,15 @@ GHandHardwareInterface::export_state_interfaces() {
         state_interfaces.emplace_back(info_.joints[i].name,
                                       hardware_interface::HW_IF_EFFORT,
                                       &hw_joint_states_[i].effort);
+      } else if (si.name == "current_percent") {
+        state_interfaces.emplace_back(info_.joints[i].name, si.name,
+                                      &hw_joint_states_[i].current_percent);
+      } else if (si.name == "control_mode") {
+        state_interfaces.emplace_back(info_.joints[i].name, si.name,
+                                      &hw_joint_states_[i].control_mode);
+      } else if (si.name == "loop_type") {
+        state_interfaces.emplace_back(info_.joints[i].name, si.name,
+                                      &hw_joint_states_[i].loop_type);
       } else if (si.name == "state") {
         state_interfaces.emplace_back(info_.joints[i].name, "state",
                                       &hw_joint_states_[i].status);
@@ -272,6 +300,27 @@ GHandHardwareInterface::export_state_interfaces() {
   }
 
   for (size_t i = 0; i < info_.sensors.size(); ++i) {
+    const auto& sensor = info_.sensors[i];
+    if (std::any_of(sensor.state_interfaces.begin(), sensor.state_interfaces.end(),
+                    [](const auto& si) { return si.name == "hand_state"; })) {
+      for (const auto& si : sensor.state_interfaces) {
+        size_t index = 0;
+        if (si.name == "hand_state") index = 0;
+        else if (si.name == "temperature_raw") index = 1;
+        else {
+          bool found = false;
+          for (size_t j = 0; j < 24; ++j) {
+            const std::string name = j < 6 ? "warning_" + std::to_string(j)
+                : j < 18 ? "fault_" + std::to_string(j - 6)
+                         : "critical_" + std::to_string(j - 18);
+            if (si.name == name) { index = j + 2; found = true; break; }
+          }
+          if (!found) continue;
+        }
+        state_interfaces.emplace_back(sensor.name, si.name, &hw_hand_state_[index]);
+      }
+      continue;
+    }
     state_interfaces.emplace_back(
         info_.sensors[i].name, "resultant_force_x",
         &hw_finger_tactile_data_[i].resultant_force.x);
@@ -313,6 +362,24 @@ GHandHardwareInterface::export_command_interfaces() {
         command_interfaces.emplace_back(info_.joints[idx].name,
                                         hardware_interface::HW_IF_VELOCITY,
                                         &hw_joint_commands_[idx].velocity);
+      } else if (ci.name == "current_percent") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].current_percent);
+      } else if (ci.name == "control_mode") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].control_mode);
+      } else if (ci.name == "loop_type") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].loop_type);
+      } else if (ci.name == "control_state") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].control_state);
+      } else if (ci.name == "kp") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].kp);
+      } else if (ci.name == "kd") {
+        command_interfaces.emplace_back(info_.joints[idx].name, ci.name,
+                                        &hw_joint_commands_[idx].kd);
       } else if (ci.name == hardware_interface::HW_IF_EFFORT) {
         command_interfaces.emplace_back(info_.joints[idx].name,
                                         hardware_interface::HW_IF_EFFORT,
@@ -415,13 +482,35 @@ hardware_interface::return_type GHandHardwareInterface::read(
       hw_joint_states_[i].velocity =
           static_cast<double>(data.joints[data_idx].velocity);
       hw_joint_states_[i].effort = 0.0;
+      hw_joint_states_[i].current_percent = data.joints[data_idx].current;
+      hw_joint_states_[i].control_mode = data.joints[data_idx].control_info_valid
+          ? data.joints[data_idx].mode : std::numeric_limits<double>::quiet_NaN();
+      hw_joint_states_[i].loop_type = data.joints[data_idx].control_info_valid
+          ? static_cast<uint8_t>(data.joints[data_idx].loop_type)
+          : std::numeric_limits<double>::quiet_NaN();
       hw_joint_states_[i].status =
           static_cast<double>(data.joints[data_idx].status);
       hw_joint_states_[i].error =
           static_cast<double>(data.joints[data_idx].error);
     }
 
+    if (data.hand_state_valid) {
+      hw_hand_state_[0] = data.hand_state.state;
+      hw_hand_state_[1] = data.hand_state.temperature;
+      std::copy(data.hand_state.error_warn.begin(), data.hand_state.error_warn.end(),
+                hw_hand_state_.begin() + 2);
+      std::copy(data.hand_state.error_fault.begin(), data.hand_state.error_fault.end(),
+                hw_hand_state_.begin() + 8);
+      std::copy(data.hand_state.error_critical.begin(), data.hand_state.error_critical.end(),
+                hw_hand_state_.begin() + 20);
+    } else {
+      hw_hand_state_.fill(std::numeric_limits<double>::quiet_NaN());
+    }
+
     for (size_t i = 0; i < hw_finger_tactile_data_.size(); ++i) {
+      if (std::any_of(info_.sensors[i].state_interfaces.begin(),
+                      info_.sensors[i].state_interfaces.end(),
+                      [](const auto& si) { return si.name == "hand_state"; })) continue;
       if (i < data.tactile_regions.size()) {
         const auto& region = data.tactile_regions[i];
         hw_finger_tactile_data_[i].resultant_force.x =
@@ -474,69 +563,21 @@ hardware_interface::return_type GHandHardwareInterface::read(
 
 hardware_interface::return_type GHandHardwareInterface::write(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/) {
-  // Fill default values for missing command interfaces according to control
-  // mode. Controllers only write the command interfaces they claim; unclaimed
-  // ones stay NaN, which lets us detect the active mode and apply the required
-  // defaults.
-  for (size_t i = 0; i < hw_joint_commands_.size(); ++i) {
-    double& position = hw_joint_commands_[i].position;
-    double& velocity = hw_joint_commands_[i].velocity;
-    double& effort = hw_joint_commands_[i].effort;
-
-    const bool has_position = !std::isnan(position);
-    const bool has_velocity = !std::isnan(velocity);
-    const bool has_effort = !std::isnan(effort);
-
-    if (!has_position && !has_velocity && !has_effort) {
-      // No active command yet: keep the hand idle.
-      position = 0.0;
-      velocity = 0.0;
-      effort = 0.0;
-    } else if (has_position) {
-      // Position control mode: the trajectory controller writes the feedforward
-      // velocity in rad/s, but the motor driver expects a percentage velocity
-      // limit
-      // (-100~100). Small rad/s values get truncated to 0 and the hand does not
-      // move. Always use the maximum velocity/current limits and let the
-      // position trajectory govern the motion.
-      velocity = 100.0;
-      effort = 100.0;
-    } else if (has_velocity && !has_effort) {
-      // Velocity-only mode: effort defaults to 100%.
-      effort = 100.0;
-    }
-    // Effort-only mode: pass effort through, leave the rest at safe defaults
-    // below.
-
-    if (std::isnan(position)) {
-      position = 0.0;
-    }
-    if (std::isnan(velocity)) {
-      velocity = 0.0;
-    }
-    if (std::isnan(effort)) {
-      effort = 0.0;
-    }
-  }
-
-  if (!comm_) {
-    return hardware_interface::return_type::ERROR;
-  }
-
-  constexpr double kPi = 3.14159265358979323846;
-  constexpr double kRadToDeg = 180.0 / kPi;
+  if (!comm_) return hardware_interface::return_type::ERROR;
 
   std::vector<ghand_comm::JointCommand> commands;
   commands.reserve(command_joint_indices_.size());
   for (size_t idx : command_joint_indices_) {
+    const auto& input = hw_joint_commands_[idx];
+    if (std::isnan(input.position) && std::isnan(input.velocity) &&
+        std::isnan(input.effort) && std::isnan(input.current_percent) &&
+        std::isnan(input.control_state)) continue;
+
     ghand_comm::JointCommand cmd;
+    if (!ghand_comm::make_joint_command(input, hand_mode_,
+                                        hw_joint_states_[idx].position, &cmd))
+      return hardware_interface::return_type::ERROR;
     cmd.id = joint_id_map_[idx];
-    cmd.position =
-        static_cast<float>(hw_joint_commands_[idx].position * kRadToDeg);
-    cmd.velocity = static_cast<int8_t>(
-        std::clamp(hw_joint_commands_[idx].velocity, -100.0, 100.0));
-    cmd.current = static_cast<int8_t>(
-        std::clamp(hw_joint_commands_[idx].effort, 0.0, 100.0));
     commands.push_back(cmd);
   }
 
