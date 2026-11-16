@@ -165,7 +165,7 @@ install(TARGETS ghand_hardware_interface
 
 install(DIRECTORY include/ DESTINATION include)
 
-install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 
 install(PROGRAMS
   scripts/ghand_joint_controller_gui

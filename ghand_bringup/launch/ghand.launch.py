@@ -7,7 +7,7 @@
 Launches the robot state publisher, controller manager, and default controllers
 for either mock hardware or a real GHand communication backend. The backend is
 selected via the `profile` argument (a YAML file under
-ghand_hardware_interface/config/profiles), while `hand_side` selects the left-
+ghand_bringup/config/profiles), while `hand_side` selects the left-
 or right-hand description.
 """
 
@@ -69,7 +69,7 @@ def generate_launch_description():
         default_value="ethercat_default",
         description=(
             "Communication profile under "
-            "ghand_hardware_interface/config/profiles/."
+            "ghand_bringup/config/profiles/."
         ),
     )
 
@@ -135,7 +135,7 @@ def generate_launch_description():
             " ",
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ghand_hardware_description.urdf.xacro",
                 ]
@@ -147,7 +147,7 @@ def generate_launch_description():
             " profile_file:=",
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "profiles",
                     [LaunchConfiguration("profile"), ".yaml"],
@@ -183,14 +183,14 @@ def generate_launch_description():
             robot_description,
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ros2_control.yaml",
                 ]
             ),
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "controllers.yaml",
                 ]
@@ -280,7 +280,7 @@ def generate_launch_description():
             "-d",
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ghand.rviz",
                 ]

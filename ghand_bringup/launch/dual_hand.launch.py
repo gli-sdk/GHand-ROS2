@@ -56,7 +56,7 @@ def generate_launch_description():
         )
 
     profile_dir = PathJoinSubstitution(
-        [FindPackageShare("ghand_hardware_interface"), "config", "profiles"]
+        [FindPackageShare("ghand_bringup"), "config", "profiles"]
     )
     description = Command(
         [
@@ -64,7 +64,7 @@ def generate_launch_description():
             " ",
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ghand_dual_hardware_description.urdf.xacro",
                 ]
@@ -104,7 +104,7 @@ def generate_launch_description():
             robot_description,
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "dual_controllers.yaml",
                 ]
@@ -151,7 +151,7 @@ def generate_launch_description():
             "-d",
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ghand_dual.rviz",
                 ]

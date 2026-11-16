@@ -40,7 +40,7 @@ GHand-ROS2 is a ROS 2 control stack for the GHand five-finger dexterous hand, bu
   - Built-in MoveIt 2 configuration for trajectory planning and execution in RViz.
 
 - **Scenario-based launch**
-  - `ghand_hardware_interface` handles real / mock hardware launch.
+  - `ghand_bringup` handles real / mock hardware launch; `ghand_hardware_interface` provides the hardware plugin.
   - `ghand_gazebo` handles physical simulation launch; the two are decoupled.
 
 ## 📖 Official Documentation
@@ -164,7 +164,7 @@ source install/setup.bash
 ### Launch Simulation (No Hardware Required)
 
 ```bash
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
 ```
 
 Add `hand_side:=left` to use the left-hand model. The default is `right`.
@@ -174,12 +174,12 @@ Simulation mode uses `mock_components/GenericSystem` and requires no hardware de
 ### Launch Real Hardware
 
 ```bash
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
+ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
 ```
 
 > Replace `enx000000000000` with your actual EtherCAT network interface name. Use `ip link` to list available interfaces.
 
-Available communication profiles are located at `ghand_hardware/ghand_hardware_interface/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_left`, and `canfd_right`. The `zqwl_canfd_left/right` names remain as compatibility aliases.
+Available communication profiles are located at `ghand_bringup/config/profiles/` and include `ethercat_default`, `rs485_left`, `rs485_right`, `canfd_left`, and `canfd_right`. The `zqwl_canfd_left/right` names remain as compatibility aliases.
 
 ### Launch MoveIt 2
 
@@ -232,7 +232,7 @@ Start the hardware or simulation first:
 
 ```bash
 # mock hardware
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
 
 # or Gazebo simulation
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
@@ -294,6 +294,7 @@ ros2 topic echo /joint_states
 
 ```text
 GHand-Ros2/
+├── ghand_bringup/                 # Real/mock launch and runtime configuration
 ├── ghand_hardware/
 │   ├── ghand_hardware_interface/   # Hardware interface and comm drivers
 │   ├── ghand_controllers/          # Custom broadcasters

@@ -60,13 +60,13 @@ the controller manager through the `<ros2_control>` tag in the URDF.
 
 ```bash
 # Mock hardware (no physical hand required)
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
 
 # EtherCAT (replace enx... with your EtherCAT interface name, see `ip link`)
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
+ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
 
 # CANFD via the GHand-Cpp-SDK compatible ZQWL CDC adapter
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=canfd_left
+ros2 launch ghand_bringup ghand.launch.py profile:=canfd_left
 ```
 
 ### Dual hand
@@ -77,17 +77,17 @@ launches keep their original unprefixed names for compatibility.
 
 ```bash
 # Safe mock test
-ros2 launch ghand_hardware_interface dual_hand.launch.py \
+ros2 launch ghand_bringup dual_hand.launch.py \
   use_mock_hardware:=true
 
 # Two independent RS485 devices
-ros2 launch ghand_hardware_interface dual_hand.launch.py \
+ros2 launch ghand_bringup dual_hand.launch.py \
   use_mock_hardware:=false \
   left_profile:=rs485_left right_profile:=rs485_dual_right \
   left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
 
 # Two independent CANFD CDC adapters
-ros2 launch ghand_hardware_interface dual_hand.launch.py \
+ros2 launch ghand_bringup dual_hand.launch.py \
   use_mock_hardware:=false \
   left_profile:=canfd_left right_profile:=canfd_right \
   left_device:=/dev/ttyACM0:0 right_device:=/dev/ttyACM1:0

@@ -7,7 +7,8 @@ these names instead of controller-private defaults or README-only examples.
 ## Packages
 
 - `ghand_description`: URDF generation and mesh installation.
-- `ghand_hardware_interface`: `ros2_control` hardware interface and real/mock launch files.
+- `ghand_hardware_interface`: `ros2_control` hardware plugin and interface Xacro macro.
+- `ghand_bringup`: real/mock launch files, controller configuration and communication profiles.
 - `ghand_controllers`: GHand-specific status and tactile broadcasters.
 - `ghand_msgs`: custom GHand status and tactile message definitions.
 - `ghand_moveit_config`: MoveIt 2 configuration.
@@ -20,8 +21,8 @@ custom broadcasters and messages.
 
 Hardware and mock:
 
-- Single hand: `ros2 launch ghand_hardware_interface ghand.launch.py`
-- Dual hand: `ros2 launch ghand_hardware_interface dual_hand.launch.py`
+- Single hand: `ros2 launch ghand_bringup ghand.launch.py`
+- Dual hand: `ros2 launch ghand_bringup dual_hand.launch.py`
 
 MoveIt:
 
@@ -39,7 +40,7 @@ Single-hand hardware arguments:
 
 - `hand_side`: `left` or `right`; default `right`.
 - `use_mock_hardware`: `true` or `false`; default `false`.
-- `profile`: profile file stem under `ghand_hardware_interface/config/profiles`; default `ethercat_default`.
+- `profile`: profile file stem under `ghand_bringup/config/profiles`; default `ethercat_default`.
 - `communication_type`: optional profile override: `ethercat`, `rs485`, or `canfd`.
 - `device`: optional serial/CAN device override.
 - `baud_rate`: optional RS485/CANFD arbitration bitrate override.

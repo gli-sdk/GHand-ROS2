@@ -83,7 +83,7 @@ def generate_launch_description():
             default_value="ethercat_default",
             description=(
                 "Communication profile under "
-                "ghand_hardware_interface/config/profiles/."
+                "ghand_bringup/config/profiles/."
             ),
         ),
         DeclareLaunchArgument(
@@ -99,7 +99,7 @@ def generate_launch_description():
         " ",
         PathJoinSubstitution(
             [
-                FindPackageShare("ghand_hardware_interface"),
+                FindPackageShare("ghand_bringup"),
                 "config",
                 "ghand_hardware_description.urdf.xacro",
             ]
@@ -111,7 +111,7 @@ def generate_launch_description():
         " profile_file:=",
         PathJoinSubstitution(
             [
-                FindPackageShare("ghand_hardware_interface"),
+                FindPackageShare("ghand_bringup"),
                 "config",
                 "profiles",
                 [profile, ".yaml"],
@@ -141,14 +141,14 @@ def generate_launch_description():
             {"robot_description": robot_description_content},
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "ros2_control.yaml",
                 ]
             ),
             PathJoinSubstitution(
                 [
-                    FindPackageShare("ghand_hardware_interface"),
+                    FindPackageShare("ghand_bringup"),
                     "config",
                     "controllers.yaml",
                 ]

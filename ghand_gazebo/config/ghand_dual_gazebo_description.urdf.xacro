@@ -4,8 +4,8 @@
   <xacro:include filename="$(find ghand_gazebo)/config/ghand.gazebo.xacro"/>
 
   <xacro:ghand_gazebo_ros2_control_plugin
-    ros2_control_params="$(find ghand_hardware_interface)/config/dual_controllers.yaml"
-    controllers_params="$(find ghand_hardware_interface)/config/dual_controllers.yaml"/>
+    ros2_control_params="$(find ghand_bringup)/config/dual_controllers.yaml"
+    controllers_params="$(find ghand_bringup)/config/dual_controllers.yaml"/>
 
   <xacro:macro name="dual_hand_link_properties" params="prefix">
     <xacro:ghand_gazebo_disable_gravity link_name="${prefix}base_link"/>

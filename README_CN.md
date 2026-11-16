@@ -40,7 +40,7 @@ GHand-ROS2 是 GHand 五指灵巧手的 ROS 2 控制栈，基于 `ros2_control` 
   - 内置 MoveIt 2 配置，支持 RViz 中轨迹规划与执行。
 
 - **场景化启动**
-  - `ghand_hardware_interface` 负责真实/mock 硬件启动。
+  - `ghand_bringup` 负责真实/mock 硬件启动，`ghand_hardware_interface` 提供硬件插件。
   - `ghand_gazebo` 负责物理仿真启动，二者解耦不互相依赖。
 
 ## 📖 官方文档
@@ -161,7 +161,7 @@ source install/setup.bash
 ### 启动仿真（无需硬件）
 
 ```bash
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
 ```
 
 增加 `hand_side:=left` 可使用左手模型；默认值为 `right`。
@@ -171,12 +171,12 @@ ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
 ### 启动真实硬件
 
 ```bash
-ros2 launch ghand_hardware_interface ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
+ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
 ```
 
 > 请将 `enx000000000000` 替换为你本机的 EtherCAT 网卡接口名。可通过 `ip link` 命令查看可用接口。
 
-可用的通讯配置文件位于 `ghand_hardware/ghand_hardware_interface/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_left`、`canfd_right`。`zqwl_canfd_left/right` 保留为兼容配置名。
+可用的通讯配置文件位于 `ghand_bringup/config/profiles/`，支持 `ethercat_default`、`rs485_left`、`rs485_right`、`canfd_left`、`canfd_right`。`zqwl_canfd_left/right` 保留为兼容配置名。
 
 ### 启动 MoveIt 2
 
@@ -197,11 +197,11 @@ ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
 
 ```bash
 # 双手 mock
-ros2 launch ghand_hardware_interface dual_hand.launch.py \
+ros2 launch ghand_bringup dual_hand.launch.py \
   use_mock_hardware:=true
 
 # 双手真机（默认假设两路独立 RS485 串口）
-ros2 launch ghand_hardware_interface dual_hand.launch.py \
+ros2 launch ghand_bringup dual_hand.launch.py \
   use_mock_hardware:=false \
   left_profile:=rs485_left right_profile:=rs485_dual_right \
   left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
@@ -257,7 +257,7 @@ ros2 launch ghand_gazebo dual_hand_gazebo.launch.py
 
 ```bash
 # mock 硬件
-ros2 launch ghand_hardware_interface ghand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
 
 # 或 Gazebo 仿真
 ros2 launch ghand_gazebo ghand_gazebo.launch.py
@@ -319,6 +319,7 @@ ros2 topic echo /joint_states
 
 ```text
 ghand-ros2/
+├── ghand_bringup/                 # 真实/mock 启动与运行配置
 ├── ghand_hardware/
 │   ├── ghand_hardware_interface/   # 硬件接口与通讯驱动
 │   ├── ghand_controllers/          # 自定义 broadcaster
