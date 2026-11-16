@@ -25,6 +25,7 @@
 #include "ghand_hardware_interface/communication/canfd_protocol.hpp"
 #include "ghand_hardware_interface/communication/communication.hpp"
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
+#include "ghand_hardware_interface/communication/product_config.hpp"
 #include "ghand_hardware_interface/communication/util.hpp"
 #include "rclcpp/logging.hpp"
 
@@ -130,6 +131,7 @@ constexpr uint8_t kDefaultSrcId = 0x0A;
 constexpr uint8_t kDefaultDstId = 0x31;
 
 struct ZqwlCanfdDriver::Impl {
+  const ProductConfig* product = find_product_config("ghand5");
   std::string device_path_ = "/dev/ttyACM0";
   uint32_t serial_baud_rate_ = 2000000;
   uint32_t can_bitrate_ = 1000000;
@@ -205,6 +207,8 @@ bool ZqwlCanfdDriver::init(
       params.count("control_mode") ? params.at("control_mode") : "position");
   if (!mode) return false;
   hand_mode_ = *mode;
+  impl_->product = find_product_config(params.count("product_name") ? params.at("product_name") : "ghand5");
+  if (!impl_->product || (impl_->product->lite1() && hand_mode_ == HandControlMode::MIT)) return false;
   auto it = params.find("device");
   if (it != params.end() && !it->second.empty()) {
     impl_->device_path_ = it->second;
@@ -258,11 +262,7 @@ bool ZqwlCanfdDriver::init(
       }
     }
   }
-  if (impl_->valid_joints_.empty()) {
-    for (uint8_t i = 0; i < static_cast<uint8_t>(JointId::NUM_JOINTS); ++i) {
-      impl_->valid_joints_.push_back(static_cast<JointId>(i));
-    }
-  }
+  if (impl_->valid_joints_.empty()) impl_->valid_joints_ = impl_->product->joints;
 
   auto tt = params.find("tactile_region_counts");
   if (tt != params.end()) {
@@ -319,7 +319,7 @@ bool ZqwlCanfdDriver::init(
   {
     CommunicationData seed;
     seed.valid = true;
-    seed.joints.resize(impl_->valid_joints_.size());
+    seed.joints.resize(static_cast<size_t>(JointId::NUM_JOINTS));
     for (auto& js : seed.joints) {
       js.position = 0.0f;
       js.velocity = 0.0f;
@@ -404,13 +404,14 @@ bool ZqwlCanfdDriver::write(const std::vector<JointCommand>& commands) {
     impl_->control_mode_written_ = true;
   }
 
-  // Active-joint command blocks start at 0x0261 with 6 registers per joint.
+  // Active-joint blocks start at 0x0261; stride comes from the product.
   // ros2_control supplies all commandable joints on every update, so combine
   // adjacent joint commands into Modbus blocks. This preserves the SDK wire
   // encoding while reducing the normal G5 update from 12 CANFD transactions
   // to one and leaves time for the background feedback polling thread.
   std::map<uint16_t, std::vector<uint8_t>> encoded_by_address;
-  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+  for (const auto& block : encode_joint_command_blocks(commands, impl_->product->holding_registers(),
+                                                      impl_->product->command_register_count)) {
     encoded_by_address[block.first] = registers_to_bytes(block.second);
   }
 
@@ -926,15 +927,15 @@ void ZqwlCanfdDriver::Impl::ReceiveLoop() {
 
 void ZqwlCanfdDriver::Impl::PollHandState() {
   std::vector<uint8_t> payload;
-  if (!ReadInputRegisters(kHandFeedbackRegister, kHandFeedbackRegisterCount,
+  if (!ReadInputRegisters(kHandFeedbackRegister, product->hand_register_count,
                           payload)) {
     return;
   }
-  if (payload.size() < kHandFeedbackRegisterCount * 2) {
+  if (payload.size() < product->hand_register_count * 2) {
     return;
   }
 
-  std::vector<uint16_t> raw(kHandFeedbackRegisterCount, 0);
+  std::vector<uint16_t> raw(product->hand_register_count, 0);
   for (size_t i = 0; i < raw.size(); ++i) {
     raw[i] = static_cast<uint16_t>((payload[i * 2] << 8) | payload[i * 2 + 1]);
   }
@@ -942,7 +943,7 @@ void ZqwlCanfdDriver::Impl::PollHandState() {
   std::lock_guard<std::mutex> lock(data_mutex_);
   latest_data_.hand_state_valid = true;
   latest_data_.hand_state =
-      parse_hand_info(raw.data(), kHandFeedbackRegisterCount);
+      parse_hand_info(raw.data(), product->hand_register_count, product->lite1());
   latest_data_.valid = true;
   last_rx_time_ = std::chrono::steady_clock::now();
   rx_timeout_initialized_ = true;
@@ -953,14 +954,10 @@ void ZqwlCanfdDriver::Impl::PollJoints() {
     return;
   }
 
-  uint8_t max_id = 0;
-  for (const auto id : valid_joints_) {
-    max_id = std::max(max_id, static_cast<uint8_t>(id));
-  }
-  const uint16_t count = static_cast<uint16_t>((max_id + 1) * 5);
+  const uint16_t count = static_cast<uint16_t>(product->joints.size() * 5);
 
   std::vector<uint8_t> payload;
-  if (!ReadInputRegisters(kJointInputRegister, count, payload)) {
+  if (!ReadInputRegisters(product->joint_input_register, count, payload)) {
     return;
   }
   if (payload.size() < count * 2) {
@@ -972,7 +969,7 @@ void ZqwlCanfdDriver::Impl::PollJoints() {
     raw[i] = static_cast<uint16_t>((payload[i * 2] << 8) | payload[i * 2 + 1]);
   }
 
-  auto joints = parse_joints(raw.data(), count, valid_joints_);
+  auto joints = parse_joints(raw.data(), count, valid_joints_, product->lite1());
 
   std::lock_guard<std::mutex> lock(data_mutex_);
   latest_data_.joints = std::move(joints);

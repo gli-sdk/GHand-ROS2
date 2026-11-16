@@ -5,8 +5,12 @@
 """Launch two prefixed GHands under one ros2_control manager."""
 
 import os
+from pathlib import Path
 
-from ament_index_python.packages import get_package_prefix
+from ament_index_python.packages import (
+    get_package_prefix,
+    get_package_share_directory,
+)
 from launch import LaunchDescription
 from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
 from launch.conditions import IfCondition, UnlessCondition
@@ -21,10 +25,21 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    product_name = LaunchConfiguration("product_name")
     use_mock = LaunchConfiguration("use_mock_hardware")
     use_rviz = LaunchConfiguration("use_rviz")
 
     declared_args = [
+        DeclareLaunchArgument(
+            "product_name", default_value="ghand5",
+            choices=sorted(
+                path.parent.name
+                for path in (
+                    Path(get_package_share_directory("ghand_bringup")) / "config"
+                ).glob("*/controllers.yaml")
+            ),
+            description="Product configuration directory (default: ghand5).",
+        ),
         DeclareLaunchArgument(
             "use_mock_hardware",
             default_value="true",
@@ -69,6 +84,8 @@ def generate_launch_description():
                     "ghand_dual_hardware_description.urdf.xacro",
                 ]
             ),
+            " product_name:=",
+            product_name,
             " use_mock_hardware:=",
             use_mock,
             " left_profile_file:=",
@@ -106,6 +123,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "dual_controllers.yaml",
                 ]
             ),
@@ -153,6 +171,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "ghand_dual.rviz",
                 ]
             ),

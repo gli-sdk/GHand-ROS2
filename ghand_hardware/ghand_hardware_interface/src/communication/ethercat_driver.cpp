@@ -17,6 +17,7 @@
 #include <vector>
 
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
+#include "ghand_hardware_interface/communication/product_config.hpp"
 #include "ghand_hardware_interface/communication/util.hpp"
 #include "rclcpp/logging.hpp"
 
@@ -31,36 +32,10 @@ namespace {
 constexpr int kEcTimeoutMon = 500;
 constexpr int kMaxOpRetries = 5000;
 
-// EtherCAT PDO uses 13 active joints in canonical ros2_control order (all
-// joints except DIP). These map to the 18-joint canonical order, with DIP
-// joints (0, 5, 9, 12, 15) omitted from the PDO.
-const std::vector<ghand_comm::JointId> kEthercatActiveJoints = {
-    // Slave PDO order is tip-to-base within each finger (DIP -> PIP -> MCP ->
-    // ...).
-    ghand_comm::JointId::THUMB_MCP,     // Thumb_MCP,     ros2_control index 1
-    ghand_comm::JointId::THUMB_TMC_FE,  // Thumb_TMC_FE,  ros2_control index 2
-    ghand_comm::JointId::THUMB_TMC_AA,  // Thumb_TMC_AA,  ros2_control index 3
-    ghand_comm::JointId::THUMB_TMC_PS,  // Thumb_TMC_PS,  ros2_control index 4
-    ghand_comm::JointId::INDEX_PIP,     // FF_PIP,     ros2_control index 6
-    ghand_comm::JointId::INDEX_MCP,     // FF_MCP,     ros2_control index 7
-    ghand_comm::JointId::INDEX_MCP_AA,  // FF_MCP_AA,  ros2_control index 8
-    ghand_comm::JointId::MIDDLE_PIP,    // MF_PIP,    ros2_control index 10
-    ghand_comm::JointId::MIDDLE_MCP,    // MF_MCP,    ros2_control index 11
-    ghand_comm::JointId::RING_PIP,      // RF_PIP,      ros2_control index 13
-    ghand_comm::JointId::RING_MCP,      // RF_MCP,      ros2_control index 14
-    ghand_comm::JointId::LITTLE_PIP,    // LF_PIP,    ros2_control index 16
-    ghand_comm::JointId::LITTLE_MCP,    // LF_MCP,    ros2_control index 17
-};
-
-// ros2_control index in the 18-joint canonical order for each active joint
-// above.
-const std::vector<size_t> kEthercatActiveUrdfIndices = {
-    1, 2, 3, 4, 6, 7, 8, 10, 11, 13, 14, 16, 17,
-};
-
 }  // namespace
 
 struct EthercatDriver::Impl {
+  const ProductConfig* product = find_product_config("ghand5");
 #ifdef GHAND_HAS_SOEM
   ecx_contextt ctx{};
   uint8_t io_map[4096] = {0};
@@ -75,9 +50,7 @@ struct EthercatDriver::Impl {
   int in_op = 0;
   bool is_connected = false;
   int wkc_check = 0;
-  // GHand5 RxPDO: 2 header bytes + 18 joints x 12 bytes (SDK layout).
-  uint8_t rxpdo_buffer[2 + 12 * static_cast<size_t>(JointId::NUM_JOINTS)] = {
-      0};
+  std::vector<uint8_t> rxpdo_buffer;
 
   std::mutex rt_mutex;
   std::mutex data_mutex;
@@ -113,6 +86,8 @@ bool EthercatDriver::init(
       params.count("control_mode") ? params.at("control_mode") : "position");
   if (!mode) return false;
   hand_mode_ = *mode;
+  impl_->product = find_product_config(params.count("product_name") ? params.at("product_name") : "ghand5");
+  if (!impl_->product || (impl_->product->lite1() && hand_mode_ == HandControlMode::MIT)) return false;
 #ifndef GHAND_HAS_SOEM
   (void)params;
   return false;
@@ -138,17 +113,14 @@ bool EthercatDriver::init(
       }
     }
   }
-  // EtherCAT uses a fixed 13-active-joint layout in canonical order (no DIP
-  // joints). Override any param-provided list so the PDO format matches the
-  // slave.
-  impl_->valid_joints = kEthercatActiveJoints;
+  impl_->valid_joints = impl_->product->active_joints;
 
   auto tt = params.find("tactile_region_counts");
   if (tt != params.end()) {
     impl_->tactile_regions = parse_tactile_regions(tt->second);
   }
 
-  std::memset(impl_->rxpdo_buffer, 0, sizeof(impl_->rxpdo_buffer));
+  impl_->rxpdo_buffer.assign(impl_->product->rxpdo_size(), 0);
   impl_->rxpdo_buffer[1] = 0x00;  // disabled until the first write()
 
   std::lock_guard<std::mutex> lock(impl_->rt_mutex);
@@ -181,6 +153,14 @@ bool EthercatDriver::init(
   }
   RCLCPP_INFO(rclcpp::get_logger("ethercat"),
               "=== ECAT init: ecx_config_map_group OK");
+
+  if (impl_->ctx.slavelist[1].Obytes != impl_->rxpdo_buffer.size()) {
+    RCLCPP_ERROR(rclcpp::get_logger("ethercat"),
+                 "PDO output size mismatch for %s: expected %zu, received %u",
+                 impl_->product->name.c_str(), impl_->rxpdo_buffer.size(),
+                 impl_->ctx.slavelist[1].Obytes);
+    return false;
+  }
 
   impl_->mapping_done = 1;
   impl_->do_run = 1;
@@ -287,32 +267,13 @@ bool EthercatDriver::write(const std::vector<JointCommand>& commands) {
 #ifdef GHAND_HAS_SOEM
   if (!impl_->is_connected) return false;
 
-  // SDK RxPDO: hand mode + enabled byte, then one little-endian
-  // BBhhhHH block per controlled joint. Joints without a command are
-  // disabled until first commanded; subsequent writes retain their commands.
-  std::vector<uint8_t> buffer = {
-      static_cast<uint8_t>(hand_mode_), 0x01};
-  buffer.reserve(2 + impl_->valid_joints.size() * 12);
-
-  for (const auto& cmd : commands) impl_->last_commands[cmd.id] = cmd;
-  for (const auto& joint_id : impl_->valid_joints) {
-    JointCommand joint;
-    joint.id = joint_id;
-    joint.control_state = JointControlState::DISABLED;
-    const auto previous = impl_->last_commands.find(joint_id);
-    if (previous != impl_->last_commands.end()) joint = previous->second;
-
-    const auto regs = encode_joint_command(joint);
-    for (uint16_t word : regs) {
-      buffer.push_back(static_cast<uint8_t>(word & 0xFF));
-      buffer.push_back(static_cast<uint8_t>(word >> 8));
-    }
-  }
-
-  const size_t copy_size = std::min(buffer.size(), sizeof(impl_->rxpdo_buffer));
+  for (const auto& command : commands) impl_->last_commands[command.id] = command;
+  const auto buffer = encode_ethercat_command(hand_mode_, impl_->valid_joints,
+      impl_->last_commands, impl_->product->command_register_count);
+  if (buffer.size() != impl_->rxpdo_buffer.size()) return false;
   {
     std::lock_guard<std::mutex> lock(impl_->rt_mutex);
-    std::memcpy(impl_->rxpdo_buffer, buffer.data(), copy_size);
+    std::copy(buffer.begin(), buffer.end(), impl_->rxpdo_buffer.begin());
   }
 
   return true;
@@ -340,9 +301,8 @@ void EthercatDriver::Impl::ecat_thread() {
     std::lock_guard<std::mutex> lock(rt_mutex);
     if (ctx.slavecount > 0) {
       const size_t output_size =
-          std::min(sizeof(rxpdo_buffer),
-                   static_cast<size_t>(ctx.slavelist[1].Obytes));
-      std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer, output_size);
+          rxpdo_buffer.size();
+      std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer.data(), output_size);
     }
     ecx_send_processdata(&ctx);
   }
@@ -404,9 +364,8 @@ void EthercatDriver::Impl::ecat_thread() {
         std::lock_guard<std::mutex> lock(rt_mutex);
         if (ctx.slavecount > 0) {
           const size_t output_size =
-              std::min(sizeof(rxpdo_buffer),
-                       static_cast<size_t>(ctx.slavelist[1].Obytes));
-          std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer, output_size);
+              rxpdo_buffer.size();
+          std::memcpy(ctx.slavelist[1].outputs, rxpdo_buffer.data(), output_size);
         }
         ecx_send_processdata(&ctx);
       }
@@ -507,8 +466,8 @@ std::vector<Force> parse_sample_forces(const uint8_t* data, int sensor_count) {
 void EthercatDriver::Impl::parse_hand_and_joints(
     const uint8_t* data, size_t size, size_t* offset,
     CommunicationData* out_data) const {
-  constexpr size_t kHandHeaderBytes = 2 + kHandWarningBytes + kHandFaultBytes +
-                                      kHandCriticalBytes + 2;
+  const size_t kHandHeaderBytes = product->hand_register_count * 2;
+  const size_t fault_bytes = product->lite1() ? 6 : kHandFaultBytes;
   if (*offset + kHandHeaderBytes > size) return;
 
   uint16_t hand_state = 0;
@@ -520,8 +479,8 @@ void EthercatDriver::Impl::parse_hand_and_joints(
               kHandWarningBytes);
   *offset += kHandWarningBytes;
   std::memcpy(out_data->hand_state.error_fault.data(), data + *offset,
-              kHandFaultBytes);
-  *offset += kHandFaultBytes;
+              fault_bytes);
+  *offset += fault_bytes;
   std::memcpy(out_data->hand_state.error_critical.data(), data + *offset,
               kHandCriticalBytes);
   *offset += kHandCriticalBytes;
@@ -532,12 +491,12 @@ void EthercatDriver::Impl::parse_hand_and_joints(
   out_data->hand_state.state = hand_state;
   out_data->hand_state.temperature = temperature;
 
-  // The slave reports all 18 joints in canonical URDF/xacro order (including
-  // DIP joints), 10 bytes each: state, error, mode/loop, reserved, then
+  // The slave reports the product joint order (including passive joints),
+  // 10 bytes each: state, error, mode/loop, reserved, then
   // int16 angle (0.1 deg), velocity and current.
-  constexpr size_t kUrdfJointCount = 18;
+  const size_t kUrdfJointCount = product->joints.size();
   constexpr size_t kJointFeedbackBytes = 10;
-  out_data->joints.resize(kUrdfJointCount);
+  out_data->joints.resize(static_cast<size_t>(JointId::NUM_JOINTS));
 
   for (size_t urdf_idx = 0; urdf_idx < kUrdfJointCount; ++urdf_idx) {
     if (*offset + kJointFeedbackBytes > size) break;
@@ -572,7 +531,8 @@ void EthercatDriver::Impl::parse_hand_and_joints(
     js.position = static_cast<float>(joint_angle) / 10.0f;
     js.velocity = static_cast<float>(joint_velocity);
     js.current = static_cast<float>(joint_current);
-    out_data->joints[urdf_idx] = js;
+    if (product->lite1()) js.loop_type = JointLoopType::SEMI_CLOSED_LOOP;
+    out_data->joints[static_cast<size_t>(product->joints[urdf_idx])] = js;
   }
 
   // Diagnostic: periodically dump the joint mapping as received from the slave.
@@ -627,7 +587,13 @@ void EthercatDriver::Impl::parse_tactile_data(
 }
 
 void EthercatDriver::Impl::parse_and_notify(const uint8_t* data, size_t size) {
-  if (data == nullptr || size == 0) return;
+  if (data == nullptr) return;
+  size_t expected = product->hand_register_count * 2 + product->joints.size() * 10;
+  if (!tactile_regions.empty()) {
+    expected += 2;
+    for (const auto& region : tactile_regions) expected += 6 + region.second * 3;
+  }
+  if (size < expected) return;
 
   CommunicationData parsed;
   parsed.valid = true;

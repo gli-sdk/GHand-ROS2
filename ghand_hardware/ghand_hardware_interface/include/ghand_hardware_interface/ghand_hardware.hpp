@@ -84,6 +84,7 @@ class GHandHardwareInterface : public hardware_interface::SystemInterface {
   std::unique_ptr<ghand_comm::CommunicationBase> comm_;
   std::vector<ghand_comm::JointId> joint_id_map_;
   std::vector<size_t> command_joint_indices_;
+  bool lite1_ = false;
   ghand_comm::HandControlMode hand_mode_ = ghand_comm::HandControlMode::POSITION;
   // state, raw temperature, then warning/fault/critical bytes.
   std::array<double, 26> hw_hand_state_{};

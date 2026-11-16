@@ -49,16 +49,15 @@ uint8_t parse_hand_type(const uint8_t* raw_bytes, size_t len = 2);
 
 // Parse the hand feedback block (0x1051~0x105E, 14 registers) into hand state.
 HandState parse_hand_info(const uint16_t* raw,
-                          size_t count = kHandFeedbackRegisterCount);
+                          size_t count = kHandFeedbackRegisterCount, bool lite1 = false);
 
 // Parse 5 input registers into a single joint state.
 JointState parse_joint_data(const uint16_t* raw, JointId joint_id);
 
-// Parse joint data for all valid joints from a contiguous register block.
-// The block starts at kJointInputRegister (0x105F) and contains
-// (max_joint_id + 1) * 5 registers in JointId order.
+// Parse a product-ordered register block into canonical JointId slots.
+// Lite1 uses 11 packed records; G5 uses all 18 records (5 registers each).
 std::vector<JointState> parse_joints(const uint16_t* raw, size_t count,
-                                     const std::vector<JointId>& valid_joints);
+                                     const std::vector<JointId>& valid_joints, bool lite1 = false);
 
 // Parse tactile state and error from the first register (kTactileStatusRegister).
 // The low byte is the state and the high byte is the error.
@@ -81,7 +80,7 @@ std::optional<HandControlMode> parse_hand_control_mode(const std::string& value)
 
 // Convert ROS2 interface values without modifying the controller's command buffers.
 bool make_joint_command(const JointCommandInput& input, HandControlMode hand_mode,
-                        double fallback_position, JointCommand* command);
+                        double fallback_position, JointCommand* command, bool lite1 = false);
 
 // Encode a JointCommand into six holding-register values.
 // First word: mode in bits 0-3, loop type in bits 4-7, requested state in bits 8-15.
@@ -90,7 +89,11 @@ std::vector<uint16_t> encode_joint_command(const JointCommand& joint);
 // Every active Modbus joint is written; omitted joints stop and hold.
 std::map<uint16_t, std::vector<uint16_t>> encode_joint_command_blocks(
     const std::vector<JointCommand>& commands,
-    const std::map<JointId, uint16_t>& addresses);
+    const std::map<JointId, uint16_t>& addresses, size_t register_count = 6);
+
+std::vector<uint8_t> encode_ethercat_command(
+    HandControlMode mode, const std::vector<JointId>& active_joints,
+    const std::map<JointId, JointCommand>& commands, size_t register_count);
 
 }  // namespace ghand_comm
 

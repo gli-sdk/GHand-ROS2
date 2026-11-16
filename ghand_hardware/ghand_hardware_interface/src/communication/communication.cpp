@@ -50,6 +50,14 @@ std::optional<JointId> joint_name_to_id(const std::string& name) {
     }
   }
 
+  if (canonical_name == "THUMB_MCP") return JointId::THUMB_MCP;
+  if (canonical_name == "THUMB_TMC_FE") return JointId::THUMB_TMC_FE;
+  if (canonical_name == "THUMB_TMC_AA") return JointId::THUMB_TMC_AA;
+  if (canonical_name == "FF_IP") return JointId::INDEX_PIP;
+  if (canonical_name == "MF_IP") return JointId::MIDDLE_PIP;
+  if (canonical_name == "RF_IP") return JointId::RING_PIP;
+  if (canonical_name == "LF_IP") return JointId::LITTLE_PIP;
+
   if (canonical_name == "Thumb_TMC_PS") return JointId::THUMB_TMC_PS;
   if (canonical_name == "Thumb_TMC_AA") return JointId::THUMB_TMC_AA;
   if (canonical_name == "Thumb_TMC_FE") return JointId::THUMB_TMC_FE;

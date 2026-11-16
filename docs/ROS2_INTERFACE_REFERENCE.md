@@ -7,7 +7,7 @@ these names instead of controller-private defaults or README-only examples.
 ## Packages
 
 - `ghand_description`: URDF generation and mesh installation.
-- `ghand_hardware_interface`: `ros2_control` hardware plugin and interface Xacro macro.
+- `ghand_hardware_interface`: shared `ros2_control` hardware plugin.
 - `ghand_bringup`: real/mock launch files, controller configuration and communication profiles.
 - `ghand_controllers`: GHand-specific status and tactile broadcasters.
 - `ghand_msgs`: custom GHand status and tactile message definitions.
@@ -35,6 +35,26 @@ Gazebo:
 - Dual hand: `ros2 launch ghand_gazebo dual_hand_gazebo.launch.py`
 
 ## Launch Arguments
+
+All six entry points accept `product_name`, default `ghand5`. Available choices
+come from installed `ghand_bringup/config/<product_name>/controllers.yaml` files.
+Configured products are `ghand5` and `ghandlite1`. Both hands in a dual launch
+use the selected product. Communication profiles remain independent of product
+selection.
+
+Lite1 has 11 feedback joints and six active joints (`THUMB_TMC_FE`,
+`THUMB_TMC_AA`, `FF_MCP`, `MF_MCP`, `RF_MCP`, `LF_MCP`). `THUMB_MCP` and
+the four `*_IP` joints are passive. Lite1 uses semi-closed control; closed-loop,
+MIT and kp/kd command interfaces are unavailable. Its hand fault block contains
+six bytes; unused exported fault slots are zero. Its tactile layout is
+38/31/31/31/31 according to the SDK baseline `6651e46`.
+
+Product configurations live under `config/<product_name>/` inside bringup,
+Gazebo and MoveIt. Shared hardware macros live in `ghand_bringup/config/common/`.
+Installed descriptions and meshes live under `ghand_description/urdf/<product_name>/`
+and `ghand_description/meshes/<product_name>/`. Direct users of old configuration
+paths must migrate; public launch filenames and default controller names remain
+unchanged. Rebuild into a fresh install directory to avoid stale old-path files.
 
 Single-hand hardware arguments:
 

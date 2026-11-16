@@ -8,35 +8,7 @@ import argparse
 import copy
 import xml.etree.ElementTree as ET
 
-
-JOINT_NAMES = (
-    "Thumb_IP",
-    "Thumb_MCP",
-    "Thumb_TMC_FE",
-    "Thumb_TMC_AA",
-    "Thumb_TMC_PS",
-    "FF_DIP",
-    "FF_PIP",
-    "FF_MCP",
-    "FF_MCP_AA",
-    "MF_DIP",
-    "MF_PIP",
-    "MF_MCP",
-    "RF_DIP",
-    "RF_PIP",
-    "RF_MCP",
-    "LF_DIP",
-    "LF_PIP",
-    "LF_MCP",
-)
-
-KINEMATIC_GROUPS = (
-    "index_finger",
-    "middle_finger",
-    "ring_finger",
-    "little_finger",
-    "thumb",
-)
+import yaml
 
 
 def prefixed_srdf_children(source, prefix):
@@ -77,6 +49,9 @@ def prefixed_srdf_children(source, prefix):
             element.set("link2", prefix + element.get("link2"))
         elif element.tag == "passive_joint":
             element.set("name", prefix + element.get("name"))
+        elif element.tag == "virtual_joint":
+            # Both vendor hands are mounted below the shared URDF world link.
+            continue
         result.append(element)
     return result
 
@@ -96,49 +71,36 @@ def dual_group_state(name, left_source, right_source):
     return state
 
 
-def write_joint_limits(path):
-    lines = [
-        "default_velocity_scaling_factor: 0.2",
-        "default_acceleration_scaling_factor: 0.2",
-        "joint_limits:",
-    ]
-    for prefix in ("left_", "right_"):
-        for name in JOINT_NAMES:
-            lines.extend(
-                [
-                    f"  {prefix}{name}:",
-                    "    has_velocity_limits: true",
-                    "    max_velocity: 100.0",
-                    "    has_acceleration_limits: true",
-                    "    max_acceleration: 100.0",
-                ]
-            )
+def write_joint_limits(path, source_path):
+    with open(source_path, encoding="utf-8") as source:
+        config = yaml.safe_load(source)
+    config["joint_limits"] = {
+        prefix + name: copy.deepcopy(limits)
+        for prefix in ("left_", "right_")
+        for name, limits in config["joint_limits"].items()
+    }
     with open(path, "w", encoding="utf-8") as output:
-        output.write("\n".join(lines) + "\n")
+        yaml.safe_dump(config, output, sort_keys=False)
 
 
-def write_kinematics(path):
-    lines = []
-    for prefix in ("left_", "right_"):
-        for group in KINEMATIC_GROUPS:
-            lines.extend(
-                [
-                    f"{prefix}{group}:",
-                    "  kinematics_solver: "
-                    "kdl_kinematics_plugin/KDLKinematicsPlugin",
-                    "  kinematics_solver_search_resolution: 0.005",
-                    "  kinematics_solver_timeout: 0.005",
-                    "",
-                ]
-            )
+def write_kinematics(path, source_path):
+    with open(source_path, encoding="utf-8") as source:
+        config = yaml.safe_load(source)
+    config = {
+        prefix + group: copy.deepcopy(settings)
+        for prefix in ("left_", "right_")
+        for group, settings in config.items()
+    }
     with open(path, "w", encoding="utf-8") as output:
-        output.write("\n".join(lines))
+        yaml.safe_dump(config, output, sort_keys=False)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--left-srdf", required=True)
     parser.add_argument("--right-srdf", required=True)
+    parser.add_argument("--joint-limits", required=True)
+    parser.add_argument("--kinematics", required=True)
     parser.add_argument("--srdf-output", required=True)
     parser.add_argument("--joint-limits-output", required=True)
     parser.add_argument("--kinematics-output", required=True)
@@ -146,7 +108,12 @@ def main():
 
     left = ET.parse(args.left_srdf).getroot()
     right = ET.parse(args.right_srdf).getroot()
-    dual = ET.Element("robot", name="ghand5-dual")
+    product_name = left.get("name").removesuffix("-left")
+    if right.get("name") != f"{product_name}-right":
+        raise ValueError("Left and right SRDFs must describe the same product")
+    dual = ET.Element("robot", name=f"{product_name}-dual")
+    ET.SubElement(dual, "virtual_joint", name="world_joint", type="fixed",
+                  parent_frame="world", child_link="world")
 
     for element in prefixed_srdf_children(left, "left_"):
         dual.append(element)
@@ -166,8 +133,8 @@ def main():
         encoding="utf-8",
         xml_declaration=True,
     )
-    write_joint_limits(args.joint_limits_output)
-    write_kinematics(args.kinematics_output)
+    write_joint_limits(args.joint_limits_output, args.joint_limits)
+    write_kinematics(args.kinematics_output, args.kinematics)
 
 
 if __name__ == "__main__":

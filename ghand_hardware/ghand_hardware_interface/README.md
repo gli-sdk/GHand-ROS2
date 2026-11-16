@@ -2,6 +2,19 @@
 
 `ros2_control` hardware interface for the GHand dexterous hand.
 
+This package owns the shared C++ plugin. Product joint/sensor resource Xacros
+are owned by `ghand_bringup/config/<product_name>/`; shared hardware-selection
+and connection macros are in `ghand_bringup/config/common/`.
+
+`product_name:=ghandlite1` selects Lite1's 11-joint feedback layout and six
+controlled joints. Modbus command blocks use four registers, and EtherCAT uses
+a two-byte hand header followed by six eight-byte commands. Lite1 has no
+independent position sensor; closed-loop, MIT and kp/kd interfaces are not
+available. The SDK encoder reserves Lite1's loop bits even though its current
+API guard calls the mode closed loop; this ROS adaptation emits the reserved
+zero bits and does not expose a loop selector, following the confirmed device
+capability. The SDK checkout is not modified or linked.
+
 ## Joint controller GUI
 
 Start the hardware or MoveIt launch file first, then open the compatible joint

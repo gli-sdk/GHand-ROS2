@@ -49,12 +49,13 @@ def main():
     parser.add_argument("--right", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--separation", type=float, default=0.36)
+    parser.add_argument("--product-name", default="ghand5")
     args = parser.parse_args()
 
     left_robot = ET.parse(args.left).getroot()
     right_robot = ET.parse(args.right).getroot()
 
-    dual = ET.Element("robot", name="ghand5-dual")
+    dual = ET.Element("robot", name=f"{args.product_name}-dual")
     dual.append(ET.Element("link", name="world"))
 
     half_separation = args.separation / 2.0

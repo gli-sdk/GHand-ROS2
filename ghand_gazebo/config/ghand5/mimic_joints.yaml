@@ -1,0 +1,20 @@
+FF_DIP:
+- FF_PIP
+- 1.0
+- 0.0
+LF_DIP:
+- LF_PIP
+- 1.0
+- 0.0
+MF_DIP:
+- MF_PIP
+- 1.0
+- 0.0
+RF_DIP:
+- RF_PIP
+- 1.0
+- 0.0
+Thumb_IP:
+- Thumb_MCP
+- 1.0
+- 0.0

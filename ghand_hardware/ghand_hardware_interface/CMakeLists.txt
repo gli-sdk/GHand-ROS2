@@ -89,6 +89,7 @@ endif()
 add_library(ghand_hardware_interface SHARED
   src/ghand_hardware.cpp
   src/communication/communication.cpp
+  src/communication/product_config.cpp
   src/communication/modbus_codec.cpp
   src/communication/canfd_protocol.cpp
   src/communication/ethercat_driver.cpp
@@ -165,8 +166,6 @@ install(TARGETS ghand_hardware_interface
 
 install(DIRECTORY include/ DESTINATION include)
 
-install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-
 install(PROGRAMS
   scripts/ghand_joint_controller_gui
   DESTINATION lib/${PROJECT_NAME}
@@ -177,19 +176,31 @@ ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 
 if(BUILD_TESTING)
-  add_executable(test_modbus_codec
-    test/test_modbus_codec.cpp
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_modbus_codec.cpp")
+    add_executable(test_modbus_codec
+      test/test_modbus_codec.cpp
+      src/communication/modbus_codec.cpp
+      src/communication/product_config.cpp
+    )
+    target_include_directories(test_modbus_codec PRIVATE include)
+    add_test(NAME test_modbus_codec COMMAND test_modbus_codec)
+  endif()
+  add_executable(test_lite1_codec
+    tests/test_lite1_codec.cpp
     src/communication/modbus_codec.cpp
+    src/communication/product_config.cpp
   )
-  target_include_directories(test_modbus_codec PRIVATE include)
-  add_test(NAME test_modbus_codec COMMAND test_modbus_codec)
+  target_include_directories(test_lite1_codec PRIVATE include)
+  add_test(NAME test_lite1_codec COMMAND test_lite1_codec)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(test_zqwl_canfd test/test_zqwl_canfd.cpp)
-  if(TARGET test_zqwl_canfd)
-    target_link_libraries(test_zqwl_canfd ghand_hardware_interface util)
-    ament_target_dependencies(test_zqwl_canfd rclcpp)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/test/test_zqwl_canfd.cpp")
+    find_package(ament_cmake_gtest REQUIRED)
+    ament_add_gtest(test_zqwl_canfd test/test_zqwl_canfd.cpp)
+    if(TARGET test_zqwl_canfd)
+      target_link_libraries(test_zqwl_canfd ghand_hardware_interface util)
+      ament_target_dependencies(test_zqwl_canfd rclcpp)
+    endif()
   endif()
 endif()
 ament_package()

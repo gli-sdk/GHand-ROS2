@@ -1,31 +1,6 @@
 <?xml version="1.0"?>
-<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-dual">
-  <xacro:arg name="use_mock_hardware" default="true"/>
-  <xacro:arg name="left_profile_file" default=""/>
-  <xacro:arg name="right_profile_file" default=""/>
-  <xacro:arg name="left_device" default=""/>
-  <xacro:arg name="right_device" default=""/>
-  <xacro:arg name="left_ifname" default=""/>
-  <xacro:arg name="right_ifname" default=""/>
-
-  <!-- Kinematic model generated from the two vendor URDFs. -->
-  <xacro:include filename="$(find ghand_description)/urdf/ghand5_dual_description.urdf"/>
-
-  <!-- Two independent hardware systems share one controller manager. Their
-       resources are isolated by the left_ / right_ prefixes. -->
-  <xacro:include filename="$(find ghand_hardware_interface)/config/ghand.ros2_control.xacro"/>
-  <xacro:ghand_ros2_control
-    prefix="left_"
-    system_name="left_ghand_hardware"
-    use_mock_hardware="$(arg use_mock_hardware)"
-    profile_file="$(arg left_profile_file)"
-    device="$(arg left_device)"
-    ifname="$(arg left_ifname)"/>
-  <xacro:ghand_ros2_control
-    prefix="right_"
-    system_name="right_ghand_hardware"
-    use_mock_hardware="$(arg use_mock_hardware)"
-    profile_file="$(arg right_profile_file)"
-    device="$(arg right_device)"
-    ifname="$(arg right_ifname)"/>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="product_name" default="ghand5"/>
+  <xacro:attribute name="name" value="$(arg product_name)-dual"/>
+  <xacro:include filename="$(find ghand_bringup)/config/$(arg product_name)/ghand_dual_hardware_description.urdf.xacro"/>
 </robot>

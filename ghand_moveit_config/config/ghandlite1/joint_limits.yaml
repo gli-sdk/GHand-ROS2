@@ -1,0 +1,58 @@
+default_velocity_scaling_factor: 0.2
+default_acceleration_scaling_factor: 0.2
+joint_limits:
+  THUMB_MCP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  THUMB_TMC_FE:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  THUMB_TMC_AA:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  FF_IP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  FF_MCP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  MF_IP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  MF_MCP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  RF_IP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  RF_MCP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  LF_IP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4
+  LF_MCP:
+    has_velocity_limits: true
+    max_velocity: 2.4
+    has_acceleration_limits: true
+    max_acceleration: 2.4

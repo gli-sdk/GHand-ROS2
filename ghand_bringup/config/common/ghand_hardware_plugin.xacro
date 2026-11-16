@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- Percentages and SDK control fields are exposed only by real hardware. -->
+  <xacro:macro name="ghand_sdk_joint_interfaces" params="commandable enabled">
+    <xacro:if value="${enabled}">
+      <xacro:if value="${commandable}">
+        <command_interface name="current_percent"/>
+        <command_interface name="control_mode"/>
+        <command_interface name="loop_type"/>
+        <command_interface name="control_state"/>
+        <command_interface name="kp"/>
+        <command_interface name="kd"/>
+      </xacro:if>
+      <state_interface name="current_percent"/>
+      <state_interface name="control_mode"/>
+      <state_interface name="loop_type"/>
+    </xacro:if>
+  </xacro:macro>
+
+  <xacro:macro name="ghand_hardware_plugin" params="use_mock_hardware:=false
+                       use_gazebo:=false
+                       profile_file:=''
+                       communication_type:=''
+                       device:=''
+                       baud_rate:=''
+                       dbit_rate:=''
+                       slave_id:=''
+                       ifname:='' product_name:='ghand5' tactile_region_counts">
+      <hardware>
+        <xacro:if value="${use_gazebo}">
+          <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo}">
+          <xacro:if value="${use_mock_hardware}">
+            <plugin>mock_components/GenericSystem</plugin>
+            <param name="mock_sensor_commands">false</param>
+            <param name="state_following_offset">0.0</param>
+          </xacro:if>
+          <xacro:unless value="${use_mock_hardware}">
+          <xacro:property name="profile" scope="local"
+                          value="${xacro.load_yaml(profile_file)['hardware']}"/>
+
+          <!-- Resolve unified parameters, applying legacy overrides when set. -->
+          <xacro:property name="_communication_type" scope="local"
+                          value="${communication_type if communication_type != '' else profile.get('communication_type', '')}"/>
+          <xacro:property name="_device" scope="local"
+                          value="${device if device != '' else profile.get('device', '')}"/>
+          <xacro:property name="_baud_rate" scope="local"
+                          value="${baud_rate if baud_rate != '' else profile.get('baud_rate', '')}"/>
+          <xacro:property name="_data_rate" scope="local"
+                          value="${dbit_rate if dbit_rate != '' else profile.get('data_rate', '')}"/>
+          <xacro:property name="_node_id" scope="local"
+                          value="${slave_id if slave_id != '' else profile.get('node_id', '')}"/>
+          <xacro:property name="_ifname" scope="local"
+                          value="${ifname if ifname != '' else profile.get('ifname', '')}"/>
+
+          <plugin>ghand_hardware_interface/GHandHardwareInterface</plugin>
+          <param name="product_name">${product_name}</param>
+
+          <xacro:if value="${_communication_type != ''}">
+            <param name="communication_type">${_communication_type}</param>
+          </xacro:if>
+          <xacro:if value="${_device != ''}">
+            <param name="device">${_device}</param>
+          </xacro:if>
+          <xacro:if value="${_baud_rate != ''}">
+            <param name="baud_rate">${_baud_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_data_rate != ''}">
+            <param name="data_rate">${_data_rate}</param>
+          </xacro:if>
+          <xacro:if value="${_node_id != ''}">
+            <param name="node_id">${_node_id}</param>
+          </xacro:if>
+          <xacro:if value="${_ifname != ''}">
+            <param name="ifname">${_ifname}</param>
+          </xacro:if>
+
+          <param name="control_mode">${profile.get('control_mode', 'position')}</param>
+
+          <!-- Backend-specific settings carried by the profile. -->
+          <xacro:if value="${'can_channel' in profile}">
+            <param name="can_channel">${profile['can_channel']}</param>
+          </xacro:if>
+          <xacro:if value="${'serial_baud_rate' in profile}">
+            <param name="serial_baud_rate">${profile['serial_baud_rate']}</param>
+          </xacro:if>
+          <xacro:if value="${'bitrate' in profile}">
+            <param name="bitrate">${profile['bitrate']}</param>
+          </xacro:if>
+          <xacro:if value="${'can_clk' in profile}">
+            <param name="can_clk">${profile['can_clk']}</param>
+          </xacro:if>
+          <xacro:if value="${'data_bits' in profile}">
+            <param name="data_bits">${profile['data_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'stop_bits' in profile}">
+            <param name="stop_bits">${profile['stop_bits']}</param>
+          </xacro:if>
+          <xacro:if value="${'parity' in profile}">
+            <param name="parity">${profile['parity']}</param>
+          </xacro:if>
+          <xacro:if value="${'response_timeout_ms' in profile}">
+            <param name="response_timeout_ms">${profile['response_timeout_ms']}</param>
+          </xacro:if>
+          <xacro:if value="${'read_timeout_ms' in profile}">
+            <param name="read_timeout_ms">${profile['read_timeout_ms']}</param>
+          </xacro:if>
+          <param name="tactile_region_counts">${tactile_region_counts}</param>
+          </xacro:unless>
+        </xacro:unless>
+      </hardware>
+  </xacro:macro>
+</robot>

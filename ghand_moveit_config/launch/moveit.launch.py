@@ -14,11 +14,19 @@ Parameters:
 """
 
 import os
+from pathlib import Path
 
-from ament_index_python.packages import get_package_prefix
+from ament_index_python.packages import (
+    get_package_prefix,
+    get_package_share_directory,
+)
 
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
+from launch.actions import (
+    AppendEnvironmentVariable,
+    DeclareLaunchArgument,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     Command,
@@ -33,7 +41,8 @@ from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def generate_launch_description():
+def launch_setup(context):
+    product_name = LaunchConfiguration("product_name").perform(context)
     hand_side = LaunchConfiguration("hand_side")
     use_sim = LaunchConfiguration("use_sim")
     use_rviz = LaunchConfiguration("use_rviz")
@@ -61,38 +70,6 @@ def generate_launch_description():
                 AppendEnvironmentVariable("LD_LIBRARY_PATH", library_path)
             )
 
-    declared_args = [
-        DeclareLaunchArgument(
-            "hand_side",
-            default_value="right",
-            choices=["left", "right"],
-            description="Hand model to launch.",
-        ),
-        DeclareLaunchArgument(
-            "use_sim",
-            default_value="true",
-            description="Use mock hardware when true",
-        ),
-        DeclareLaunchArgument(
-            "use_rviz",
-            default_value="true",
-            description="Launch RViz when true",
-        ),
-        DeclareLaunchArgument(
-            "profile",
-            default_value="ethercat_default",
-            description=(
-                "Communication profile under "
-                "ghand_bringup/config/profiles/."
-            ),
-        ),
-        DeclareLaunchArgument(
-            "ifname",
-            default_value="",
-            description="Override: EtherCAT network interface name.",
-        ),
-    ]
-
     # URDF via xacro with mock/real switching
     xacro_cmd = [
         PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -104,6 +81,8 @@ def generate_launch_description():
                 "ghand_hardware_description.urdf.xacro",
             ]
         ),
+        " product_name:=",
+        product_name,
         " hand_side:=",
         hand_side,
         " use_mock_hardware:=",
@@ -143,6 +122,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "ros2_control.yaml",
                 ]
             ),
@@ -150,6 +130,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "controllers.yaml",
                 ]
             ),
@@ -204,14 +185,18 @@ def generate_launch_description():
     for side in ("left", "right"):
         moveit_config = (
             MoveItConfigsBuilder(
-                f"ghand5-{side}", package_name="ghand_moveit_config"
+                f"{product_name}-{side}", package_name="ghand_moveit_config"
             )
             .robot_description_semantic(
-                file_path=f"config/ghand5_{side}.srdf"
+                file_path=f"config/{product_name}/{product_name}_{side}.srdf"
             )
-            .trajectory_execution(file_path="config/moveit_controllers.yaml")
-            .joint_limits(file_path="config/joint_limits.yaml")
-            .robot_description_kinematics(file_path="config/kinematics.yaml")
+            .trajectory_execution(
+                file_path=f"config/{product_name}/moveit_controllers.yaml"
+            )
+            .joint_limits(file_path=f"config/{product_name}/joint_limits.yaml")
+            .robot_description_kinematics(
+                file_path=f"config/{product_name}/kinematics.yaml"
+            )
             .planning_pipelines(
                 default_planning_pipeline="ompl",
                 pipelines=["ompl"],
@@ -253,6 +238,7 @@ def generate_launch_description():
                             [
                                 FindPackageShare("ghand_moveit_config"),
                                 "config",
+                                product_name,
                                 "moveit.rviz",
                             ]
                         ),
@@ -268,9 +254,8 @@ def generate_launch_description():
             ]
         )
 
-    return LaunchDescription(
-        declared_args
-        + env_actions
+    return (
+        env_actions
         + [
             rsp,
             ros2_control_node,
@@ -280,4 +265,51 @@ def generate_launch_description():
             jtc_spawner,
         ]
         + moveit_nodes
+    )
+
+
+def generate_launch_description():
+    declared_args = [
+        DeclareLaunchArgument(
+            "product_name", default_value="ghand5",
+            choices=sorted(
+                path.parent.name
+                for path in (
+                    Path(get_package_share_directory("ghand_bringup")) / "config"
+                ).glob("*/controllers.yaml")
+            ),
+            description="Product configuration directory (default: ghand5).",
+        ),
+        DeclareLaunchArgument(
+            "hand_side",
+            default_value="right",
+            choices=["left", "right"],
+            description="Hand model to launch.",
+        ),
+        DeclareLaunchArgument(
+            "use_sim",
+            default_value="true",
+            description="Use mock hardware when true",
+        ),
+        DeclareLaunchArgument(
+            "use_rviz",
+            default_value="true",
+            description="Launch RViz when true",
+        ),
+        DeclareLaunchArgument(
+            "profile",
+            default_value="ethercat_default",
+            description=(
+                "Communication profile under "
+                "ghand_bringup/config/profiles/."
+            ),
+        ),
+        DeclareLaunchArgument(
+            "ifname",
+            default_value="",
+            description="Override: EtherCAT network interface name.",
+        ),
+    ]
+    return LaunchDescription(
+        declared_args + [OpaqueFunction(function=launch_setup)]
     )

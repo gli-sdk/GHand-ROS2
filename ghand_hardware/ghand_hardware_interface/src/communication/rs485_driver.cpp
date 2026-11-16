@@ -22,6 +22,7 @@
 
 #include "ghand_hardware_interface/communication/communication.hpp"
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
+#include "ghand_hardware_interface/communication/product_config.hpp"
 #include "ghand_hardware_interface/communication/util.hpp"
 #include "rclcpp/logging.hpp"
 
@@ -61,6 +62,7 @@ namespace {
 }  // namespace
 
 struct Rs485Driver::Impl {
+  const ProductConfig* product = find_product_config("ghand5");
   modbus_t* ctx_ = nullptr;
   std::string device_;
   int baud_rate_ = 0;
@@ -103,6 +105,8 @@ bool Rs485Driver::init(
       params.count("control_mode") ? params.at("control_mode") : "position");
   if (!mode) return false;
   hand_mode_ = *mode;
+  impl_->product = find_product_config(params.count("product_name") ? params.at("product_name") : "ghand5");
+  if (!impl_->product || (impl_->product->lite1() && hand_mode_ == HandControlMode::MIT)) return false;
 #ifndef GHAND_HAS_LIBMODBUS
   (void)params;
   return false;
@@ -146,11 +150,7 @@ bool Rs485Driver::init(
       }
     }
   }
-  if (impl_->valid_joints_.empty()) {
-    for (uint8_t i = 0; i < static_cast<uint8_t>(JointId::NUM_JOINTS); ++i) {
-      impl_->valid_joints_.push_back(static_cast<JointId>(i));
-    }
-  }
+  if (impl_->valid_joints_.empty()) impl_->valid_joints_ = impl_->product->joints;
 
   auto tt = params.find("tactile_region_counts");
   if (tt != params.end()) {
@@ -271,11 +271,13 @@ bool Rs485Driver::write(const std::vector<JointCommand>& commands) {
   }
 
   // Build a single contiguous write for all active joints.
-  // Holding registers for active joints span 0x0261 .. 0x02AA (78 regs).
+  // Holding-register count follows the selected product.
   constexpr uint16_t kFirstHoldingReg = 0x0261;
-  constexpr uint16_t kHoldingRegCount = 78;
+  const uint16_t kHoldingRegCount = static_cast<uint16_t>(
+      impl_->product->active_joints.size() * impl_->product->command_register_count);
   std::vector<uint16_t> regs(kHoldingRegCount, 0);
-  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+  for (const auto& block : encode_joint_command_blocks(commands, impl_->product->holding_registers(),
+                                                      impl_->product->command_register_count)) {
     const size_t offset = block.first - kFirstHoldingReg;
     std::copy(block.second.begin(), block.second.end(), regs.begin() + offset);
   }
@@ -337,14 +339,11 @@ bool Rs485Driver::Impl::ReadInputRegistersBytes(int addr, int count,
 bool Rs485Driver::Impl::ReadJoints(CommunicationData* data) {
   if (!data || valid_joints_.empty()) return false;
 
-  uint8_t max_id = 0;
-  for (auto id : valid_joints_) {
-    max_id = std::max(max_id, static_cast<uint8_t>(id));
-  }
-  const int count = (max_id + 1) * 5;
+  const int count = static_cast<int>(product->joints.size() * 5);
+  const size_t header_count = product->hand_register_count;
 
   std::vector<uint8_t> bytes;
-  if (!ReadInputRegistersBytes(kHandFeedbackRegister, count + kHandFeedbackRegisterCount, &bytes)) {
+  if (!ReadInputRegistersBytes(kHandFeedbackRegister, count + header_count, &bytes)) {
     return false;
   }
 
@@ -354,10 +353,10 @@ bool Rs485Driver::Impl::ReadJoints(CommunicationData* data) {
     regs.push_back(static_cast<uint16_t>((bytes[i] << 8) | bytes[i + 1]));
   }
 
-  data->hand_state = parse_hand_info(regs.data(), regs.size());
+  data->hand_state = parse_hand_info(regs.data(), header_count, product->lite1());
   data->hand_state_valid = true;
-  data->joints = parse_joints(regs.data() + kHandFeedbackRegisterCount,
-                            regs.size() - kHandFeedbackRegisterCount, valid_joints_);
+  data->joints = parse_joints(regs.data() + header_count,
+                            regs.size() - header_count, valid_joints_, product->lite1());
   return !data->joints.empty();
 }
 

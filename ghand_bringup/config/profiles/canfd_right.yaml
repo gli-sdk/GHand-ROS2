@@ -8,4 +8,3 @@ hardware:
   node_id: 50
   can_channel: 0
   response_timeout_ms: 500
-  tactile_region_counts: "38,31,31,31,31"

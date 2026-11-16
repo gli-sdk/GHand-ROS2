@@ -1,0 +1,58 @@
+source: GHand-Cpp-SDK 6651e46 config/ghandlite1.json and product_config_loader.cc
+name: ghandlite1
+joints:
+- THUMB_MCP
+- THUMB_TMC_FE
+- THUMB_TMC_AA
+- FF_IP
+- FF_MCP
+- MF_IP
+- MF_MCP
+- RF_IP
+- RF_MCP
+- LF_IP
+- LF_MCP
+active_joints:
+- THUMB_TMC_FE
+- THUMB_TMC_AA
+- FF_MCP
+- MF_MCP
+- RF_MCP
+- LF_MCP
+joint_limits_deg:
+  THUMB_TMC_FE:
+    min: 0.0
+    max: 50.0
+  THUMB_TMC_AA:
+    min: 30.0
+    max: 60.0
+  FF_MCP:
+    min: 0.0
+    max: 100.0
+  MF_MCP:
+    min: 0.0
+    max: 100.0
+  RF_MCP:
+    min: 0.0
+    max: 100.0
+  LF_MCP:
+    min: 0.0
+    max: 100.0
+initial_positions:
+  THUMB_MCP: 0.0
+  THUMB_TMC_FE: 0.0
+  THUMB_TMC_AA: 0.5235987755982988
+  FF_IP: 0.0
+  FF_MCP: 0.0
+  MF_IP: 0.0
+  MF_MCP: 0.0
+  RF_IP: 0.0
+  RF_MCP: 0.0
+  LF_IP: 0.0
+  LF_MCP: 0.0
+tactile_region_counts:
+- 38
+- 31
+- 31
+- 31
+- 31

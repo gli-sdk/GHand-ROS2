@@ -1,0 +1,22 @@
+ghand_hardware:
+  ros__parameters:
+    update_rate: 100
+    read_timeout_ms: 500
+    joints:
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_MCP
+    - MF_MCP
+    - RF_MCP
+    - LF_MCP
+    command_interfaces:
+    - position
+    - velocity
+    - effort
+    state_interfaces:
+    - position
+    - velocity
+    - effort
+    - state
+    - error
+    tactile_region_counts: 38,31,31,31,31

@@ -12,6 +12,7 @@
 
 #include "ghand_hardware_interface/communication/communication.hpp"
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
+#include "ghand_hardware_interface/communication/product_config.hpp"
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 
 namespace ghand_hardware {
@@ -32,6 +33,13 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     return hardware_interface::CallbackReturn::ERROR;
   }
   hand_mode_ = *mode;
+  const auto* product = ghand_comm::find_product_config(
+      info_.hardware_parameters.count("product_name") ? info_.hardware_parameters.at("product_name") : "ghand5");
+  if (!product || (product->lite1() && hand_mode_ == ghand_comm::HandControlMode::MIT)) {
+    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Unsupported product or control mode.");
+    return hardware_interface::CallbackReturn::ERROR;
+  }
+  lite1_ = product->lite1();
   hw_hand_state_.fill(std::numeric_limits<double>::quiet_NaN());
 
   const size_t joint_count = info_.joints.size();
@@ -52,11 +60,15 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     }
     joint_id_map_.push_back(id.value());
     if (!joint.command_interfaces.empty()) {
+      if (std::find(product->active_joints.begin(), product->active_joints.end(), *id) == product->active_joints.end()) {
+        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Passive joint declares command interfaces.");
+        return hardware_interface::CallbackReturn::ERROR;
+      }
       command_joint_indices_.push_back(i);
     }
   }
 
-  // Validate that the URDF provides every JointId exactly once. A mismatch
+  // Validate the selected product joint set exactly once. A mismatch
   // between URDF/xacro and the canonical JointId enum means motor commands
   // would be sent to the wrong joints.
   {
@@ -78,15 +90,22 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
       seen[idx] = true;
     }
     for (size_t i = 0; i < seen.size(); ++i) {
-      if (!seen[i]) {
+      const bool expected = std::find(product->joints.begin(), product->joints.end(),
+          static_cast<ghand_comm::JointId>(i)) != product->joints.end();
+      if (seen[i] != expected) {
         RCLCPP_FATAL(
             rclcpp::get_logger("GHandHardwareInterface"),
-            "Missing JointId %zu (%s) in URDF.", i,
+            "Product joint set mismatch at JointId %zu (%s).", i,
             ghand_comm::joint_id_to_name(static_cast<ghand_comm::JointId>(i))
                 .c_str());
         return hardware_interface::CallbackReturn::ERROR;
       }
     }
+  }
+
+  if (command_joint_indices_.size() != product->active_joints.size()) {
+    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Product command joint set is incomplete.");
+    return hardware_interface::CallbackReturn::ERROR;
   }
 
   // Diagnostic: print the order in which ros2_control parsed the joints and the
@@ -485,7 +504,7 @@ hardware_interface::return_type GHandHardwareInterface::read(
       hw_joint_states_[i].current_percent = data.joints[data_idx].current;
       hw_joint_states_[i].control_mode = data.joints[data_idx].control_info_valid
           ? data.joints[data_idx].mode : std::numeric_limits<double>::quiet_NaN();
-      hw_joint_states_[i].loop_type = data.joints[data_idx].control_info_valid
+      hw_joint_states_[i].loop_type = !lite1_ && data.joints[data_idx].control_info_valid
           ? static_cast<uint8_t>(data.joints[data_idx].loop_type)
           : std::numeric_limits<double>::quiet_NaN();
       hw_joint_states_[i].status =
@@ -575,7 +594,7 @@ hardware_interface::return_type GHandHardwareInterface::write(
 
     ghand_comm::JointCommand cmd;
     if (!ghand_comm::make_joint_command(input, hand_mode_,
-                                        hw_joint_states_[idx].position, &cmd))
+                                        hw_joint_states_[idx].position, &cmd, lite1_))
       return hardware_interface::return_type::ERROR;
     cmd.id = joint_id_map_[idx];
     commands.push_back(cmd);

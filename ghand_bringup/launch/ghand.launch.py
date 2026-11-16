@@ -12,8 +12,12 @@ or right-hand description.
 """
 
 import os
+from pathlib import Path
 
-from ament_index_python.packages import get_package_prefix
+from ament_index_python.packages import (
+    get_package_prefix,
+    get_package_share_directory,
+)
 
 from launch import LaunchDescription
 from launch.actions import (
@@ -33,6 +37,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
+    product_name = LaunchConfiguration("product_name")
     # ROS vendor libraries are installed outside the regular lib directory.
     # Make the path explicit for processes spawned by launch (notably RViz).
     rviz_ogre_lib = os.path.join(
@@ -47,6 +52,16 @@ def generate_launch_description():
             AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
         )
 
+    product_arg = DeclareLaunchArgument(
+        "product_name", default_value="ghand5",
+        choices=sorted(
+            path.parent.name
+            for path in (
+                Path(get_package_share_directory("ghand_bringup")) / "config"
+            ).glob("*/controllers.yaml")
+        ),
+        description="Product configuration directory (default: ghand5).",
+    )
     hand_side_arg = DeclareLaunchArgument(
         "hand_side",
         default_value="right",
@@ -142,6 +157,8 @@ def generate_launch_description():
             ),
             " hand_side:=",
             hand_side,
+            " product_name:=",
+            product_name,
             " use_mock_hardware:=",
             use_mock_hardware,
             " profile_file:=",
@@ -185,6 +202,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "ros2_control.yaml",
                 ]
             ),
@@ -192,6 +210,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "controllers.yaml",
                 ]
             ),
@@ -282,6 +301,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "ghand.rviz",
                 ]
             ),
@@ -290,6 +310,7 @@ def generate_launch_description():
     )
 
     nodes = env_actions + [
+        product_arg,
         hand_side_arg,
         use_mock_hardware_arg,
         profile_arg,

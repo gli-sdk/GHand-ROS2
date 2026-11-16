@@ -91,7 +91,7 @@ struct JointCommand {
   int8_t current = 0;     // target current percent (-100~100)
   int16_t kp = 0;
   int16_t kd = 0;
-  // Selectable in hand CUSTOM mode; other hand modes use closed loop.
+  // G5 selects the loop in CUSTOM mode; Lite1 reserves the wire loop bits.
   JointLoopType loop_type = JointLoopType::CLOSED_LOOP;
 };
 

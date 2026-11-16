@@ -5,10 +5,18 @@
 """Launch dual GHand ros2_control, MoveIt, and RViz."""
 
 import os
+from pathlib import Path
 
-from ament_index_python.packages import get_package_prefix
+from ament_index_python.packages import (
+    get_package_prefix,
+    get_package_share_directory,
+)
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
+from launch.actions import (
+    AppendEnvironmentVariable,
+    DeclareLaunchArgument,
+    OpaqueFunction,
+)
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (
     Command,
@@ -22,22 +30,10 @@ from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def generate_launch_description():
+def launch_setup(context):
+    product_name = LaunchConfiguration("product_name").perform(context)
     use_sim = LaunchConfiguration("use_sim")
     use_rviz = LaunchConfiguration("use_rviz")
-
-    declared_args = [
-        DeclareLaunchArgument("use_sim", default_value="true"),
-        DeclareLaunchArgument("use_rviz", default_value="true"),
-        DeclareLaunchArgument("left_profile", default_value="rs485_left"),
-        DeclareLaunchArgument(
-            "right_profile", default_value="rs485_dual_right"
-        ),
-        DeclareLaunchArgument("left_device", default_value=""),
-        DeclareLaunchArgument("right_device", default_value=""),
-        DeclareLaunchArgument("left_ifname", default_value=""),
-        DeclareLaunchArgument("right_ifname", default_value=""),
-    ]
 
     ros_lib_multiarch = os.path.join(
         get_package_prefix("moveit_ros_move_group"),
@@ -71,6 +67,8 @@ def generate_launch_description():
                     "ghand_dual_hardware_description.urdf.xacro",
                 ]
             ),
+            " product_name:=",
+            product_name,
             " use_mock_hardware:=",
             PythonExpression(
                 ["'true' if '", use_sim, "' == 'true' else 'false'"]
@@ -96,11 +94,19 @@ def generate_launch_description():
     robot_description = {"robot_description": description}
 
     moveit_config = (
-        MoveItConfigsBuilder("ghand5-dual", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/ghand5_dual.srdf")
-        .trajectory_execution(file_path="config/dual_moveit_controllers.yaml")
-        .joint_limits(file_path="config/dual_joint_limits.yaml")
-        .robot_description_kinematics(file_path="config/dual_kinematics.yaml")
+        MoveItConfigsBuilder(
+            f"{product_name}-dual", package_name="ghand_moveit_config"
+        )
+        .robot_description_semantic(
+            file_path=f"config/{product_name}/{product_name}_dual.srdf"
+        )
+        .trajectory_execution(
+            file_path=f"config/{product_name}/dual_moveit_controllers.yaml"
+        )
+        .joint_limits(file_path=f"config/{product_name}/dual_joint_limits.yaml")
+        .robot_description_kinematics(
+            file_path=f"config/{product_name}/dual_kinematics.yaml"
+        )
         .planning_pipelines(
             default_planning_pipeline="ompl", pipelines=["ompl"]
         )
@@ -123,6 +129,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_bringup"),
                     "config",
+                    product_name,
                     "dual_controllers.yaml",
                 ]
             ),
@@ -164,6 +171,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_moveit_config"),
                     "config",
+                    product_name,
                     "dual_moveit.rviz",
                 ]
             ),
@@ -173,10 +181,37 @@ def generate_launch_description():
         output="both",
     )
 
-    return LaunchDescription(
-        declared_args
-        + env_actions
+    return (
+        env_actions
         + [rsp, controller_manager]
         + controller_nodes
         + [move_group, rviz]
+    )
+
+
+def generate_launch_description():
+    declared_args = [
+        DeclareLaunchArgument(
+            "product_name", default_value="ghand5",
+            choices=sorted(
+                path.parent.name
+                for path in (
+                    Path(get_package_share_directory("ghand_bringup")) / "config"
+                ).glob("*/controllers.yaml")
+            ),
+            description="Product configuration directory (default: ghand5).",
+        ),
+        DeclareLaunchArgument("use_sim", default_value="true"),
+        DeclareLaunchArgument("use_rviz", default_value="true"),
+        DeclareLaunchArgument("left_profile", default_value="rs485_left"),
+        DeclareLaunchArgument(
+            "right_profile", default_value="rs485_dual_right"
+        ),
+        DeclareLaunchArgument("left_device", default_value=""),
+        DeclareLaunchArgument("right_device", default_value=""),
+        DeclareLaunchArgument("left_ifname", default_value=""),
+        DeclareLaunchArgument("right_ifname", default_value=""),
+    ]
+    return LaunchDescription(
+        declared_args + [OpaqueFunction(function=launch_setup)]
     )

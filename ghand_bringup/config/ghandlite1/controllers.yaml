@@ -1,0 +1,153 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    joint_status_broadcaster:
+      type: ghand_controllers/JointStatusBroadcaster
+    tactile_broadcaster:
+      type: ghand_controllers/TactileBroadcaster
+    joint_trajectory_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+    position_controller:
+      type: position_controllers/JointGroupPositionController
+    velocity_controller:
+      type: velocity_controllers/JointGroupVelocityController
+    effort_controller:
+      type: effort_controllers/JointGroupEffortController
+joint_status_broadcaster:
+  ros__parameters:
+    joints:
+    - THUMB_MCP
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_IP
+    - FF_MCP
+    - MF_IP
+    - MF_MCP
+    - RF_IP
+    - RF_MCP
+    - LF_IP
+    - LF_MCP
+    publish_rate: 100.0
+tactile_broadcaster:
+  ros__parameters:
+    fingers:
+    - thumb
+    - index
+    - middle
+    - ring
+    - little
+    point_counts:
+    - 38
+    - 31
+    - 31
+    - 31
+    - 31
+    publish_rate: 100.0
+joint_trajectory_controller:
+  ros__parameters:
+    joints:
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_MCP
+    - MF_MCP
+    - RF_MCP
+    - LF_MCP
+    command_interfaces:
+    - position
+    - velocity
+    state_interfaces:
+    - position
+    - velocity
+    open_loop_control: false
+    allow_partial_joints_goal: true
+    gains:
+      THUMB_TMC_FE:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      THUMB_TMC_AA:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      FF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      MF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      RF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      LF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+    constraints:
+      goal_time: 2.0
+      stopped_velocity_tolerance: 0.01
+      THUMB_TMC_FE:
+        goal: 0.1
+        trajectory: 0.5
+      THUMB_TMC_AA:
+        goal: 0.1
+        trajectory: 0.5
+      FF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      MF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      RF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      LF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+position_controller:
+  ros__parameters:
+    joints:
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_MCP
+    - MF_MCP
+    - RF_MCP
+    - LF_MCP
+    command_interfaces:
+    - position
+    state_interfaces:
+    - position
+    - velocity
+velocity_controller:
+  ros__parameters:
+    joints:
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_MCP
+    - MF_MCP
+    - RF_MCP
+    - LF_MCP
+    command_interfaces:
+    - velocity
+    state_interfaces:
+    - position
+    - velocity
+effort_controller:
+  ros__parameters:
+    joints:
+    - THUMB_TMC_FE
+    - THUMB_TMC_AA
+    - FF_MCP
+    - MF_MCP
+    - RF_MCP
+    - LF_MCP
+    command_interfaces:
+    - effort
+    state_interfaces:
+    - position
+    - velocity
+    - effort

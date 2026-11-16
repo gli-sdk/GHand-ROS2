@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghandlite1-$(arg hand_side)">
+  <xacro:arg name="hand_side" default="right"/>
+  <xacro:arg name="use_mock_hardware" default="false"/>
+  <xacro:arg name="profile_file" default=""/>
+  <xacro:arg name="communication_type" default=""/>
+  <xacro:arg name="device" default=""/>
+  <xacro:arg name="baud_rate" default=""/>
+  <xacro:arg name="dbit_rate" default=""/>
+  <xacro:arg name="slave_id" default=""/>
+  <xacro:arg name="ifname" default=""/>
+
+  <!-- Base robot description from the external ghand_description package -->
+  <xacro:property name="hand_side" value="$(arg hand_side)"/>
+  <xacro:if value="${hand_side == 'left'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghandlite1/ghandlite1_left_description.urdf"/>
+  </xacro:if>
+  <xacro:if value="${hand_side == 'right'}">
+    <xacro:include filename="$(find ghand_description)/urdf/ghandlite1/ghandlite1_right_description.urdf"/>
+  </xacro:if>
+
+  <!-- Real-hardware / mock ros2_control configuration -->
+  <xacro:include filename="$(find ghand_bringup)/config/ghandlite1/ghand.ros2_control.xacro"/>
+  <xacro:ghand_ros2_control
+    use_mock_hardware="$(arg use_mock_hardware)"
+    profile_file="$(arg profile_file)"
+    communication_type="$(arg communication_type)"
+    device="$(arg device)"
+    baud_rate="$(arg baud_rate)"
+    dbit_rate="$(arg dbit_rate)"
+    slave_id="$(arg slave_id)"
+    ifname="$(arg ifname)"/>
+</robot>

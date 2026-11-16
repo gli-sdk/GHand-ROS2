@@ -5,6 +5,7 @@
 """Launch two prefixed GHands in Gazebo with MoveIt support."""
 
 import os
+from pathlib import Path
 
 from ament_index_python.packages import (
     get_package_prefix,
@@ -12,6 +13,7 @@ from ament_index_python.packages import (
 )
 from launch import LaunchDescription
 from launch.actions import (
+    OpaqueFunction,
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
@@ -31,25 +33,11 @@ from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def generate_launch_description():
+def launch_setup(context):
+    product_name = LaunchConfiguration("product_name").perform(context)
     use_rviz = LaunchConfiguration("use_rviz")
     world = LaunchConfiguration("world")
     limit_tolerance = LaunchConfiguration("limit_tolerance")
-
-    declared_args = [
-        DeclareLaunchArgument("use_rviz", default_value="true"),
-        DeclareLaunchArgument(
-            "world",
-            default_value=PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_gazebo"),
-                    "worlds",
-                    "grasp_world.world",
-                ]
-            ),
-        ),
-        DeclareLaunchArgument("limit_tolerance", default_value="-0.01"),
-    ]
 
     description_share_parent = os.path.dirname(
         get_package_share_directory("ghand_description")
@@ -109,6 +97,12 @@ def generate_launch_description():
                     "ghand_dual_gazebo_description.urdf.xacro",
                 ]
             ),
+            " --xacro-arg product_name:=",
+            product_name,
+            " --mimic-config ",
+            PathJoinSubstitution([
+                FindPackageShare("ghand_gazebo"), "config", product_name, "mimic_joints.yaml"
+            ]),
             " --limit-tolerance ",
             limit_tolerance,
         ],
@@ -117,11 +111,19 @@ def generate_launch_description():
     robot_description = {"robot_description": description}
 
     moveit_config = (
-        MoveItConfigsBuilder("ghand5-dual", package_name="ghand_moveit_config")
-        .robot_description_semantic(file_path="config/ghand5_dual.srdf")
-        .trajectory_execution(file_path="config/dual_moveit_controllers.yaml")
-        .joint_limits(file_path="config/dual_joint_limits.yaml")
-        .robot_description_kinematics(file_path="config/dual_kinematics.yaml")
+        MoveItConfigsBuilder(
+            f"{product_name}-dual", package_name="ghand_moveit_config"
+        )
+        .robot_description_semantic(
+            file_path=f"config/{product_name}/{product_name}_dual.srdf"
+        )
+        .trajectory_execution(
+            file_path=f"config/{product_name}/dual_moveit_controllers.yaml"
+        )
+        .joint_limits(file_path=f"config/{product_name}/dual_joint_limits.yaml")
+        .robot_description_kinematics(
+            file_path=f"config/{product_name}/dual_kinematics.yaml"
+        )
         .planning_pipelines(
             default_planning_pipeline="ompl", pipelines=["ompl"]
         )
@@ -216,6 +218,7 @@ def generate_launch_description():
                 [
                     FindPackageShare("ghand_moveit_config"),
                     "config",
+                    product_name,
                     "dual_moveit.rviz",
                 ]
             ),
@@ -225,9 +228,8 @@ def generate_launch_description():
         output="both",
     )
 
-    return LaunchDescription(
-        declared_args
-        + env_actions
+    return (
+        env_actions
         + [
             SetParameter(name="use_sim_time", value=True),
             gazebo,
@@ -237,4 +239,34 @@ def generate_launch_description():
         ]
         + [jsb_spawner, left_after_jsb, right_after_left]
         + [move_group, rviz]
+    )
+
+
+def generate_launch_description():
+    declared_args = [
+        DeclareLaunchArgument(
+            "product_name", default_value="ghand5",
+            choices=sorted(
+                path.parent.name
+                for path in (
+                    Path(get_package_share_directory("ghand_bringup")) / "config"
+                ).glob("*/controllers.yaml")
+            ),
+            description="Product configuration directory (default: ghand5).",
+        ),
+        DeclareLaunchArgument("use_rviz", default_value="true"),
+        DeclareLaunchArgument(
+            "world",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("ghand_gazebo"),
+                    "worlds",
+                    "grasp_world.world",
+                ]
+            ),
+        ),
+        DeclareLaunchArgument("limit_tolerance", default_value="-0.01"),
+    ]
+    return LaunchDescription(
+        declared_args + [OpaqueFunction(function=launch_setup)]
     )

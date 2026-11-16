@@ -1,0 +1,12 @@
+initial_positions:
+  THUMB_MCP: 0.0
+  THUMB_TMC_FE: 0.0
+  THUMB_TMC_AA: 0.5235987755982988
+  FF_IP: 0.0
+  FF_MCP: 0.0
+  MF_IP: 0.0
+  MF_MCP: 0.0
+  RF_IP: 0.0
+  RF_MCP: 0.0
+  LF_IP: 0.0
+  LF_MCP: 0.0

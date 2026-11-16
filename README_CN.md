@@ -180,6 +180,22 @@ ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx0
 
 ### 启动 MoveIt 2
 
+硬件、MoveIt 和 Gazebo 的全部启动入口均支持 `product_name:=ghand5`，默认保持
+`ghand5`。产品配置放在现有包内的 `config/<product_name>/`，共用硬件插件和启动代码。
+可选产品为 `ghand5` 和 `ghandlite1`。Lite1 包含 11 个反馈关节和 6 个主动关节，
+支持单手、同型号双手的实机／mock／Gazebo／MoveIt 配置。例如：
+
+```bash
+ros2 launch ghand_bringup ghand.launch.py product_name:=ghandlite1 use_mock_hardware:=true
+```
+
+Lite1 仅支持半闭环控制，不支持闭环和 MIT；当前协议基于 SDK `6651e46`，
+触觉点数为 38/31/31/31/31。本次覆盖源码和离线配置检查，ROS2 编译、
+Gazebo／MoveIt 实际启动及真机运动／触觉仍需现场验证。
+安装后的 URDF 和 mesh 分别位于 `ghand_description/urdf/ghand5/` 和
+`ghand_description/meshes/ghand5/`。迁移时使用新的安装目录，避免旧路径文件残留。
+详见 [产品配置与迁移说明](ghand_bringup/README.md#product-selection)。
+
 ```bash
 ros2 launch ghand_moveit_config moveit.launch.py
 ```

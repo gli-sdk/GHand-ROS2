@@ -11,6 +11,7 @@ Parameters:
 """
 
 import os
+from pathlib import Path
 
 from ament_index_python.packages import (
     get_package_prefix,
@@ -18,6 +19,7 @@ from ament_index_python.packages import (
 )
 from launch import LaunchDescription
 from launch.actions import (
+    OpaqueFunction,
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
     ExecuteProcess,
@@ -38,44 +40,12 @@ from launch_ros.substitutions import FindPackageShare
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
-def generate_launch_description():
+def launch_setup(context):
+    product_name = LaunchConfiguration("product_name").perform(context)
     hand_side = LaunchConfiguration("hand_side")
     use_rviz = LaunchConfiguration("use_rviz")
     world = LaunchConfiguration("world")
     limit_tolerance = LaunchConfiguration("limit_tolerance")
-
-    declared_args = [
-        DeclareLaunchArgument(
-            "hand_side",
-            default_value="right",
-            choices=["left", "right"],
-            description="Hand model to launch.",
-        ),
-        DeclareLaunchArgument(
-            "use_rviz",
-            default_value="true",
-            description="Launch RViz when true",
-        ),
-        DeclareLaunchArgument(
-            "world",
-            default_value=PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_gazebo"),
-                    "worlds",
-                    "grasp_world.world",
-                ]
-            ),
-            description="Gazebo world file path",
-        ),
-        DeclareLaunchArgument(
-            "limit_tolerance",
-            default_value="-0.01",
-            description=(
-                "Negative tolerance applied to zero joint lower limits "
-                "in Gazebo."
-            ),
-        ),
-    ]
 
     # --- Environment setup for Gazebo Sim (gz) ---
     # 1. Resource path: gz resolves mesh URIs
@@ -148,6 +118,12 @@ def generate_launch_description():
                     "ghand_gazebo_description.urdf.xacro",
                 ]
             ),
+            " --xacro-arg product_name:=",
+            product_name,
+            " --mimic-config ",
+            PathJoinSubstitution([
+                FindPackageShare("ghand_gazebo"), "config", product_name, "mimic_joints.yaml"
+            ]),
             " --limit-tolerance ",
             limit_tolerance,
             " --xacro-arg hand_side:=",
@@ -244,14 +220,18 @@ def generate_launch_description():
     for side in ("left", "right"):
         moveit_config = (
             MoveItConfigsBuilder(
-                f"ghand5-{side}", package_name="ghand_moveit_config"
+                f"{product_name}-{side}", package_name="ghand_moveit_config"
             )
             .robot_description_semantic(
-                file_path=f"config/ghand5_{side}.srdf"
+                file_path=f"config/{product_name}/{product_name}_{side}.srdf"
             )
-            .trajectory_execution(file_path="config/moveit_controllers.yaml")
-            .joint_limits(file_path="config/joint_limits.yaml")
-            .robot_description_kinematics(file_path="config/kinematics.yaml")
+            .trajectory_execution(
+                file_path=f"config/{product_name}/moveit_controllers.yaml"
+            )
+            .joint_limits(file_path=f"config/{product_name}/joint_limits.yaml")
+            .robot_description_kinematics(
+                file_path=f"config/{product_name}/kinematics.yaml"
+            )
             .to_moveit_configs()
         )
         moveit_config.robot_description = {
@@ -292,6 +272,7 @@ def generate_launch_description():
                             [
                                 FindPackageShare("ghand_moveit_config"),
                                 "config",
+                                product_name,
                                 "moveit.rviz",
                             ]
                         ),
@@ -306,9 +287,8 @@ def generate_launch_description():
             ]
         )
 
-    return LaunchDescription(
-        declared_args
-        + env_actions
+    return (
+        env_actions
         + [
             SetParameter(name="use_sim_time", value=True),
             gazebo,
@@ -319,4 +299,52 @@ def generate_launch_description():
             jtc_spawner,
         ]
         + moveit_nodes
+    )
+
+
+def generate_launch_description():
+    declared_args = [
+        DeclareLaunchArgument(
+            "product_name", default_value="ghand5",
+            choices=sorted(
+                path.parent.name
+                for path in (
+                    Path(get_package_share_directory("ghand_bringup")) / "config"
+                ).glob("*/controllers.yaml")
+            ),
+            description="Product configuration directory (default: ghand5).",
+        ),
+        DeclareLaunchArgument(
+            "hand_side",
+            default_value="right",
+            choices=["left", "right"],
+            description="Hand model to launch.",
+        ),
+        DeclareLaunchArgument(
+            "use_rviz",
+            default_value="true",
+            description="Launch RViz when true",
+        ),
+        DeclareLaunchArgument(
+            "world",
+            default_value=PathJoinSubstitution(
+                [
+                    FindPackageShare("ghand_gazebo"),
+                    "worlds",
+                    "grasp_world.world",
+                ]
+            ),
+            description="Gazebo world file path",
+        ),
+        DeclareLaunchArgument(
+            "limit_tolerance",
+            default_value="-0.01",
+            description=(
+                "Negative tolerance applied to zero joint lower limits "
+                "in Gazebo."
+            ),
+        ),
+    ]
+    return LaunchDescription(
+        declared_args + [OpaqueFunction(function=launch_setup)]
     )

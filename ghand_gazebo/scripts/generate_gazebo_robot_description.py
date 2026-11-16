@@ -15,6 +15,8 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 
+import yaml
+
 
 def patch_lower_limits(
     urdf_str: str, epsilon: float = -0.01
@@ -40,17 +42,7 @@ def patch_lower_limits(
     return ET.tostring(root, encoding="unicode"), patched
 
 
-_DIP_MIMIC_MAP = {
-    # finger DIP follows the corresponding PIP
-    "Thumb_IP": ("Thumb_MCP", 1.0, 0.0),
-    "FF_DIP": ("FF_PIP", 1.0, 0.0),
-    "MF_DIP": ("MF_PIP", 1.0, 0.0),
-    "RF_DIP": ("RF_PIP", 1.0, 0.0),
-    "LF_DIP": ("LF_PIP", 1.0, 0.0),
-}
-
-
-def add_mimic_joints(urdf_str: str) -> tuple[str, int]:
+def add_mimic_joints(urdf_str: str, mimic_map: dict) -> tuple[str, int]:
     """Couple passive DIP joints to their driving PIP/MCP joints.
 
     The real GHand fingers use a tendon/linkage coupling so the distal
@@ -70,9 +62,11 @@ def add_mimic_joints(urdf_str: str) -> tuple[str, int]:
                 prefix = candidate
                 canonical_name = name[len(candidate):]
                 break
-        if canonical_name not in _DIP_MIMIC_MAP:
+        if canonical_name not in mimic_map:
             continue
-        driver, multiplier, offset = _DIP_MIMIC_MAP[canonical_name]
+        if joint.find("mimic") is not None:
+            continue
+        driver, multiplier, offset = mimic_map[canonical_name]
         mimic = ET.SubElement(joint, "mimic")
         mimic.set("joint", prefix + driver)
         mimic.set("multiplier", str(multiplier))
@@ -104,6 +98,7 @@ def main():
         default=[],
         help="Additional argument to pass to xacro (can be repeated)",
     )
+    parser.add_argument("--mimic-config", required=True)
     args = parser.parse_args()
 
     xacro_cmd = ["xacro", args.urdf_path]
@@ -118,7 +113,9 @@ def main():
     patched_urdf, count = patch_lower_limits(
         result.stdout, args.limit_tolerance
     )
-    patched_urdf, mimic_count = add_mimic_joints(patched_urdf)
+    with open(args.mimic_config, encoding="utf-8") as source:
+        mimic_map = yaml.safe_load(source)
+    patched_urdf, mimic_count = add_mimic_joints(patched_urdf, mimic_map)
     print(
         f"Patched {count} joint limit(s) with lower=0 -> "
         f"lower={args.limit_tolerance}",

@@ -4,30 +4,42 @@ project(ghand_moveit_config)
 find_package(ament_cmake REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-set(_generated_config_dir "${CMAKE_CURRENT_BINARY_DIR}/config")
-file(MAKE_DIRECTORY "${_generated_config_dir}")
-execute_process(
-  COMMAND "${Python3_EXECUTABLE}"
-          "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dual_moveit_config.py"
-          --left-srdf "${CMAKE_CURRENT_SOURCE_DIR}/config/ghand5_left.srdf"
-          --right-srdf "${CMAKE_CURRENT_SOURCE_DIR}/config/ghand5_right.srdf"
-          --srdf-output "${_generated_config_dir}/ghand5_dual.srdf"
-          --joint-limits-output "${_generated_config_dir}/dual_joint_limits.yaml"
-          --kinematics-output "${_generated_config_dir}/dual_kinematics.yaml"
-  RESULT_VARIABLE _dual_moveit_generation_result
-)
-if(NOT _dual_moveit_generation_result EQUAL 0)
-  message(FATAL_ERROR "Failed to generate the dual-hand MoveIt configuration")
-endif()
+file(GLOB _product_config_dirs LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/config/*")
+foreach(_product_config_dir IN LISTS _product_config_dirs)
+  if(NOT IS_DIRECTORY "${_product_config_dir}")
+    continue()
+  endif()
+  get_filename_component(_product_name "${_product_config_dir}" NAME)
+  if(_product_name STREQUAL "common")
+    continue()
+  endif()
+  set(_generated_config_dir "${CMAKE_CURRENT_BINARY_DIR}/config/${_product_name}")
+  file(MAKE_DIRECTORY "${_generated_config_dir}")
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dual_moveit_config.py"
+            --left-srdf "${_product_config_dir}/${_product_name}_left.srdf"
+            --right-srdf "${_product_config_dir}/${_product_name}_right.srdf"
+            --joint-limits "${_product_config_dir}/joint_limits.yaml"
+            --kinematics "${_product_config_dir}/kinematics.yaml"
+            --srdf-output "${_generated_config_dir}/${_product_name}_dual.srdf"
+            --joint-limits-output "${_generated_config_dir}/dual_joint_limits.yaml"
+            --kinematics-output "${_generated_config_dir}/dual_kinematics.yaml"
+    RESULT_VARIABLE _dual_moveit_generation_result
+  )
+  if(NOT _dual_moveit_generation_result EQUAL 0)
+    message(FATAL_ERROR "Failed to generate the ${_product_name} dual-hand MoveIt configuration")
+  endif()
+
+  install(FILES
+    "${_generated_config_dir}/${_product_name}_dual.srdf"
+    "${_generated_config_dir}/dual_joint_limits.yaml"
+    "${_generated_config_dir}/dual_kinematics.yaml"
+    DESTINATION share/${PROJECT_NAME}/config/${_product_name}
+  )
+endforeach()
 
 install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
-install(FILES
-  "${_generated_config_dir}/ghand5_dual.srdf"
-  "${_generated_config_dir}/dual_joint_limits.yaml"
-  "${_generated_config_dir}/dual_kinematics.yaml"
-  DESTINATION share/${PROJECT_NAME}/config
-)
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -1,5 +1,12 @@
 # ghand_gazebo
 
+All launch files accept `product_name:=ghand5` (the default) or
+`product_name:=ghandlite1`. Product-specific descriptions, controllers and RViz
+settings are under `config/<product_name>/` in their own packages. The shared
+description helper loads `config/<product_name>/mimic_joints.yaml`: GHand5 adds
+its DIP coupling, while Lite1 preserves the coupling already in the vendor URDF.
+Shared Gazebo macros are under `config/common/`.
+
 Gazebo Harmonic simulation for the GHand dexterous hand.
 
 ## Contents

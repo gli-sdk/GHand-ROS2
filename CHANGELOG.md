@@ -5,6 +5,14 @@ file. See also the per-package `CHANGELOG.rst` files.
 
 ## Unreleased
 
+### Added
+
+* Added `product_name:=ghandlite1` to shared hardware, mock, Gazebo and MoveIt
+  launch paths, including same-product dual hands. Product data stays inside
+  existing packages. Lite1 uses 11 feedback joints, six active joints and the
+  current SDK four-register/50-byte EtherCAT command layout. Closed-loop and
+  MIT are rejected. Runtime and device verification are pending.
+
 ### Changed
 
 * Removed the top-level `src/` directory; all packages now reside directly in

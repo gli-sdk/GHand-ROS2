@@ -183,6 +183,20 @@ Available communication profiles are located at `ghand_bringup/config/profiles/`
 
 ### Launch MoveIt 2
 
+All hardware, MoveIt and Gazebo launch files accept `product_name:=ghand5`
+(the default). Product data is isolated inside the existing packages under
+`config/<product_name>/`; the hardware plugin and launch code stay shared.
+Supported product configurations are `ghand5` and `ghandlite1` (11 feedback
+joints, six active joints). For Lite1 mock control:
+
+```bash
+ros2 launch ghand_bringup ghand.launch.py product_name:=ghandlite1 use_mock_hardware:=true
+```
+
+Lite1 source/configuration adaptation has offline coverage; target ROS builds,
+Gazebo/MoveIt startup and live hardware behavior still require validation.
+See [product configuration and migration notes](ghand_bringup/README.md#product-selection).
+
 ```bash
 ros2 launch ghand_moveit_config moveit.launch.py
 ```

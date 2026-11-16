@@ -20,6 +20,7 @@
 #include "ghand_hardware_interface/communication/canfd_protocol.hpp"
 #include "ghand_hardware_interface/communication/communication.hpp"
 #include "ghand_hardware_interface/communication/modbus_codec.hpp"
+#include "ghand_hardware_interface/communication/product_config.hpp"
 #include "ghand_hardware_interface/communication/util.hpp"
 #include "rclcpp/logging.hpp"
 
@@ -99,6 +100,7 @@ constexpr uint8_t kDefaultSrcId = 0x0A;
 constexpr uint8_t kDefaultDstId = 0x31;
 
 struct CanfdDriver::Impl {
+  const ProductConfig* product = find_product_config("ghand5");
 #ifdef GHAND_HAS_ZLG_CAN
   uint32_t device_type_ = 0;
   uint32_t device_index_ = 0;
@@ -144,6 +146,8 @@ bool CanfdDriver::init(
       params.count("control_mode") ? params.at("control_mode") : "position");
   if (!mode) return false;
   hand_mode_ = *mode;
+  impl_->product = find_product_config(params.count("product_name") ? params.at("product_name") : "ghand5");
+  if (!impl_->product || (impl_->product->lite1() && hand_mode_ == HandControlMode::MIT)) return false;
 #ifndef GHAND_HAS_ZLG_CAN
   (void)params;
   return false;
@@ -201,11 +205,7 @@ bool CanfdDriver::init(
       }
     }
   }
-  if (impl_->valid_joints_.empty()) {
-    for (uint8_t i = 0; i < static_cast<uint8_t>(JointId::NUM_JOINTS); ++i) {
-      impl_->valid_joints_.push_back(static_cast<JointId>(i));
-    }
-  }
+  if (impl_->valid_joints_.empty()) impl_->valid_joints_ = impl_->product->joints;
 
   auto tt = params.find("tactile_region_counts");
   if (tt != params.end()) {
@@ -314,7 +314,8 @@ bool CanfdDriver::write(const std::vector<JointCommand>& commands) {
     return false;
   }
 
-  for (const auto& block : encode_joint_command_blocks(commands, holding_register_map())) {
+  for (const auto& block : encode_joint_command_blocks(commands, impl_->product->holding_registers(),
+                                                      impl_->product->command_register_count)) {
     if (!impl_->WriteHoldingRegisters(block.first, registers_to_bytes(block.second))) {
       return false;
     }
@@ -453,14 +454,9 @@ void CanfdDriver::Impl::ParseJointReport(const std::vector<uint8_t>& payload) {
 
   CommunicationData data;
   data.valid = true;
-  data.joints.reserve(valid_joints_.size());
-  for (auto id : valid_joints_) {
-    const size_t idx = static_cast<size_t>(id);
-    if (idx < all_joints.size()) {
-      data.joints.push_back(all_joints[idx]);
-    } else {
-      data.joints.emplace_back();
-    }
+  data.joints.resize(static_cast<size_t>(JointId::NUM_JOINTS));
+  for (size_t wire = 0; wire < product->joints.size() && wire < all_joints.size(); ++wire) {
+    data.joints[static_cast<size_t>(product->joints[wire])] = all_joints[wire];
   }
 
   {

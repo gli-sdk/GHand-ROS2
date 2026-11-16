@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghand5-dual">
+  <xacro:include filename="$(find ghand_description)/urdf/ghand5/ghand5_dual_description.urdf"/>
+  <xacro:include filename="$(find ghand_gazebo)/config/common/ghand.gazebo.xacro"/>
+
+  <xacro:ghand_gazebo_ros2_control_plugin
+    ros2_control_params="$(find ghand_bringup)/config/ghand5/dual_controllers.yaml"
+    controllers_params="$(find ghand_bringup)/config/ghand5/dual_controllers.yaml"/>
+
+  <xacro:macro name="dual_hand_link_properties" params="prefix">
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}base_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}LF_MCP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}LF_PIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}LF_DIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}RF_MCP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}RF_PIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}RF_DIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}MF_MCP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}MF_PIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}MF_DIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}FF_MCP_AA_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}FF_MCP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}FF_PIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}FF_DIP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}Thumb_TMC_PS_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}Thumb_TMC_AA_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}Thumb_TMC_FE_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}Thumb_MCP_link"/>
+    <xacro:ghand_gazebo_disable_gravity link_name="${prefix}Thumb_IP_link"/>
+
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}base_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}LF_MCP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}LF_PIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}LF_DIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}RF_MCP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}RF_PIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}RF_DIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}MF_MCP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}MF_PIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}MF_DIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}FF_MCP_AA_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}FF_MCP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}FF_PIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}FF_DIP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}Thumb_TMC_PS_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}Thumb_TMC_AA_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}Thumb_TMC_FE_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}Thumb_MCP_link"/>
+    <xacro:ghand_gazebo_link_properties link_name="${prefix}Thumb_IP_link"/>
+  </xacro:macro>
+
+  <xacro:dual_hand_link_properties prefix="left_"/>
+  <xacro:dual_hand_link_properties prefix="right_"/>
+
+  <xacro:macro name="dual_gazebo_joints" params="prefix">
+    <joint name="${prefix}Thumb_MCP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}Thumb_TMC_FE">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}Thumb_TMC_AA">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.349065850398866</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}Thumb_TMC_PS">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}FF_PIP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}FF_MCP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}FF_MCP_AA">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">0</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}MF_PIP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}MF_MCP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}RF_PIP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}RF_MCP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}LF_PIP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}LF_MCP">
+      <command_interface name="position"/>
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}Thumb_IP">
+      <state_interface name="position"><param name="initial_value">0.5</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}FF_DIP">
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}MF_DIP">
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}RF_DIP">
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+    <joint name="${prefix}LF_DIP">
+      <state_interface name="position"><param name="initial_value">1.2</param></state_interface>
+      <state_interface name="velocity"/><state_interface name="effort"/>
+    </joint>
+  </xacro:macro>
+
+  <ros2_control name="GHandDualGazeboSystem" type="system">
+    <hardware>
+      <plugin name="gz_ros2_control::GazeboSimSystem">gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <xacro:dual_gazebo_joints prefix="left_"/>
+    <xacro:dual_gazebo_joints prefix="right_"/>
+  </ros2_control>
+</robot>
