@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Add `ghand_bringup start.launch.py` for planning preview, Gazebo and hardware scenes.
+- Remove the mock hardware plugin branch and its launch parameters; old arguments fail explicitly.
+- Make MoveIt entries planning-only by default, with fixed kinematic start states and execution disabled.
+- Reuse physical bringup for hardware planning; make Gazebo planning optional.
+- Reorganize English/Chinese quick starts and extract installation and hardware guides.
+
+
 All notable changes to the GHand-ROS2 repository will be documented in this
 file. See also the per-package `CHANGELOG.rst` files.
 
@@ -18,8 +27,7 @@ file. See also the per-package `CHANGELOG.rst` files.
 * Removed the top-level `src/` directory; all packages now reside directly in
   the repository root. Updated installation instructions in `README.md` and
   `README_CN.md` to use a standard ROS 2 workspace layout: clone the
-  repository into `<workspace>/src` and import dependencies with
-  `vcs import . < ghand-ros2/ghand.repos` from the workspace src directory.
+  repository and `ghand_assets` into `<workspace>/src`.
 * Reorganized hardware packages: moved `ghand_hardware_interface`,
   `ghand_controllers`, and `ghand_msgs` under `ghand_hardware/`. Removed the
   deprecated `hand_bringup` and standalone `ghand_hardware_interface/`

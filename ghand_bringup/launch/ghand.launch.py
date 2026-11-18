@@ -5,27 +5,20 @@
 """Main launch file for the GHand ros2_control stack.
 
 Launches the robot state publisher, controller manager, and default controllers
-for either mock hardware or a real GHand communication backend. The backend is
+for a real GHand communication backend. The backend is
 selected via the `profile` argument (a YAML file under
 ghand_bringup/config/profiles), while `hand_side` selects the left-
 or right-hand description.
 """
 
-import os
 from pathlib import Path
 
-from ament_index_python.packages import (
-    get_package_prefix,
-    get_package_share_directory,
-)
+from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import (
-    AppendEnvironmentVariable,
-    DeclareLaunchArgument,
-    ExecuteProcess,
-)
-from launch.conditions import UnlessCondition
+from launch.events import Shutdown
+from launch.actions import OpaqueFunction, DeclareLaunchArgument, EmitEvent
+from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -33,25 +26,16 @@ from launch.substitutions import (
     PathJoinSubstitution,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from ghand_bringup_launch import (
+    controller_spawner, planning_after_start, ros_log_arguments, start_in_order, trajectory_stages, wait_for_control,
+)
 from launch_ros.substitutions import FindPackageShare
 
 
 def generate_launch_description():
     product_name = LaunchConfiguration("product_name")
-    # ROS vendor libraries are installed outside the regular lib directory.
-    # Make the path explicit for processes spawned by launch (notably RViz).
-    rviz_ogre_lib = os.path.join(
-        get_package_prefix("rviz_ogre_vendor"),
-        "opt",
-        "rviz_ogre_vendor",
-        "lib",
-    )
-    env_actions = []
-    if os.path.isdir(rviz_ogre_lib):
-        env_actions.append(
-            AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
-        )
-
+    use_rviz = LaunchConfiguration("use_rviz")
     product_arg = DeclareLaunchArgument(
         "product_name", default_value="ghand5",
         choices=sorted(
@@ -69,14 +53,6 @@ def generate_launch_description():
         description="Hand model to launch.",
     )
     hand_side = LaunchConfiguration("hand_side")
-
-    # Launch argument: use mock hardware
-    use_mock_hardware_arg = DeclareLaunchArgument(
-        "use_mock_hardware",
-        default_value="false",
-        description="Use mock hardware instead of real GHand hardware.",
-    )
-    use_mock_hardware = LaunchConfiguration("use_mock_hardware")
 
     # Launch argument: select a communication backend profile
     profile_arg = DeclareLaunchArgument(
@@ -144,6 +120,7 @@ def generate_launch_description():
 
     # Get URDF via xacro. The xacro loads the selected profile and applies any
     # explicitly provided legacy overrides.
+    mock = LaunchConfiguration("mock")
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -157,10 +134,10 @@ def generate_launch_description():
             ),
             " hand_side:=",
             hand_side,
+            " mock:=",
+            mock,
             " product_name:=",
             product_name,
-            " use_mock_hardware:=",
-            use_mock_hardware,
             " profile_file:=",
             PathJoinSubstitution(
                 [
@@ -184,20 +161,27 @@ def generate_launch_description():
             ifname,
         ]
     )
-    robot_description = {"robot_description": robot_description_content}
+    robot_description = {"robot_description": ParameterValue(robot_description_content, value_type=str)}
 
     robot_state_pub_node = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        output="both",
+        ros_arguments=ros_log_arguments(),
+        output="screen",
         parameters=[robot_description],
     )
+
+    controller_params = PathJoinSubstitution([
+        FindPackageShare("ghand_bringup"), "config", product_name, "controllers.yaml",
+    ])
 
     controller_manager_node = Node(
         package="controller_manager",
         executable="ros2_control_node",
+        ros_arguments=ros_log_arguments(),
+        on_exit=[EmitEvent(event=Shutdown(reason="GHand controller manager exited"))],
         parameters=[
-            robot_description,
+            {"hardware_components_initial_state": {"unconfigured": ["ghand_hardware"]}},
             PathJoinSubstitution(
                 [
                     FindPackageShare("ghand_bringup"),
@@ -206,130 +190,53 @@ def generate_launch_description():
                     "ros2_control.yaml",
                 ]
             ),
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_bringup"),
-                    "config",
-                    product_name,
-                    "controllers.yaml",
-                ]
-            ),
+            controller_params,
         ],
-        output="both",
+        output="screen",
     )
 
-    joint_state_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
+    def setup(context):
+        stages = [
+            ("activate ghand_hardware", wait_for_control("hardware", "ghand_hardware")),
+            *trajectory_stages("joint_trajectory_controller", params_file=controller_params),
+        ]
+        ready = []
+        if mock.perform(context) != "true":
+            ready.extend(controller_spawner(name, params_file=controller_params) for name in ["joint_status_broadcaster", "tactile_broadcaster"])
+            ready.extend(
+                controller_spawner(name, "--inactive", params_file=controller_params)
+                for name in ("position_controller", "velocity_percent_controller",
+                             "current_percent_controller")
+            )
+        if LaunchConfiguration("planning").perform(context) == "true":
+            ready.extend(planning_after_start(
+                product_name.perform(context), LaunchConfiguration("hand_side").perform(context), robot_description,
+                use_rviz,
+            ))
+        else:
+            ready.append(Node(
+                package="rviz2", executable="rviz2",
+                arguments=["-d", PathJoinSubstitution([
+                    FindPackageShare("ghand_description"), "config", product_name, "ghand.rviz",
+                ])],
+                condition=IfCondition(use_rviz), ros_arguments=ros_log_arguments(), output="screen",
+            ))
+        return start_in_order(stages, ready)
 
-    joint_status_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_status_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-        condition=UnlessCondition(use_mock_hardware),
-    )
-
-    tactile_broadcaster_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "tactile_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-        condition=UnlessCondition(use_mock_hardware),
-    )
-
-    joint_traj_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "joint_trajectory_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    position_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "position_controller",
-            "--controller-manager",
-            "/controller_manager",
-            "--inactive",
-        ],
-    )
-
-    velocity_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "velocity_controller",
-            "--controller-manager",
-            "/controller_manager",
-            "--inactive",
-        ],
-    )
-
-    effort_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=[
-            "effort_controller",
-            "--controller-manager",
-            "/controller_manager",
-            "--inactive",
-        ],
-    )
-
-    rviz_process = ExecuteProcess(
-        cmd=[
-            "rviz2",
-            "-d",
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_bringup"),
-                    "config",
-                    product_name,
-                    "ghand.rviz",
-                ]
-            ),
-        ],
-        output="both",
-    )
-
-    nodes = env_actions + [
+    return LaunchDescription([
         product_arg,
         hand_side_arg,
-        use_mock_hardware_arg,
         profile_arg,
+        DeclareLaunchArgument("use_rviz", default_value="true"),
         communication_type_arg,
         device_arg,
         baud_rate_arg,
         dbit_rate_arg,
         slave_id_arg,
         ifname_arg,
+        DeclareLaunchArgument("mock", default_value="false", choices=["true", "false"]),
+        DeclareLaunchArgument("planning", default_value="false", choices=["true", "false"]),
+        OpaqueFunction(function=setup),
         robot_state_pub_node,
         controller_manager_node,
-        joint_state_broadcaster_spawner,
-        joint_status_broadcaster_spawner,
-        tactile_broadcaster_spawner,
-        joint_traj_controller_spawner,
-        position_controller_spawner,
-        velocity_controller_spawner,
-        effort_controller_spawner,
-        rviz_process,
-    ]
-
-    return LaunchDescription(nodes)
+    ])

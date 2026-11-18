@@ -1,0 +1,2 @@
+prepend-non-duplicate;LD_LIBRARY_PATH;lib
+set;GHAND_SDK_CONFIG;share/ghand-sdk/config

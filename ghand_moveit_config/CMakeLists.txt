@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.8)
 project(ghand_moveit_config)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+ament_python_install_package(ghand_moveit_launch)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 file(GLOB _product_config_dirs LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/config/*")
@@ -15,6 +17,11 @@ foreach(_product_config_dir IN LISTS _product_config_dirs)
   endif()
   set(_generated_config_dir "${CMAKE_CURRENT_BINARY_DIR}/config/${_product_name}")
   file(MAKE_DIRECTORY "${_generated_config_dir}")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+    scripts/generate_dual_moveit_config.py
+    "${_product_config_dir}/${_product_name}_left.srdf"
+    "${_product_config_dir}/${_product_name}_right.srdf"
+    "${_product_config_dir}/joint_limits.yaml" "${_product_config_dir}/kinematics.yaml")
   execute_process(
     COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/scripts/generate_dual_moveit_config.py"

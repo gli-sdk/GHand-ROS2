@@ -19,15 +19,21 @@ import yaml
 
 
 def patch_lower_limits(
-    urdf_str: str, epsilon: float = -0.01
+    urdf_str: str, epsilon: float = -0.01, *, ghand5_dynamics: bool = False
 ) -> tuple[str, int]:
     """Patch zero lower joint limits to the given negative tolerance."""
     root = ET.fromstring(urdf_str)
     patched = 0
-    for joint in root.iter("joint"):
+    for joint in root.findall("joint"):
         limit = joint.find("limit")
         if limit is None:
             continue
+        if ghand5_dynamics:
+            for interface in ("effort", "velocity"):
+                if float(limit.get(interface, "0")) == 0.0:
+                    limit.set(interface, "50")
+            if joint.find("dynamics") is None:
+                ET.SubElement(joint, "dynamics", damping="0.1", friction="0.05")
         lower = limit.get("lower")
         if lower is None:
             continue
@@ -99,6 +105,7 @@ def main():
         help="Additional argument to pass to xacro (can be repeated)",
     )
     parser.add_argument("--mimic-config", required=True)
+    parser.add_argument("--ghand5-dynamics", action="store_true")
     args = parser.parse_args()
 
     xacro_cmd = ["xacro", args.urdf_path]
@@ -110,21 +117,12 @@ def main():
         print(result.stderr, file=sys.stderr)
         sys.exit(result.returncode)
 
-    patched_urdf, count = patch_lower_limits(
-        result.stdout, args.limit_tolerance
+    patched_urdf, _ = patch_lower_limits(
+        result.stdout, args.limit_tolerance, ghand5_dynamics=args.ghand5_dynamics,
     )
     with open(args.mimic_config, encoding="utf-8") as source:
         mimic_map = yaml.safe_load(source)
-    patched_urdf, mimic_count = add_mimic_joints(patched_urdf, mimic_map)
-    print(
-        f"Patched {count} joint limit(s) with lower=0 -> "
-        f"lower={args.limit_tolerance}",
-        file=sys.stderr,
-    )
-    print(
-        f"Added {mimic_count} DIP mimic joint(s)",
-        file=sys.stderr,
-    )
+    patched_urdf, _ = add_mimic_joints(patched_urdf, mimic_map)
     print(patched_urdf)
 
 

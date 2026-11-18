@@ -7,9 +7,8 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 # --------------------------------------------------------------------------
 # Source assets
 #
-# The URDF and meshes live in the ghand_assets repository, which is fetched
-# via `vcs import . < ghand-ros2/ghand.repos` into the sibling
-# ghand_assets checkout under the workspace src directory.
+# The URDF and meshes live in the ghand_assets repository, cloned as the
+# sibling ghand_assets checkout under the workspace src directory.
 # ghand_assets is a raw asset repository (no package.xml), so this package
 # turns the G5 left- and right-hand descriptions into a standard ROS 2
 # description package: it installs the meshes under share/ and rewrites the URDF's bare
@@ -27,29 +26,29 @@ foreach(_hand_side IN ITEMS left right)
     message(FATAL_ERROR
       "GHand ${_hand_side}-hand assets not found at:\n"
       "  ${_source_urdf}\n"
-      "Fetch them with `vcs import . < ghand-ros2/ghand.repos` from the "
-      "workspace src directory before building, or pass -DGHAND_ASSETS_DIR=<path>.")
+      "Clone ghand_assets from Gitee or GitHub into the workspace src "
+      "directory as ghand_assets, or pass "
+      "-DGHAND_ASSETS_DIR=<path>.")
   endif()
 
-  # Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
-  file(READ "${_source_urdf}" _urdf_contents)
-  string(REPLACE
-    "ghand5_system/meshes/"
-    "package://${PROJECT_NAME}/meshes/ghand5/"
-    _urdf_contents "${_urdf_contents}")
-
-  # Gazebo cannot drive joints whose source effort/velocity limits are zero.
-  string(REGEX REPLACE "effort=\"0\"" "effort=\"50\"" _urdf_contents "${_urdf_contents}")
-  string(REGEX REPLACE "velocity=\"0\"" "velocity=\"50\"" _urdf_contents "${_urdf_contents}")
-
-  # Add damping/friction to suppress high-gain oscillations in Gazebo.
-  string(REGEX REPLACE "(<limit[^/]*/>)" "\\1\n      <dynamics damping=\"0.1\" friction=\"0.05\"/>" _urdf_contents "${_urdf_contents}")
+  set(_g5_preparation_script "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_ghand5_urdf.py")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+               "${_source_urdf}" "${_g5_preparation_script}")
   set(_output_urdf
       "${CMAKE_CURRENT_BINARY_DIR}/urdf/ghand5/ghand5_${_hand_side}_description.urdf")
-  file(WRITE "${_output_urdf}" "${_urdf_contents}")
+  execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${_g5_preparation_script}"
+            "${_source_urdf}" "${_output_urdf}"
+    RESULT_VARIABLE _g5_result
+  )
+  if(NOT _g5_result EQUAL 0)
+    message(FATAL_ERROR "Failed to prepare GHand5 ${_hand_side} description")
+  endif()
   install(FILES "${_output_urdf}" DESTINATION share/${PROJECT_NAME}/urdf/ghand5)
 endforeach()
 
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+  scripts/generate_dual_urdf.py scripts/prepare_lite1_urdf.py config/ghandlite1.yaml)
 # Generate a single robot description containing both hands. Link and joint
 # names are prefixed with left_ / right_, and each palm is mounted to a shared
 # world link so TF and ros2_control resources cannot collide.
@@ -78,8 +77,9 @@ file(MAKE_DIRECTORY "${_lite1_urdf_dir}")
 foreach(_hand_side IN ITEMS left right)
   set(_source_urdf "${GHAND_LITE1_ASSETS_DIR}/urdf/glite1_${_hand_side}.urdf")
   if(NOT EXISTS "${_source_urdf}")
-    message(FATAL_ERROR "Lite1 assets missing at ${_source_urdf}. Fetch ghand.repos or set GHAND_LITE1_ASSETS_DIR.")
+    message(FATAL_ERROR "Lite1 assets missing at ${_source_urdf}. Add the product asset bundle under ghand_assets/ghand_lite1_system or set GHAND_LITE1_ASSETS_DIR.")
   endif()
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_source_urdf}")
   execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_lite1_urdf.py"
             --source "${_source_urdf}"

@@ -12,7 +12,9 @@ from ament_index_python.packages import (
     get_package_share_directory,
 )
 from launch import LaunchDescription
+from launch.events import Shutdown
 from launch.actions import (
+    EmitEvent,
     OpaqueFunction,
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
@@ -21,7 +23,7 @@ from launch.actions import (
     SetEnvironmentVariable,
 )
 from launch.conditions import IfCondition
-from launch.event_handlers import OnProcessExit, OnProcessStart
+from launch.event_handlers import OnProcessStart
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -29,11 +31,12 @@ from launch.substitutions import (
     PathJoinSubstitution,
 )
 from launch_ros.actions import Node, SetParameter
+from ghand_bringup_launch import planning_after_start, ros_log_arguments, start_in_order, trajectory_stages
 from launch_ros.substitutions import FindPackageShare
-from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def launch_setup(context):
+    headless = LaunchConfiguration("headless").perform(context) == "true"
     product_name = LaunchConfiguration("product_name").perform(context)
     use_rviz = LaunchConfiguration("use_rviz")
     world = LaunchConfiguration("world")
@@ -48,19 +51,13 @@ def launch_setup(context):
         "lib",
         "x86_64-linux-gnu",
     )
-    rviz_ogre_lib = os.path.join(
-        get_package_prefix("rviz_ogre_vendor"),
-        "opt",
-        "rviz_ogre_vendor",
-        "lib",
-    )
     env_actions = [
         AppendEnvironmentVariable(
             "GZ_SIM_RESOURCE_PATH", description_share_parent
         ),
         AppendEnvironmentVariable("GZ_SIM_SYSTEM_PLUGIN_PATH", ros_lib),
     ]
-    for library_path in (ros_lib_multiarch, rviz_ogre_lib):
+    for library_path in (ros_lib_multiarch,):
         if os.path.isdir(library_path):
             env_actions.append(
                 AppendEnvironmentVariable("LD_LIBRARY_PATH", library_path)
@@ -99,6 +96,7 @@ def launch_setup(context):
             ),
             " --xacro-arg product_name:=",
             product_name,
+            " --ghand5-dynamics" if product_name == "ghand5" else "",
             " --mimic-config ",
             PathJoinSubstitution([
                 FindPackageShare("ghand_gazebo"), "config", product_name, "mimic_joints.yaml"
@@ -108,37 +106,18 @@ def launch_setup(context):
         ],
         on_stderr="warn",
     )
-    robot_description = {"robot_description": description}
-
-    moveit_config = (
-        MoveItConfigsBuilder(
-            f"{product_name}-dual", package_name="ghand_moveit_config"
-        )
-        .robot_description_semantic(
-            file_path=f"config/{product_name}/{product_name}_dual.srdf"
-        )
-        .trajectory_execution(
-            file_path=f"config/{product_name}/dual_moveit_controllers.yaml"
-        )
-        .joint_limits(file_path=f"config/{product_name}/dual_joint_limits.yaml")
-        .robot_description_kinematics(
-            file_path=f"config/{product_name}/dual_kinematics.yaml"
-        )
-        .planning_pipelines(
-            default_planning_pipeline="ompl", pipelines=["ompl"]
-        )
-        .to_moveit_configs()
-    )
-    moveit_config.robot_description = robot_description
+    robot_description = {"robot_description": description.perform(context)}
 
     gazebo = ExecuteProcess(
-        cmd=["gz", "sim", "-r", world],
+        on_exit=[EmitEvent(event=Shutdown(reason="Gazebo exited"))],
+        cmd=["gz", "sim", "-r", *(["-s"] if headless else []), world],
         output="screen",
         additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
     )
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
+        ros_arguments=ros_log_arguments(),
         arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
         output="screen",
     )
@@ -149,16 +128,19 @@ def launch_setup(context):
     rsp = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
+        ros_arguments=ros_log_arguments(),
         parameters=[robot_description],
-        output="both",
+        output="screen",
     )
     spawn_entity = Node(
         package="ros_gz_sim",
         executable="create",
+        prefix="timeout --foreground 40s",
+        ros_arguments=ros_log_arguments(),
         arguments=[
             "-topic",
             "/robot_description",
-            "-entity",
+            "-name",
             "GHand-dual",
             "-x",
             "0.35",
@@ -176,81 +158,48 @@ def launch_setup(context):
         output="screen",
     )
 
-    def spawner(name):
-        return Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=[
-                name,
-                "--controller-manager",
-                "/controller_manager",
-                "--controller-manager-timeout",
-                "30",
-                "--switch-timeout",
-                "30",
-                "--service-call-timeout",
-                "30",
-            ],
-            output="both",
-        )
+    planning = LaunchConfiguration("planning").perform(context) == "true"
+    moveit_nodes = planning_after_start(
+        product_name, "dual", robot_description, use_rviz, use_sim_time=True,
+    ) if planning else []
 
-    jsb_spawner = spawner("joint_state_broadcaster")
-    left_spawner = spawner("left_joint_trajectory_controller")
-    right_spawner = spawner("right_joint_trajectory_controller")
-    left_after_jsb = RegisterEventHandler(
-        OnProcessExit(target_action=jsb_spawner, on_exit=[left_spawner])
-    )
-    right_after_left = RegisterEventHandler(
-        OnProcessExit(target_action=left_spawner, on_exit=[right_spawner])
-    )
-    move_group = Node(
-        package="moveit_ros_move_group",
-        executable="move_group",
-        parameters=[moveit_config.to_dict()],
-        output="screen",
-    )
-    rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=[
-            "-d",
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_moveit_config"),
-                    "config",
-                    product_name,
-                    "dual_moveit.rviz",
-                ]
-            ),
-        ],
-        parameters=[moveit_config.to_dict()],
-        condition=IfCondition(use_rviz),
-        output="both",
+    model_rviz = Node(
+        package="rviz2", executable="rviz2",
+        arguments=["-d", PathJoinSubstitution([
+            FindPackageShare("ghand_description"), "config", product_name, "ghand_dual.rviz"
+        ])],
+        parameters=[robot_description],
+        condition=IfCondition(use_rviz), ros_arguments=ros_log_arguments(), output="screen",
     )
 
-    return (
-        env_actions
-        + [
-            SetParameter(name="use_sim_time", value=True),
-            gazebo,
-            clock_bridge_starter,
-            rsp,
-            spawn_entity,
-        ]
-        + [jsb_spawner, left_after_jsb, right_after_left]
-        + [move_group, rviz]
-    )
+    controller_params = PathJoinSubstitution([
+        FindPackageShare("ghand_gazebo"), "config", product_name, "dual_controllers.yaml",
+    ])
+    stages = [
+        ("spawn Gazebo model", spawn_entity),
+        *trajectory_stages("left_joint_trajectory_controller", "right_joint_trajectory_controller", params_file=controller_params),
+    ]
+    return [
+        *env_actions,
+        SetParameter(name="use_sim_time", value=True),
+        clock_bridge_starter,
+        gazebo,
+        rsp,
+        *start_in_order(stages, moveit_nodes if planning else [model_rviz]),
+    ]
 
 
 def generate_launch_description():
     declared_args = [
+        DeclareLaunchArgument("headless", default_value="false", choices=["true", "false"]),
+        DeclareLaunchArgument("planning", default_value="true", choices=["true", "false"]),
         DeclareLaunchArgument(
             "product_name", default_value="ghand5",
             choices=sorted(
                 path.parent.name
                 for path in (
-                    Path(get_package_share_directory("ghand_bringup")) / "config"
-                ).glob("*/controllers.yaml")
+                    Path(get_package_share_directory("ghand_description")) / "urdf"
+                ).glob("*/*_right_description.urdf")
             ),
             description="Product configuration directory (default: ghand5).",
         ),

@@ -1,168 +1,78 @@
 # ghand_hardware_interface
 
-`ros2_control` hardware interface for the GHand dexterous hand.
+A thin `ros2_control::SystemInterface` adapter for GHand C++ SDK 3.1 or newer
+in the 3.x API family. Device communication, discovery, protocol encoding,
+product capabilities and device commands are owned by the SDK.
+This package does not implement RS485, CANFD or EtherCAT protocols.
 
-This package owns the shared C++ plugin. Product joint/sensor resource Xacros
-are owned by `ghand_bringup/config/<product_name>/`; shared hardware-selection
-and connection macros are in `ghand_bringup/config/common/`.
+## Build
 
-`product_name:=ghandlite1` selects Lite1's 11-joint feedback layout and six
-controlled joints. Modbus command blocks use four registers, and EtherCAT uses
-a two-byte hand header followed by six eight-byte commands. Lite1 has no
-independent position sensor; closed-loop, MIT and kp/kd interfaces are not
-available. The SDK encoder reserves Lite1's loop bits even though its current
-API guard calls the mode closed loop; this ROS adaptation emits the reserved
-zero bits and does not expose a loop selector, following the confirmed device
-capability. The SDK checkout is not modified or linked.
+This project includes the SDK-generated dynamic library, matching public headers,
+product JSON, CMake exports and license notices under `ghand_sdk_vendor/sdk/`.
+Neither the build nor runtime accesses a developer's SDK source checkout.
 
-## Joint controller GUI
-
-Start the hardware or MoveIt launch file first, then open the compatible joint
-trajectory controller GUI with:
+From the workspace root, after sourcing ROS 2 Jazzy:
 
 ```bash
+./src/ghand-ros2/build.sh
+source install/setup.bash
+```
+
+The adapter finds the installed `ghand_sdk_vendor` package and links its
+`GHand::ghand` target (`libghand.so`). ROS does not compile SDK sources. Joint and
+active-joint validation tables are generated from this bundled SDK's JSON.
+The vendor package environment adds the installed library/config paths.
+Use `build.sh --simulation` for preview/Gazebo without building or installing SDK.
+
+SDK upgrades replace the complete matching SDK artifact set in
+`ghand_sdk_vendor/sdk/`; rebuild the vendor package and hardware adapter afterward.
+The included artifact is Linux x86_64, SDK 3.1.0. Its binary, headers and JSON
+must be updated together. See `ghand_sdk_vendor/SDK_MANIFEST.json` for hashes.
+
+## Runtime
+
+```bash
+ros2 launch ghand_bringup start.launch.py backend:=hardware \
+  product_name:=ghand5 hand:=right planning:=false \
+  profile:=rs485_right device:=/dev/ttyUSB0
 ros2 run ghand_hardware_interface ghand_joint_controller_gui
 ```
 
-This project launcher works around the removed
-`reload_controller_libraries` service in recent ROS 2 Jazzy
-`controller_manager` releases. The upstream RQT executable may otherwise show
-empty controller-manager and controller selectors.
-When exactly one controller manager and one compatible trajectory controller
-are running, the launcher selects both automatically and displays their joint
-sliders.
+The plugin remains `ghand_hardware_interface/GHandHardwareInterface`. Existing
+position trajectory actions, joint names and custom feedback topics are retained.
+The SDK session accepts `rs485`, `canfd`, `ethercat`; `zqwl_canfd` is an alias
+for SDK CANFD. The old independent `zlg_canfd` implementation is removed.
 
-## Overview
+Connection parameters: `product_name`, `device` (serial/CAN adapter), `ifname`
+(EtherCAT), `node_id`, `baud_rate`, `data_rate`, and `control_mode`.
+`hand_side` or `slave_index` selects a hand when one SDK session discovers
+multiple hands. Existing dual-hand launches use separate adapters/sessions;
+sharing one bus between separate hardware plugins is not supported.
+RS485 uses SDK-supported baud rates and 8N1; CANFD bitrates must match a typed
+SDK bit-timing profile. Low-level polling, serial adapter and response-timeout
+settings are managed by SDK defaults, rather than reimplemented in ROS.
+`read_timeout_ms` is the ROS joint-feedback freshness deadline (default 500 ms).
 
-This package provides a `hardware_interface::SystemInterface` implementation
-exported as `ghand_hardware_interface/GHandHardwareInterface`. It abstracts low-level
-communication over EtherCAT, RS485, or CANFD and exposes standard
-`ros2_control` command/state interfaces.
+## ROS / device boundary
 
-## Communication backends
+- Position: ROS radians, SDK degrees, mapped by explicit SDK joint IDs.
+- `velocity_percent` and `current_percent`: device percentages, not rad/s or Nm.
+- Commands additionally expose the declared `control_mode`, `loop_type`,
+  `control_state`, `kp`, `kd` interfaces. Device capability restrictions remain
+  enforced by SDK; Lite1-specific ROS interfaces remain restricted.
+- Unwritten commands remain NaN. No motion is sent while controllers load.
+- Hand state and tactile data come from SDK callbacks. Missing data is not a
+  valid new measurement; joint feedback age uses a monotonic clock.
 
-The following backends are compiled in when their dependencies are detected at
-configure time:
+Configure connects through SDK. Activate requires fresh complete feedback and
+clears previous commands. Deactivate invokes SDK `Stop()` and keeps the session
+available for reactivation; cleanup disconnects. Error/shutdown stops and
+releases the connection. SDK errors propagate to ROS, including SDK error codes
+and messages. `read()` copies the callback cache; `write()` calls `MoveJoints()`.
+Write latency therefore follows the SDK API and selected transport.
 
-| Backend | Library | Build flag |
-|---------|---------|------------|
-| EtherCAT | SOEM | `-DGHAND_ENABLE_ETHERCAT=ON` |
-| RS485 | libmodbus | auto-detected |
-| CANFD (GHand-Cpp-SDK/ZQWL) | Linux CDC serial | always available |
-| Legacy ZLG CANFD | `libusbcanfd` + `libzuds` | `-DGHAND_ENABLE_ZLG_CANFD=ON` |
+## Verification scope
 
-By default `./build.sh` produces a mock-only library that does not require any
-vendor hardware libraries. See the root `README.md` for installation
-instructions for the optional backends.
-
-## Plugin
-
-The hardware plugin is declared in `hand_hardware_interface.xml` and loaded by
-the controller manager through the `<ros2_control>` tag in the URDF.
-
-## Dependencies
-
-- `hardware_interface`
-- `pluginlib`
-- `rclcpp`
-- `rclcpp_lifecycle`
-- `libmodbus` (optional)
-- `soem` (optional)
-
-## Launch
-
-```bash
-# Mock hardware (no physical hand required)
-ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
-
-# EtherCAT (replace enx... with your EtherCAT interface name, see `ip link`)
-ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
-
-# CANFD via the GHand-Cpp-SDK compatible ZQWL CDC adapter
-ros2 launch ghand_bringup ghand.launch.py profile:=canfd_left
-```
-
-### Dual hand
-
-The dual description is one robot with `left_` and `right_` joint prefixes,
-one controller manager, and one trajectory controller per hand. Single-hand
-launches keep their original unprefixed names for compatibility.
-
-```bash
-# Safe mock test
-ros2 launch ghand_bringup dual_hand.launch.py \
-  use_mock_hardware:=true
-
-# Two independent RS485 devices
-ros2 launch ghand_bringup dual_hand.launch.py \
-  use_mock_hardware:=false \
-  left_profile:=rs485_left right_profile:=rs485_dual_right \
-  left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
-
-# Two independent CANFD CDC adapters
-ros2 launch ghand_bringup dual_hand.launch.py \
-  use_mock_hardware:=false \
-  left_profile:=canfd_left right_profile:=canfd_right \
-  left_device:=/dev/ttyACM0:0 right_device:=/dev/ttyACM1:0
-```
-
-The dual trajectory actions are:
-
-- `/left_joint_trajectory_controller/follow_joint_trajectory`
-- `/right_joint_trajectory_controller/follow_joint_trajectory`
-
-With both controllers running, the GUI controller selector contains one left
-and one right entry:
-
-```bash
-ros2 run ghand_hardware_interface ghand_joint_controller_gui
-```
-
-### SDK control fields (real hardware)
-
-Set `hardware.control_mode` in the selected profile to `position` (default),
-`speed`/`velocity`, `current`, `mit`, or `custom`. The mode is fixed until the
-backend is reconfigured. EtherCAT, RS485, ZQWL CANFD and legacy ZLG writes use
-the same selection; invalid values fail initialization.
-
-```yaml
-hardware:
-  # Keep the connection fields from your existing profile.
-  control_mode: custom
-```
-
-Real-hardware joint command interfaces additionally expose `current_percent`,
-`control_mode` (0 position, 1 speed, 2 current, 3 MIT), `loop_type` (0 semi-closed,
-1 closed), `control_state` (0 disabled, 1 running, 2 stopped/holding), `kp` and
-`kd`. Select `custom` to choose different modes or loop types per joint.
-Outside CUSTOM, the joint mode must match the configured hand mode and the
-loop type must be closed. Gains are signed 16-bit integer values.
-
-Position commands use radians. In position mode, trajectory velocity remains
-in rad/s and the hardware uses a 100% velocity limit; current defaults to a
-100% limit. `current_percent` can explicitly set that limit to 0–100%.
-In speed/current/MIT modes, velocity is a signed percentage and current is
-clamped to -100–100%. Explicit `current_percent` takes precedence over the
-legacy `effort` command. Position trajectory controllers are intended for
-the default position mode; other modes need controllers claiming the relevant
-percentage and SDK command interfaces. The new command interfaces start as
-NaN until a controller writes them; do not initialize unused fields to zero.
-
-Additional joint feedback interfaces are `current_percent`, `control_mode`
-and `loop_type`. The existing `effort` feedback remains zero because current
-percentage is not a measured torque. The `${prefix}hand` sensor exposes
-`hand_state`, `temperature_raw`, `warning_0` through `warning_5`, `fault_0`
-through `fault_11` and `critical_0` through `critical_5`. Temperature retains
-the protocol integer until its physical unit is confirmed. Unavailable hand
-feedback is NaN. RS485 reads the hand header with the joint block; legacy ZLG
-does not provide this header or mode/loop feedback, so those values are NaN.
-Mock and Gazebo interfaces remain unchanged.
-
-Modbus writes stop and hold omitted active joints; explicitly requested
-DISABLED joints remain disabled. EtherCAT retains earlier commands for
-omitted joints, matching the SDK backend. Both codecs truncate angle targets
-toward zero at 0.1-degree resolution.
-
-These changes have offline codec coverage. Build the ROS2 package on Linux
-before testing the device; the current Windows session does not verify the
-ROS2 plugin or the slave PDO mapping.
+SDK linking and the ROS adapter build have been checked. Device movement,
+controller execution and simulation behavior are to be verified by the user.
+No device protocol tests are maintained in this ROS package.

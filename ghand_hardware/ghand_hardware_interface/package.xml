@@ -18,19 +18,12 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_lifecycle</depend>
 
-  <!-- Optional communication backends. They are detected at configure time;
-       if a backend is not available on the system, the corresponding driver
-       is compiled out and a warning is printed. -->
-  <depend>libmodbus</depend>
-  <depend>soem</depend>
+  <depend>ghand_sdk_vendor</depend>
 
   <exec_depend>rqt_gui</exec_depend>
   <exec_depend>rqt_joint_trajectory_controller</exec_depend>
   <exec_depend>xacro</exec_depend>
 
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
-  <test_depend>ament_cmake_gtest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

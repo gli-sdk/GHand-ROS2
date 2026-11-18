@@ -3,8 +3,4 @@ hardware:
   device: /dev/ttyUSB0
   baud_rate: 1000000
   node_id: 50
-  data_bits: 8
-  stop_bits: 1
-  parity: N
-  response_timeout_ms: 500
   read_timeout_ms: 500

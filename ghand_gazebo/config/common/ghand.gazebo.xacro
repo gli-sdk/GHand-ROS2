@@ -59,11 +59,11 @@
        flipped 180deg about y so fingers point down). -->
   <xacro:macro name="ghand_world_fixed_joint"
                params="x:=0 y:=0 z:=0.9
-                       roll:=0 pitch:=3.14159265359 yaw:=0">
+                       roll:=0 pitch:=3.14159265359 yaw:=0 root_link:=base_link">
     <link name="world"/>
     <joint name="world_to_base" type="fixed">
       <parent link="world"/>
-      <child link="base_link"/>
+      <child link="${root_link}"/>
       <origin xyz="${x} ${y} ${z}" rpy="${roll} ${pitch} ${yaw}"/>
     </joint>
   </xacro:macro>

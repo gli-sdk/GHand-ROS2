@@ -1,131 +1,143 @@
 controller_manager:
   ros__parameters:
     update_rate: 100
-
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
-
     left_joint_status_broadcaster:
       type: ghand_controllers/JointStatusBroadcaster
     right_joint_status_broadcaster:
       type: ghand_controllers/JointStatusBroadcaster
-
     left_tactile_broadcaster:
       type: ghand_controllers/TactileBroadcaster
     right_tactile_broadcaster:
       type: ghand_controllers/TactileBroadcaster
-
     left_joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
     right_joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-
 left_joint_status_broadcaster:
   ros__parameters:
-    joints: &left_all_joints
-      - left_Thumb_IP
-      - left_Thumb_MCP
-      - left_Thumb_TMC_FE
-      - left_Thumb_TMC_AA
-      - left_Thumb_TMC_PS
-      - left_FF_DIP
-      - left_FF_PIP
-      - left_FF_MCP
-      - left_FF_MCP_AA
-      - left_MF_DIP
-      - left_MF_PIP
-      - left_MF_MCP
-      - left_RF_DIP
-      - left_RF_PIP
-      - left_RF_MCP
-      - left_LF_DIP
-      - left_LF_PIP
-      - left_LF_MCP
+    joints:
+    - left_Thumb_IP
+    - left_Thumb_MCP
+    - left_Thumb_TMC_FE
+    - left_Thumb_TMC_AA
+    - left_Thumb_TMC_PS
+    - left_FF_DIP
+    - left_FF_PIP
+    - left_FF_MCP
+    - left_FF_MCP_AA
+    - left_MF_DIP
+    - left_MF_PIP
+    - left_MF_MCP
+    - left_RF_DIP
+    - left_RF_PIP
+    - left_RF_MCP
+    - left_LF_DIP
+    - left_LF_PIP
+    - left_LF_MCP
     publish_rate: 100.0
     topic: /left/joint_status
-
 right_joint_status_broadcaster:
   ros__parameters:
-    joints: &right_all_joints
-      - right_Thumb_IP
-      - right_Thumb_MCP
-      - right_Thumb_TMC_FE
-      - right_Thumb_TMC_AA
-      - right_Thumb_TMC_PS
-      - right_FF_DIP
-      - right_FF_PIP
-      - right_FF_MCP
-      - right_FF_MCP_AA
-      - right_MF_DIP
-      - right_MF_PIP
-      - right_MF_MCP
-      - right_RF_DIP
-      - right_RF_PIP
-      - right_RF_MCP
-      - right_LF_DIP
-      - right_LF_PIP
-      - right_LF_MCP
+    joints:
+    - right_Thumb_IP
+    - right_Thumb_MCP
+    - right_Thumb_TMC_FE
+    - right_Thumb_TMC_AA
+    - right_Thumb_TMC_PS
+    - right_FF_DIP
+    - right_FF_PIP
+    - right_FF_MCP
+    - right_FF_MCP_AA
+    - right_MF_DIP
+    - right_MF_PIP
+    - right_MF_MCP
+    - right_RF_DIP
+    - right_RF_PIP
+    - right_RF_MCP
+    - right_LF_DIP
+    - right_LF_PIP
+    - right_LF_MCP
     publish_rate: 100.0
     topic: /right/joint_status
-
 left_tactile_broadcaster:
   ros__parameters:
-    fingers: [left_thumb, left_index, left_middle, left_ring, left_little]
-    point_counts: [38, 31, 31, 31, 31]
+    fingers:
+    - left_thumb
+    - left_index
+    - left_middle
+    - left_ring
+    - left_little
+    point_counts:
+    - 38
+    - 31
+    - 31
+    - 31
+    - 31
     publish_rate: 100.0
     topic: /left/tactile_data
-
 right_tactile_broadcaster:
   ros__parameters:
-    fingers: [right_thumb, right_index, right_middle, right_ring, right_little]
-    point_counts: [38, 31, 31, 31, 31]
+    fingers:
+    - right_thumb
+    - right_index
+    - right_middle
+    - right_ring
+    - right_little
+    point_counts:
+    - 38
+    - 31
+    - 31
+    - 31
+    - 31
     publish_rate: 100.0
     topic: /right/tactile_data
-
 left_joint_trajectory_controller:
   ros__parameters:
-    joints: &left_command_joints
-      - left_Thumb_MCP
-      - left_Thumb_TMC_FE
-      - left_Thumb_TMC_AA
-      - left_Thumb_TMC_PS
-      - left_FF_PIP
-      - left_FF_MCP
-      - left_FF_MCP_AA
-      - left_MF_PIP
-      - left_MF_MCP
-      - left_RF_PIP
-      - left_RF_MCP
-      - left_LF_PIP
-      - left_LF_MCP
-    command_interfaces: [position]
-    state_interfaces: [position, velocity]
+    joints:
+    - left_Thumb_MCP
+    - left_Thumb_TMC_FE
+    - left_Thumb_TMC_AA
+    - left_Thumb_TMC_PS
+    - left_FF_PIP
+    - left_FF_MCP
+    - left_FF_MCP_AA
+    - left_MF_PIP
+    - left_MF_MCP
+    - left_RF_PIP
+    - left_RF_MCP
+    - left_LF_PIP
+    - left_LF_MCP
+    command_interfaces:
+    - position
+    state_interfaces:
+    - position
     allow_partial_joints_goal: true
-    open_loop_control: false
+    interpolate_from_desired_state: false
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01
-
 right_joint_trajectory_controller:
   ros__parameters:
-    joints: &right_command_joints
-      - right_Thumb_MCP
-      - right_Thumb_TMC_FE
-      - right_Thumb_TMC_AA
-      - right_Thumb_TMC_PS
-      - right_FF_PIP
-      - right_FF_MCP
-      - right_FF_MCP_AA
-      - right_MF_PIP
-      - right_MF_MCP
-      - right_RF_PIP
-      - right_RF_MCP
-      - right_LF_PIP
-      - right_LF_MCP
-    command_interfaces: [position]
-    state_interfaces: [position, velocity]
+    joints:
+    - right_Thumb_MCP
+    - right_Thumb_TMC_FE
+    - right_Thumb_TMC_AA
+    - right_Thumb_TMC_PS
+    - right_FF_PIP
+    - right_FF_MCP
+    - right_FF_MCP_AA
+    - right_MF_PIP
+    - right_MF_MCP
+    - right_RF_PIP
+    - right_RF_MCP
+    - right_LF_PIP
+    - right_LF_MCP
+    command_interfaces:
+    - position
+    state_interfaces:
+    - position
     allow_partial_joints_goal: true
-    open_loop_control: false
+    interpolate_from_desired_state: false
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01

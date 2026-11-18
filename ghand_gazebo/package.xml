@@ -18,6 +18,7 @@
   <exec_depend>control_msgs</exec_depend>
   <exec_depend>ghand_description</exec_depend>
   <exec_depend>ghand_bringup</exec_depend>
+
   <exec_depend>ghand_moveit_config</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_trajectory_controller</exec_depend>
@@ -30,10 +31,12 @@
   <exec_depend>xacro</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
 
-  <!-- Gazebo Harmonic / gz-sim dependencies -->
+  <!-- Gazebo Harmonic dependencies for ROS 2 Jazzy -->
   <exec_depend>gz_ros2_control</exec_depend>
+  <exec_depend>gz_tools_vendor</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
 
   <!-- Python utilities used directly by launch files -->
   <exec_depend>ament_index_python</exec_depend>

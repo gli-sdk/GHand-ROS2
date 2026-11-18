@@ -1,199 +1,224 @@
 controller_manager:
   ros__parameters:
-    update_rate: 100  # Hz
-
+    update_rate: 100
     joint_state_broadcaster:
       type: joint_state_broadcaster/JointStateBroadcaster
-
     joint_status_broadcaster:
       type: ghand_controllers/JointStatusBroadcaster
-
     tactile_broadcaster:
       type: ghand_controllers/TactileBroadcaster
-
     joint_trajectory_controller:
       type: joint_trajectory_controller/JointTrajectoryController
-
     position_controller:
       type: position_controllers/JointGroupPositionController
-
-    velocity_controller:
-      type: velocity_controllers/JointGroupVelocityController
-
-    effort_controller:
-      type: effort_controllers/JointGroupEffortController
-
+    velocity_percent_controller:
+      type: forward_command_controller/ForwardCommandController
+    current_percent_controller:
+      type: forward_command_controller/ForwardCommandController
 joint_status_broadcaster:
   ros__parameters:
     joints:
-      - Thumb_IP
-      - Thumb_MCP
-      - Thumb_TMC_FE
-      - Thumb_TMC_AA
-      - Thumb_TMC_PS
-      - FF_DIP
-      - FF_PIP
-      - FF_MCP
-      - FF_MCP_AA
-      - MF_DIP
-      - MF_PIP
-      - MF_MCP
-      - RF_DIP
-      - RF_PIP
-      - RF_MCP
-      - LF_DIP
-      - LF_PIP
-      - LF_MCP
+    - Thumb_IP
+    - Thumb_MCP
+    - Thumb_TMC_FE
+    - Thumb_TMC_AA
+    - Thumb_TMC_PS
+    - FF_DIP
+    - FF_PIP
+    - FF_MCP
+    - FF_MCP_AA
+    - MF_DIP
+    - MF_PIP
+    - MF_MCP
+    - RF_DIP
+    - RF_PIP
+    - RF_MCP
+    - LF_DIP
+    - LF_PIP
+    - LF_MCP
     publish_rate: 100.0
-
 tactile_broadcaster:
   ros__parameters:
     fingers:
-      - thumb
-      - index
-      - middle
-      - ring
-      - little
+    - thumb
+    - index
+    - middle
+    - ring
+    - little
     point_counts:
-      - 38
-      - 31
-      - 31
-      - 31
-      - 31
+    - 38
+    - 31
+    - 31
+    - 31
+    - 31
     publish_rate: 100.0
-
 joint_trajectory_controller:
   ros__parameters:
     joints:
-      - Thumb_MCP
-      - Thumb_TMC_FE
-      - Thumb_TMC_AA
-      - Thumb_TMC_PS
-      - FF_PIP
-      - FF_MCP
-      - FF_MCP_AA
-      - MF_PIP
-      - MF_MCP
-      - RF_PIP
-      - RF_MCP
-      - LF_PIP
-      - LF_MCP
+    - Thumb_MCP
+    - Thumb_TMC_FE
+    - Thumb_TMC_AA
+    - Thumb_TMC_PS
+    - FF_PIP
+    - FF_MCP
+    - FF_MCP_AA
+    - MF_PIP
+    - MF_MCP
+    - RF_PIP
+    - RF_MCP
+    - LF_PIP
+    - LF_MCP
     command_interfaces:
-      - position
-      - velocity
+    - position
     state_interfaces:
-      - position
-      - velocity
-    # true: use planned trajectory values directly as feedforward (no feedback correction).
-    # false: use state feedback + PID to correct tracking errors. Recommended for real hardware.
-    open_loop_control: false
-    # true: a trajectory goal may specify only a subset of joints.
-    # false: every goal must specify all joints controlled by this controller.
+    - position
+    interpolate_from_desired_state: false
     allow_partial_joints_goal: true
-    # PID gains used when command_interfaces include velocity / effort.
-    # p: proportional gain, i: integral gain, d: derivative gain.
-    # Start tuning with i=0, d=0, increase p until response is fast but not oscillatory.
     gains:
-      Thumb_MCP:        { p: 100.0, i: 0.0, d: 10.0 }
-      Thumb_TMC_FE:     { p: 100.0, i: 0.0, d: 10.0 }
-      Thumb_TMC_AA:     { p: 100.0, i: 0.0, d: 10.0 }
-      Thumb_TMC_PS:     { p: 100.0, i: 0.0, d: 10.0 }
-      FF_PIP:        { p: 100.0, i: 0.0, d: 10.0 }
-      FF_MCP:        { p: 100.0, i: 0.0, d: 10.0 }
-      FF_MCP_AA:     { p: 100.0, i: 0.0, d: 10.0 }
-      MF_PIP:       { p: 100.0, i: 0.0, d: 10.0 }
-      MF_MCP:       { p: 100.0, i: 0.0, d: 10.0 }
-      RF_PIP:         { p: 100.0, i: 0.0, d: 10.0 }
-      RF_MCP:         { p: 100.0, i: 0.0, d: 10.0 }
-      LF_PIP:       { p: 100.0, i: 0.0, d: 10.0 }
-      LF_MCP:       { p: 100.0, i: 0.0, d: 10.0 }
-    # Trajectory execution constraints.
-    # goal_time: extra seconds allowed after planned trajectory end to reach the goal.
-    # stopped_velocity_tolerance: rad/s threshold below which a joint is considered stopped.
-    # goal: final position error tolerance (rad).
-    # trajectory: max allowed deviation from planned trajectory during execution (rad).
-    # GHand fingers have backlash and varying mechanical response; use relaxed path
-    # tolerances to avoid frequent ABORTs during normal motion.
+      Thumb_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      Thumb_TMC_FE:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      Thumb_TMC_AA:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      Thumb_TMC_PS:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      FF_PIP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      FF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      FF_MCP_AA:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      MF_PIP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      MF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      RF_PIP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      RF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      LF_PIP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
+      LF_MCP:
+        p: 100.0
+        i: 0.0
+        d: 10.0
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01
-      Thumb_MCP:        { goal: 0.1, trajectory: 0.5 }
-      Thumb_TMC_FE:     { goal: 0.1, trajectory: 0.5 }
-      Thumb_TMC_AA:     { goal: 0.1, trajectory: 0.5 }
-      Thumb_TMC_PS:     { goal: 0.1, trajectory: 0.5 }
-      FF_PIP:        { goal: 0.1, trajectory: 0.5 }
-      FF_MCP:        { goal: 0.1, trajectory: 0.5 }
-      FF_MCP_AA:     { goal: 0.1, trajectory: 0.5 }
-      MF_PIP:       { goal: 0.1, trajectory: 0.5 }
-      MF_MCP:       { goal: 0.1, trajectory: 0.5 }
-      RF_PIP:         { goal: 0.1, trajectory: 0.5 }
-      RF_MCP:         { goal: 0.1, trajectory: 0.5 }
-      LF_PIP:       { goal: 0.1, trajectory: 0.5 }
-      LF_MCP:       { goal: 0.1, trajectory: 0.5 }
-
+      Thumb_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      Thumb_TMC_FE:
+        goal: 0.1
+        trajectory: 0.5
+      Thumb_TMC_AA:
+        goal: 0.1
+        trajectory: 0.5
+      Thumb_TMC_PS:
+        goal: 0.1
+        trajectory: 0.5
+      FF_PIP:
+        goal: 0.1
+        trajectory: 0.5
+      FF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      FF_MCP_AA:
+        goal: 0.1
+        trajectory: 0.5
+      MF_PIP:
+        goal: 0.1
+        trajectory: 0.5
+      MF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      RF_PIP:
+        goal: 0.1
+        trajectory: 0.5
+      RF_MCP:
+        goal: 0.1
+        trajectory: 0.5
+      LF_PIP:
+        goal: 0.1
+        trajectory: 0.5
+      LF_MCP:
+        goal: 0.1
+        trajectory: 0.5
 position_controller:
   ros__parameters:
     joints:
-      - Thumb_MCP
-      - Thumb_TMC_FE
-      - Thumb_TMC_AA
-      - Thumb_TMC_PS
-      - FF_PIP
-      - FF_MCP
-      - FF_MCP_AA
-      - MF_PIP
-      - MF_MCP
-      - RF_PIP
-      - RF_MCP
-      - LF_PIP
-      - LF_MCP
+    - Thumb_MCP
+    - Thumb_TMC_FE
+    - Thumb_TMC_AA
+    - Thumb_TMC_PS
+    - FF_PIP
+    - FF_MCP
+    - FF_MCP_AA
+    - MF_PIP
+    - MF_MCP
+    - RF_PIP
+    - RF_MCP
+    - LF_PIP
+    - LF_MCP
     command_interfaces:
-      - position
+    - position
     state_interfaces:
-      - position
-      - velocity
-
-velocity_controller:
+    - position
+velocity_percent_controller:
   ros__parameters:
     joints:
-      - Thumb_MCP
-      - Thumb_TMC_FE
-      - Thumb_TMC_AA
-      - Thumb_TMC_PS
-      - FF_PIP
-      - FF_MCP
-      - FF_MCP_AA
-      - MF_PIP
-      - MF_MCP
-      - RF_PIP
-      - RF_MCP
-      - LF_PIP
-      - LF_MCP
-    command_interfaces:
-      - velocity
-    state_interfaces:
-      - position
-      - velocity
-
-effort_controller:
+    - Thumb_MCP
+    - Thumb_TMC_FE
+    - Thumb_TMC_AA
+    - Thumb_TMC_PS
+    - FF_PIP
+    - FF_MCP
+    - FF_MCP_AA
+    - MF_PIP
+    - MF_MCP
+    - RF_PIP
+    - RF_MCP
+    - LF_PIP
+    - LF_MCP
+    interface_name: velocity_percent
+current_percent_controller:
   ros__parameters:
     joints:
-      - Thumb_MCP
-      - Thumb_TMC_FE
-      - Thumb_TMC_AA
-      - Thumb_TMC_PS
-      - FF_PIP
-      - FF_MCP
-      - FF_MCP_AA
-      - MF_PIP
-      - MF_MCP
-      - RF_PIP
-      - RF_MCP
-      - LF_PIP
-      - LF_MCP
-    command_interfaces:
-      - effort
-    state_interfaces:
-      - position
-      - velocity
-      - effort
+    - Thumb_MCP
+    - Thumb_TMC_FE
+    - Thumb_TMC_AA
+    - Thumb_TMC_PS
+    - FF_PIP
+    - FF_MCP
+    - FF_MCP_AA
+    - MF_PIP
+    - MF_MCP
+    - RF_PIP
+    - RF_MCP
+    - LF_PIP
+    - LF_MCP
+    interface_name: current_percent

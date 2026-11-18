@@ -11,6 +11,8 @@ docs/*
 !docs/gazebo_demo.gif
 !docs/moveit_demo.gif
 !docs/ROS2_INTERFACE_REFERENCE.md
+!docs/INSTALLATION_*.md
+!docs/HARDWARE_*.md
 
 # Python artifacts
 __pycache__/
@@ -34,5 +36,5 @@ src/SOEM/
 openspec/
 .agents/
 reviews/sdk-sync/*
-ghand_hardware/ghand_hardware_interface/test/*
 .tmp/
+ghand_hardware/ghand_hardware_interface/tests/

@@ -18,8 +18,7 @@
     </xacro:if>
   </xacro:macro>
 
-  <xacro:macro name="ghand_hardware_plugin" params="use_mock_hardware:=false
-                       use_gazebo:=false
+  <xacro:macro name="ghand_hardware_plugin" params="use_gazebo:=false mock:=false model_side:=auto
                        profile_file:=''
                        communication_type:=''
                        device:=''
@@ -31,13 +30,10 @@
         <xacro:if value="${use_gazebo}">
           <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </xacro:if>
-        <xacro:unless value="${use_gazebo}">
-          <xacro:if value="${use_mock_hardware}">
-            <plugin>mock_components/GenericSystem</plugin>
-            <param name="mock_sensor_commands">false</param>
-            <param name="state_following_offset">0.0</param>
-          </xacro:if>
-          <xacro:unless value="${use_mock_hardware}">
+        <xacro:if value="${mock}">
+          <plugin>mock_components/GenericSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo or mock}">
           <xacro:property name="profile" scope="local"
                           value="${xacro.load_yaml(profile_file)['hardware']}"/>
 
@@ -57,6 +53,8 @@
 
           <plugin>ghand_hardware_interface/GHandHardwareInterface</plugin>
           <param name="product_name">${product_name}</param>
+          <param name="profile_file">${profile_file}</param>
+          <param name="model_side">${model_side}</param>
 
           <xacro:if value="${_communication_type != ''}">
             <param name="communication_type">${_communication_type}</param>
@@ -79,36 +77,17 @@
 
           <param name="control_mode">${profile.get('control_mode', 'position')}</param>
 
-          <!-- Backend-specific settings carried by the profile. -->
-          <xacro:if value="${'can_channel' in profile}">
-            <param name="can_channel">${profile['can_channel']}</param>
+          <!-- SDK connection selection and ROS feedback freshness. -->
+          <xacro:if value="${'hand_side' in profile}">
+            <param name="hand_side">${profile['hand_side']}</param>
           </xacro:if>
-          <xacro:if value="${'serial_baud_rate' in profile}">
-            <param name="serial_baud_rate">${profile['serial_baud_rate']}</param>
-          </xacro:if>
-          <xacro:if value="${'bitrate' in profile}">
-            <param name="bitrate">${profile['bitrate']}</param>
-          </xacro:if>
-          <xacro:if value="${'can_clk' in profile}">
-            <param name="can_clk">${profile['can_clk']}</param>
-          </xacro:if>
-          <xacro:if value="${'data_bits' in profile}">
-            <param name="data_bits">${profile['data_bits']}</param>
-          </xacro:if>
-          <xacro:if value="${'stop_bits' in profile}">
-            <param name="stop_bits">${profile['stop_bits']}</param>
-          </xacro:if>
-          <xacro:if value="${'parity' in profile}">
-            <param name="parity">${profile['parity']}</param>
-          </xacro:if>
-          <xacro:if value="${'response_timeout_ms' in profile}">
-            <param name="response_timeout_ms">${profile['response_timeout_ms']}</param>
+          <xacro:if value="${'slave_index' in profile}">
+            <param name="slave_index">${profile['slave_index']}</param>
           </xacro:if>
           <xacro:if value="${'read_timeout_ms' in profile}">
             <param name="read_timeout_ms">${profile['read_timeout_ms']}</param>
           </xacro:if>
           <param name="tactile_region_counts">${tactile_region_counts}</param>
-          </xacro:unless>
         </xacro:unless>
       </hardware>
   </xacro:macro>

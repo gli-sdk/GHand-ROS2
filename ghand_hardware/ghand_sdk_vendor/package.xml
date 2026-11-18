@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>ghand_sdk_vendor</name><version>3.1.0</version>
+  <description>Prebuilt GHand C++ SDK distribution bundled with the ROS adapter.</description>
+  <maintainer email="maintainers@glitech.cn">GHand ROS2 Maintainers</maintainer>
+  <license>GPL-3.0-only</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>libmodbus</exec_depend>
+  <exec_depend>openssl</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

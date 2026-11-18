@@ -2,28 +2,28 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:include filename="$(find ghand_bringup)/config/common/ghand_hardware_plugin.xacro"/>
 
-  <xacro:macro name="ghandlite1_joint_resources" params="names prefix mock gazebo product">
+  <xacro:macro name="ghandlite1_joint_resources" params="names prefix gazebo product">
     <xacro:if value="${len(names) > 0}">
       <xacro:property name="joint_name" value="${names[0]}"/>
       <joint name="${prefix}${joint_name}">
         <xacro:if value="${joint_name in product['active_joints']}">
           <command_interface name="position"/>
-          <command_interface name="velocity"/>
-          <command_interface name="effort"/>
-          <xacro:unless value="${mock or gazebo}">
+          <xacro:if value="${gazebo}"><command_interface name="velocity"/></xacro:if><xacro:unless value="${gazebo}"><command_interface name="velocity_percent"/></xacro:unless>
+          <xacro:if value="${gazebo}"><command_interface name="effort"/></xacro:if>
+          <xacro:unless value="${gazebo}">
             <command_interface name="current_percent"/>
             <command_interface name="control_mode"/>
             <command_interface name="control_state"/>
           </xacro:unless>
         </xacro:if>
         <state_interface name="position">
-          <xacro:if value="${mock or gazebo}">
+          <xacro:if value="${gazebo}">
             <param name="initial_value">${product['initial_positions'][joint_name]}</param>
           </xacro:if>
         </state_interface>
-        <state_interface name="velocity"/>
-        <state_interface name="effort"/>
-        <xacro:unless value="${mock or gazebo}">
+        <xacro:if value="${gazebo}"><state_interface name="velocity"/></xacro:if><xacro:unless value="${gazebo}"><state_interface name="velocity_percent"/></xacro:unless>
+        <xacro:if value="${gazebo}"><state_interface name="effort"/></xacro:if>
+        <xacro:unless value="${gazebo}">
           <state_interface name="state"/>
           <state_interface name="error"/>
           <state_interface name="current_percent"/>
@@ -31,7 +31,7 @@
         </xacro:unless>
       </joint>
       <xacro:ghandlite1_joint_resources names="${names[1:]}" prefix="${prefix}"
-          mock="${mock}" gazebo="${gazebo}" product="${product}"/>
+          gazebo="${gazebo}" product="${product}"/>
     </xacro:if>
   </xacro:macro>
 
@@ -54,22 +54,21 @@
   </xacro:macro>
 
   <xacro:macro name="ghand_ros2_control"
-      params="use_mock_hardware:=false use_gazebo:=false prefix:='' system_name:='ghand_hardware'
+      params="use_gazebo:=false mock:=false model_side:=auto prefix:='' system_name:='ghand_hardware'
               profile_file:='' communication_type:='' device:='' baud_rate:='' dbit_rate:='' slave_id:='' ifname:=''">
-    <xacro:property name="mock" value="${str(use_mock_hardware) in ['1', 'true', 'True']}"/>
     <xacro:property name="gazebo" value="${str(use_gazebo) in ['1', 'true', 'True']}"/>
     <xacro:property name="product_file" value="$(find ghand_description)/config/ghandlite1.yaml"/>
     <xacro:property name="product" value="${xacro.load_yaml(product_file)}"/>
     <xacro:property name="counts" value="${product['tactile_region_counts']}"/>
     <ros2_control name="${system_name}" type="system">
-      <xacro:ghand_hardware_plugin use_mock_hardware="${mock}" use_gazebo="${gazebo}"
+      <xacro:ghand_hardware_plugin mock="${mock}" model_side="${model_side}" use_gazebo="${gazebo}"
           product_name="ghandlite1" tactile_region_counts="${','.join([str(n) for n in counts])}"
           profile_file="${profile_file}" communication_type="${communication_type}"
           device="${device}" baud_rate="${baud_rate}" dbit_rate="${dbit_rate}"
           slave_id="${slave_id}" ifname="${ifname}"/>
       <xacro:ghandlite1_joint_resources names="${product['joints']}" prefix="${prefix}"
-          mock="${mock}" gazebo="${gazebo}" product="${product}"/>
-      <xacro:unless value="${mock or gazebo}">
+          gazebo="${gazebo}" product="${product}"/>
+      <xacro:unless value="${gazebo}">
         <xacro:ghandlite1_finger_sensor name="thumb" count="${counts[0]}" prefix="${prefix}"/>
         <xacro:ghandlite1_finger_sensor name="index" count="${counts[1]}" prefix="${prefix}"/>
         <xacro:ghandlite1_finger_sensor name="middle" count="${counts[2]}" prefix="${prefix}"/>

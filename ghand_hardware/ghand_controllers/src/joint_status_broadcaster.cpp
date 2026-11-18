@@ -29,10 +29,10 @@ int8_t state_to_int8(double value) {
 namespace ghand_controllers {
 
 controller_interface::CallbackReturn JointStatusBroadcaster::on_init() {
-  get_node()->declare_parameter<std::vector<std::string>>(
+  auto_declare<std::vector<std::string>>(
       "joints", std::vector<std::string>());
-  get_node()->declare_parameter<double>("publish_rate", 100.0);
-  get_node()->declare_parameter<std::string>("topic", "/joint_status");
+  auto_declare<double>("publish_rate", 100.0);
+  auto_declare<std::string>("topic", "/joint_status");
   return controller_interface::CallbackReturn::SUCCESS;
 }
 
@@ -104,9 +104,9 @@ controller_interface::return_type JointStatusBroadcaster::update(
     const std::string error_name = joint_names_[i] + "/error";
     for (const auto& si : state_interfaces_) {
       if (si.get_name() == state_name) {
-        msg.status[i] = state_to_int8(si.get_optional().value_or(0.0));
+        msg.status[i] = state_to_int8(si.get_value());
       } else if (si.get_name() == error_name) {
-        msg.error[i] = state_to_int8(si.get_optional().value_or(0.0));
+        msg.error[i] = state_to_int8(si.get_value());
       }
     }
   }

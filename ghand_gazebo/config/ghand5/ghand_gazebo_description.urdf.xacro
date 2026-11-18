@@ -13,7 +13,7 @@
 
   <!-- Gazebo-specific macros (world fixed joint, plugin, link properties) -->
   <xacro:include filename="$(find ghand_gazebo)/config/common/ghand.gazebo.xacro"/>
-  <xacro:ghand_world_fixed_joint x="0.35" y="-0.08" z="0.95" roll="-1.57079632679" pitch="3.14159265359" yaw="1.57079632679"/>
+  <xacro:ghand_world_fixed_joint root_link="ghand_root" x="0.35" y="-0.08" z="0.95" roll="-1.57079632679" pitch="3.14159265359" yaw="1.57079632679"/>
   <xacro:ghand_gazebo_ros2_control_plugin
     ros2_control_params="$(find ghand_gazebo)/config/ghand5/ros2_control.yaml"
     controllers_params="$(find ghand_gazebo)/config/ghand5/ghand_gazebo_controllers.yaml"/>

@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.16)
+project(ghand_sdk_vendor)
+find_package(ament_cmake REQUIRED)
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux" OR NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+  message(FATAL_ERROR "The bundled GHandSDK is Linux x86_64. Replace sdk/ with a matching SDK installation before building on another platform.")
+endif()
+# Install SDK-generated files unchanged. No local SDK source/build is consulted.
+install(DIRECTORY sdk/ DESTINATION . USE_SOURCE_PERMISSIONS)
+install(FILES SDK_MANIFEST.json DESTINATION share/${PROJECT_NAME})
+ament_environment_hooks("${CMAKE_CURRENT_SOURCE_DIR}/env-hooks/ghand_sdk.dsv.in")
+ament_package(CONFIG_EXTRAS "cmake/ghand_sdk_vendor-extras.cmake")
