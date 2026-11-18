@@ -38,10 +38,12 @@ from launch.substitutions import (
     PythonExpression,
 )
 from launch_ros.actions import Node, SetParameter
+from ghand_bringup_launch import planning_after_start, ros_log_arguments, start_in_order, trajectory_stages
 from launch_ros.substitutions import FindPackageShare
 
 
 def launch_setup(context):
+    headless = LaunchConfiguration("headless").perform(context) == "true"
     product_name = LaunchConfiguration("product_name").perform(context)
     hand_side = LaunchConfiguration("hand_side")
     use_rviz = LaunchConfiguration("use_rviz")
@@ -112,6 +114,7 @@ def launch_setup(context):
             ),
             " --xacro-arg product_name:=",
             product_name,
+            " --ghand5-dynamics" if product_name == "ghand5" else "",
             " --mimic-config ",
             PathJoinSubstitution([
                 FindPackageShare("ghand_gazebo"), "config", product_name, "mimic_joints.yaml"
@@ -121,18 +124,15 @@ def launch_setup(context):
             " --xacro-arg hand_side:=",
             hand_side,
         ],
-        # The helper script writes diagnostic info (e.g. "Patched N joint
-        # limit(s)") to stderr while the URDF goes to stdout. Command defaults
-        # to on_stderr="fail", which would abort the launch on that benign
-        # message; real failures still surface via a non-zero exit code.
         on_stderr="warn",
     )
-    robot_description = {"robot_description": robot_description_content}
+    robot_description = {"robot_description": robot_description_content.perform(context)}
 
     # robot_state_publisher
     rsp = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
+        ros_arguments=ros_log_arguments(),
         output="screen",
         parameters=[robot_description],
     )
@@ -147,6 +147,7 @@ def launch_setup(context):
             "ign",
             "gazebo",
             "-r",
+            *(["-s"] if headless else []),
             world,
         ],
         output="screen",
@@ -161,6 +162,8 @@ def launch_setup(context):
     spawn_entity = Node(
         package="ros_gz_sim",
         executable="create",
+        prefix="timeout --foreground 40s",
+        ros_arguments=ros_log_arguments(),
         arguments=[
             "-topic",
             "/robot_description",
@@ -182,6 +185,7 @@ def launch_setup(context):
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
+        ros_arguments=ros_log_arguments(),
         arguments=["/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock"],
         output="screen",
     )
@@ -189,61 +193,37 @@ def launch_setup(context):
         OnProcessStart(target_action=gazebo, on_start=[clock_bridge])
     )
 
-    # Controller spawners.
-    # gazebo_ros2_control creates the controller_manager inside Gazebo.
-    jtc_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        output="screen",
-        arguments=[
-            "joint_trajectory_controller",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-    jsb_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        output="screen",
-        arguments=[
-            "joint_state_broadcaster",
-            "--controller-manager",
-            "/controller_manager",
-        ],
-    )
-
-    moveit_nodes = []
-    if LaunchConfiguration("planning").perform(context) == "true":
-        from ghand_moveit_launch import planning_nodes
-        moveit_nodes = planning_nodes(product_name, hand_side.perform(context), robot_description,
-                                     use_rviz, use_sim_time=True)
+    planning = LaunchConfiguration("planning").perform(context) == "true"
+    moveit_nodes = planning_after_start(
+        product_name, hand_side.perform(context), robot_description, use_rviz, use_sim_time=True,
+    ) if planning else []
 
     model_rviz = Node(
         package="rviz2", executable="rviz2",
         arguments=["-d", PathJoinSubstitution([
             FindPackageShare("ghand_description"), "config", product_name, "ghand.rviz"
         ])],
-        parameters=[{"robot_description": robot_description_content}],
-        condition=IfCondition(use_rviz), output="screen",
+        parameters=[robot_description],
+        condition=IfCondition(use_rviz), ros_arguments=ros_log_arguments(), output="screen",
     )
 
-    return (
-        env_actions
-        + [
-            SetParameter(name="use_sim_time", value=True),
-            gazebo,
-            clock_bridge_starter,
-            rsp,
-            spawn_entity,
-            jsb_spawner,
-            jtc_spawner,
-        ]
-        + (moveit_nodes if LaunchConfiguration("planning").perform(context) == "true" else [model_rviz])
-    )
+    stages = [
+        ("spawn Gazebo model", spawn_entity),
+        *trajectory_stages("joint_trajectory_controller"),
+    ]
+    return [
+        *env_actions,
+        SetParameter(name="use_sim_time", value=True),
+        clock_bridge_starter,
+        gazebo,
+        rsp,
+        *start_in_order(stages, moveit_nodes if planning else [model_rviz]),
+    ]
 
 
 def generate_launch_description():
     declared_args = [
+        DeclareLaunchArgument("headless", default_value="false", choices=["true", "false"]),
         DeclareLaunchArgument("planning", default_value="true", choices=["true", "false"]),
         DeclareLaunchArgument(
             "product_name", default_value="ghand5",

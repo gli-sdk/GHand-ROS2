@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghandlite1-dual">
+  <xacro:arg name="mock" default="false"/>
   <xacro:arg name="left_profile_file" default=""/>
   <xacro:arg name="right_profile_file" default=""/>
   <xacro:arg name="left_device" default=""/>
@@ -13,14 +14,14 @@
   <!-- Two independent hardware systems share one controller manager. Their
        resources are isolated by the left_ / right_ prefixes. -->
   <xacro:include filename="$(find ghand_bringup)/config/ghandlite1/ghand.ros2_control.xacro"/>
-  <xacro:ghand_ros2_control
-    prefix="left_"
+  <xacro:ghand_ros2_control mock="$(arg mock)"
+    prefix="left_" model_side="left"
     system_name="left_ghand_hardware"
     profile_file="$(arg left_profile_file)"
     device="$(arg left_device)"
     ifname="$(arg left_ifname)"/>
-  <xacro:ghand_ros2_control
-    prefix="right_"
+  <xacro:ghand_ros2_control mock="$(arg mock)"
+    prefix="right_" model_side="right"
     system_name="right_ghand_hardware"
     profile_file="$(arg right_profile_file)"
     device="$(arg right_device)"

@@ -33,11 +33,12 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     return hardware_interface::CallbackReturn::ERROR;
   }
 
+  logger_ = logger_.get_child(info_.name);
   const auto mode = ghand_comm::parse_hand_control_mode(
       info_.hardware_parameters.count("control_mode")
           ? info_.hardware_parameters.at("control_mode") : "position");
   if (!mode) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+    RCLCPP_FATAL(logger_,
                  "Invalid control_mode hardware parameter.");
     return hardware_interface::CallbackReturn::ERROR;
   }
@@ -45,7 +46,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
   const auto* product = ghand_comm::find_product_config(
       info_.hardware_parameters.count("product_name") ? info_.hardware_parameters.at("product_name") : "ghand5");
   if (!product || (product->lite1() && hand_mode_ == ghand_comm::HandControlMode::MIT)) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Unsupported product or control mode.");
+    RCLCPP_FATAL(logger_, "Unsupported product or control mode.");
     return hardware_interface::CallbackReturn::ERROR;
   }
   lite1_ = product->lite1();
@@ -62,7 +63,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     const auto& joint = info_.joints[i];
     const auto id = ghand_comm::joint_name_to_id(joint.name);
     if (!id.has_value()) {
-      RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+      RCLCPP_FATAL(logger_,
                    "Joint '%s' has no matching SDK joint id.",
                    joint.name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
@@ -70,7 +71,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     joint_id_map_.push_back(id.value());
     if (!joint.command_interfaces.empty()) {
       if (std::find(product->active_joints.begin(), product->active_joints.end(), *id) == product->active_joints.end()) {
-        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Passive joint declares command interfaces.");
+        RCLCPP_FATAL(logger_, "Passive joint declares command interfaces.");
         return hardware_interface::CallbackReturn::ERROR;
       }
       command_joint_indices_.push_back(i);
@@ -86,13 +87,13 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     for (const auto id : joint_id_map_) {
       const size_t idx = static_cast<size_t>(id);
       if (idx >= seen.size()) {
-        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+        RCLCPP_FATAL(logger_,
                      "Unexpected JointId %zu found in URDF joint mapping.",
                      idx);
         return hardware_interface::CallbackReturn::ERROR;
       }
       if (seen[idx]) {
-        RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+        RCLCPP_FATAL(logger_,
                      "Duplicate JointId %zu in URDF joint mapping.", idx);
         return hardware_interface::CallbackReturn::ERROR;
       }
@@ -103,7 +104,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
           static_cast<ghand_comm::JointId>(i)) != product->joints.end();
       if (seen[i] != expected) {
         RCLCPP_FATAL(
-            rclcpp::get_logger("GHandHardwareInterface"),
+            logger_,
             "Product joint set mismatch at JointId %zu (%s).", i,
             ghand_comm::joint_id_to_name(static_cast<ghand_comm::JointId>(i))
                 .c_str());
@@ -113,7 +114,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
   }
 
   if (command_joint_indices_.size() != product->active_joints.size()) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"), "Product command joint set is incomplete.");
+    RCLCPP_FATAL(logger_, "Product command joint set is incomplete.");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
@@ -131,7 +132,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
       names += info_.joints[i].name;
       ids += std::to_string(static_cast<int>(joint_id_map_[i]));
     }
-    RCLCPP_DEBUG(rclcpp::get_logger("GHandHardwareInterface"),
+    RCLCPP_DEBUG(logger_,
                 "Parsed %zu joints in order: [%s] -> JointIds [%s]",
                 info_.joints.size(), names.c_str(), ids.c_str());
   }
@@ -141,13 +142,13 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
       read_timeout_ms_ =
           std::stod(info_.hardware_parameters.at("read_timeout_ms"));
     } catch (...) {
-      RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"), "Invalid read_timeout_ms parameter.");
+      RCLCPP_ERROR(logger_, "Invalid read_timeout_ms parameter.");
       return hardware_interface::CallbackReturn::ERROR;
     }
   }
 
   if (!std::isfinite(read_timeout_ms_) || read_timeout_ms_ <= 0) {
-    RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"), "read_timeout_ms must be finite and positive.");
+    RCLCPP_ERROR(logger_, "read_timeout_ms must be finite and positive.");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
@@ -162,7 +163,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
             ci.name != "current_percent" && ci.name != "control_mode" &&
             ci.name != "loop_type" && ci.name != "control_state" &&
             ci.name != "kp" && ci.name != "kd") {
-          RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+          RCLCPP_FATAL(logger_,
                        "Joint '%s' has unsupported command interface '%s'.",
                        joint.name.c_str(), ci.name.c_str());
           return hardware_interface::CallbackReturn::ERROR;
@@ -171,7 +172,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     }
 
     if (joint.state_interfaces.empty()) {
-      RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+      RCLCPP_FATAL(logger_,
                    "Joint '%s' has no state interfaces.", joint.name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
     }
@@ -209,7 +210,7 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
     if (!has_resultant_force_x || !has_resultant_force_y ||
         !has_resultant_force_z) {
       RCLCPP_FATAL(
-          rclcpp::get_logger("GHandHardwareInterface"),
+          logger_,
           "Sensor '%s' is missing required resultant_force state interfaces.",
           sensor.name.c_str());
       return hardware_interface::CallbackReturn::ERROR;
@@ -224,19 +225,19 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_init(
 
 hardware_interface::CallbackReturn GHandHardwareInterface::on_configure(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  RCLCPP_DEBUG(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_DEBUG(logger_,
               "Configuring ...please wait...");
 
   auto it = info_.hardware_parameters.find("communication_type");
   if (it == info_.hardware_parameters.end() || it->second.empty()) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+    RCLCPP_FATAL(logger_,
                  "Missing 'communication_type' hardware parameter.");
     return hardware_interface::CallbackReturn::ERROR;
   }
 
   comm_ = ghand_comm::create_communication(it->second);
   if (!comm_) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
+    RCLCPP_FATAL(logger_,
                  "Unknown communication_type '%s'.", it->second.c_str());
     return hardware_interface::CallbackReturn::ERROR;
   }
@@ -251,17 +252,17 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_configure(
   }
   params["joint_names"] = joint_names;
 
+  params["component_name"] = info_.name;
+  sdk_commands_.reserve(command_joint_indices_.size());
   active_ = false;
-  feedback_wait_started_ = std::chrono::steady_clock::now();
+  last_feedback_received_ = std::chrono::steady_clock::now();
+  next_feedback_error_log_ = last_feedback_received_;
   if (!comm_->init(params)) {
-    RCLCPP_FATAL(rclcpp::get_logger("GHandHardwareInterface"),
-                 "Failed to initialize %s communication backend.",
-                 comm_->get_name());
     comm_.reset();
     return hardware_interface::CallbackReturn::ERROR;
   }
 
-  RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_INFO(logger_,
               "Successfully configured!");
   return hardware_interface::CallbackReturn::SUCCESS;
 }
@@ -389,7 +390,7 @@ GHandHardwareInterface::export_command_interfaces() {
 
 hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  RCLCPP_DEBUG(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_DEBUG(logger_,
               "Activating ...please wait...");
 
   if (!comm_) return hardware_interface::CallbackReturn::ERROR;
@@ -410,14 +411,14 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(
     std::this_thread::sleep_for(std::chrono::milliseconds(5));
   } while (std::chrono::steady_clock::now() < deadline);
   if (!ready || read(rclcpp::Time(0), rclcpp::Duration(0, 0)) != hardware_interface::return_type::OK) {
-    RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"), "Activation requires fresh SDK joint feedback.");
+    RCLCPP_ERROR(logger_, "Activation requires fresh SDK joint feedback.");
     comm_->stop();
     return hardware_interface::CallbackReturn::ERROR;
   }
   for (auto& command : hw_joint_commands_) command = JointCommand{};
   active_ = true;
 
-  RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_INFO(logger_,
               "Successfully activated!");
 
   return hardware_interface::CallbackReturn::SUCCESS;
@@ -425,13 +426,13 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_activate(
 
 hardware_interface::CallbackReturn GHandHardwareInterface::on_deactivate(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_INFO(logger_,
               "Deactivating ...please wait...");
 
   active_ = false;
   const bool stopped = !comm_ || comm_->stop();
 
-  RCLCPP_INFO(rclcpp::get_logger("GHandHardwareInterface"),
+  RCLCPP_INFO(logger_,
               "Deactivation complete; SDK stop %s.", stopped ? "succeeded" : "failed");
 
   return stopped ? hardware_interface::CallbackReturn::SUCCESS : hardware_interface::CallbackReturn::ERROR;
@@ -439,12 +440,11 @@ hardware_interface::CallbackReturn GHandHardwareInterface::on_deactivate(
 
 hardware_interface::CallbackReturn GHandHardwareInterface::on_error(
     const rclcpp_lifecycle::State& /*previous_state*/) {
-  RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"),
-               "Entering error state; stopping the hand through SDK.");
-
   active_ = false;
-  const bool stopped = !comm_ || comm_->stop();
-  if (comm_) comm_->close();
+  if (!comm_) return hardware_interface::CallbackReturn::SUCCESS;
+  RCLCPP_DEBUG(logger_, "Closing the SDK session after a hardware error.");
+  const bool stopped = comm_->stop();
+  comm_->close();
   return stopped ? hardware_interface::CallbackReturn::SUCCESS : hardware_interface::CallbackReturn::ERROR;
 }
 
@@ -473,6 +473,7 @@ hardware_interface::return_type GHandHardwareInterface::read(
   const bool ok = comm_->read(data);
 
   if (ok && data.valid) {
+    last_feedback_received_ = data.received;
 
 
     constexpr double kPi = 3.14159265358979323846;
@@ -533,15 +534,14 @@ hardware_interface::return_type GHandHardwareInterface::read(
     }
   }
 
-  const auto received = ok && data.valid ? data.received : feedback_wait_started_;
-  const double elapsed_ms = std::chrono::duration<double, std::milli>(
-      std::chrono::steady_clock::now() - received).count();
+  const auto now = std::chrono::steady_clock::now();
+  const double elapsed_ms = std::chrono::duration<double, std::milli>(now - last_feedback_received_).count();
   if (elapsed_ms > read_timeout_ms_) {
-    static rclcpp::Clock throttle_clock(RCL_STEADY_TIME);
-    RCLCPP_ERROR_THROTTLE(rclcpp::get_logger("GHandHardwareInterface"),
-                          throttle_clock, 1000,
-                          "Hardware read timeout: no valid data for %.1f ms.",
-                          read_timeout_ms_);
+    if (now >= next_feedback_error_log_) {
+      RCLCPP_ERROR(logger_, "Hardware read timeout: last valid feedback %.1f ms ago, threshold %.1f ms.",
+                   elapsed_ms, read_timeout_ms_);
+      next_feedback_error_log_ = now + std::chrono::seconds(1);
+    }
     if (active_) comm_->stop();
     active_ = false;
     return hardware_interface::return_type::ERROR;
@@ -555,8 +555,7 @@ hardware_interface::return_type GHandHardwareInterface::write(
   if (!comm_) return hardware_interface::return_type::ERROR;
   if (!active_) return hardware_interface::return_type::OK;
 
-  std::vector<ghand_comm::JointCommand> commands;
-  commands.reserve(command_joint_indices_.size());
+  sdk_commands_.clear();
   for (size_t idx : command_joint_indices_) {
     const auto& input = hw_joint_commands_[idx];
     if (std::isnan(input.position) && std::isnan(input.velocity_percent) && std::isnan(input.current_percent) &&
@@ -565,7 +564,7 @@ hardware_interface::return_type GHandHardwareInterface::write(
     ghand_comm::JointCommand cmd;
     if (!ghand_comm::make_joint_command(input, hand_mode_,
                                         hw_joint_states_[idx].position, &cmd)) {
-      RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"),
+      RCLCPP_ERROR(logger_,
                    "Invalid command for joint '%s'; refusing hardware write.",
                    info_.joints[idx].name.c_str());
       active_ = false;
@@ -573,11 +572,11 @@ hardware_interface::return_type GHandHardwareInterface::write(
       return hardware_interface::return_type::ERROR;
     }
     cmd.id = joint_id_map_[idx];
-    commands.push_back(cmd);
+    sdk_commands_.push_back(cmd);
   }
 
-  if (!comm_->write(commands)) {
-    RCLCPP_ERROR(rclcpp::get_logger("GHandHardwareInterface"),
+  if (!comm_->write(sdk_commands_)) {
+    RCLCPP_ERROR(logger_,
                  "Hardware write failed on %s backend; requesting SDK stop.",
                  comm_->get_name());
     active_ = false;

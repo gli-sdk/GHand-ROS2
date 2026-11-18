@@ -9,7 +9,7 @@ from pathlib import Path
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.events import Shutdown
-from launch.actions import DeclareLaunchArgument, EmitEvent
+from launch.actions import OpaqueFunction, DeclareLaunchArgument, EmitEvent
 from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
@@ -18,6 +18,10 @@ from launch.substitutions import (
     PathJoinSubstitution,
 )
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+from ghand_bringup_launch import (
+    controller_spawner, planning_after_start, ros_log_arguments, start_in_order, trajectory_stages, wait_for_control,
+)
 from launch_ros.substitutions import FindPackageShare
 
 
@@ -50,6 +54,7 @@ def generate_launch_description():
     profile_dir = PathJoinSubstitution(
         [FindPackageShare("ghand_bringup"), "config", "profiles"]
     )
+    mock = LaunchConfiguration("mock")
     description = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -61,6 +66,8 @@ def generate_launch_description():
                     "ghand_dual_hardware_description.urdf.xacro",
                 ]
             ),
+            " mock:=",
+            mock,
             " product_name:=",
             product_name,
             " left_profile_file:=",
@@ -81,20 +88,23 @@ def generate_launch_description():
             LaunchConfiguration("right_ifname"),
         ]
     )
-    robot_description = {"robot_description": description}
+    robot_description = {"robot_description": ParameterValue(description, value_type=str)}
 
     rsp = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
+        ros_arguments=ros_log_arguments(),
         parameters=[robot_description],
         output="screen",
     )
     controller_manager = Node(
         package="controller_manager",
         executable="ros2_control_node",
+        ros_arguments=ros_log_arguments(),
         on_exit=[EmitEvent(event=Shutdown(reason="GHand controller manager exited"))],
+        remappings=[("~/robot_description", "/robot_description")],
         parameters=[
-            robot_description,
+            {"hardware_components_initial_state": {"unconfigured": ["left_ghand_hardware", "right_ghand_hardware"]}},
             PathJoinSubstitution(
                 [
                     FindPackageShare("ghand_bringup"),
@@ -107,54 +117,38 @@ def generate_launch_description():
         output="screen",
     )
 
-    def spawner(name, condition=None):
-        return Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=[name, "--controller-manager", "/controller_manager"],
-            condition=condition,
-            output="screen",
-        )
+    def setup(context):
+        stages = [
+            (f"activate {component}", wait_for_control("hardware", component))
+            for component in ("left_ghand_hardware", "right_ghand_hardware")
+        ]
+        stages.extend(trajectory_stages(
+            "left_joint_trajectory_controller", "right_joint_trajectory_controller",
+        ))
+        ready = []
+        if mock.perform(context) != "true":
+            ready.extend(controller_spawner(name) for name in [f"{side}_{name}" for side in ("left", "right")
+                  for name in ("joint_status_broadcaster", "tactile_broadcaster")])
+        if LaunchConfiguration("planning").perform(context) == "true":
+            ready.extend(planning_after_start(
+                product_name.perform(context), "dual", robot_description,
+                use_rviz,
+            ))
+        else:
+            ready.append(Node(
+                package="rviz2", executable="rviz2",
+                arguments=["-d", PathJoinSubstitution([
+                    FindPackageShare("ghand_description"), "config", product_name, "ghand_dual.rviz",
+                ])],
+                condition=IfCondition(use_rviz), ros_arguments=ros_log_arguments(), output="screen",
+            ))
+        return start_in_order(stages, ready)
 
-    controllers = [
-        spawner("joint_state_broadcaster"),
-        spawner("left_joint_trajectory_controller"),
-        spawner("right_joint_trajectory_controller"),
-        spawner(
-            "left_joint_status_broadcaster",
-        ),
-        spawner(
-            "right_joint_status_broadcaster",
-        ),
-        spawner(
-            "left_tactile_broadcaster",
-        ),
-        spawner(
-            "right_tactile_broadcaster",
-        ),
-    ]
-
-    rviz = Node(
-        package="rviz2",
-        executable="rviz2",
-        arguments=[
-            "-d",
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("ghand_bringup"),
-                    "config",
-                    product_name,
-                    "ghand_dual.rviz",
-                ]
-            ),
-        ],
-        condition=IfCondition(use_rviz),
-        output="screen",
-    )
-
-    return LaunchDescription(
-        declared_args
-        + [rsp, controller_manager]
-        + controllers
-        + [rviz]
-    )
+    return LaunchDescription([
+        *declared_args,
+        DeclareLaunchArgument("mock", default_value="false", choices=["true", "false"]),
+        DeclareLaunchArgument("planning", default_value="false", choices=["true", "false"]),
+        OpaqueFunction(function=setup),
+        rsp,
+        controller_manager,
+    ])

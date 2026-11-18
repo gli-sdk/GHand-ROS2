@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "ghand_hardware_interface/sdk_session.hpp"
 #include <algorithm>
+#include <ghand/logging.h>
+#include <cerrno>
+#include <cstdlib>
+#include <system_error>
+#include <unistd.h>
 #include <cmath>
 #include <stdexcept>
 #include "ghand_hardware_interface/communication/product_config.hpp"
@@ -41,17 +46,41 @@ ghand::CANFDBitTiming can_timing(int arbitration, int data) {
       return static_cast<ghand::CANFDBitTiming>(i);
   throw std::invalid_argument("Unsupported SDK CANFD baud_rate/data_rate pair");
 }
-bool checked(const ghand::Result& result, const char* operation) {
-  if (!result) RCLCPP_ERROR(rclcpp::get_logger("GHandSdk"), "%s failed: SDK code=%d %s",
-      operation, static_cast<int>(result.code), result.message.c_str());
+}  // namespace
+
+bool SdkSession::checked(const ghand::Result& result, const char* operation) const {
+  if (!result) {
+    RCLCPP_ERROR(logger_, "%s failed (%s): SDK code=%d %s", operation,
+                 connection_context_.c_str(), static_cast<int>(result.code), result.message.c_str());
+  }
   return static_cast<bool>(result);
 }
-}  // namespace
 
 bool SdkSession::init(const Params& params) {
   close();
+  const auto component = parameter(params, "component_name", "ghand_hardware");
+  logger_ = rclcpp::get_logger("GHandSdk").get_child(component);
+  const auto product = parameter(params, "product_name", "ghand5");
+  const auto side = parameter(params, "hand_side", "");
+  const auto device_key = transport_ == "ethercat" ? "ifname" : "device";
+  const auto device = parameter(params, device_key, "auto");
+  connection_context_ = "product=" + product + " side=" + parameter(params, "model_side", "auto") +
+      " sdk_hand=" + (side.empty() ? "auto" : side) +
+      " profile=" + parameter(params, "profile_file", "default") +
+      " backend=" + transport_ + " " + device_key + "=" + device +
+      " node_id=" + parameter(params, "node_id", "0");
   try {
-    const auto product = parameter(params, "product_name", "ghand5");
+    const char* requested_level = std::getenv("GHAND_SDK_LOG_LEVEL");
+    const std::string level = requested_level ? requested_level : "info";
+    if (level == "debug") ghand::ConfigureConsole(ghand::LogLevel::DEBUG);
+    else if (level == "warn") ghand::ConfigureConsole(ghand::LogLevel::WARNING);
+    else if (level == "error") ghand::ConfigureConsole(ghand::LogLevel::ERR);
+    else ghand::ConfigureConsole(ghand::LogLevel::INFO);
+
+    if (transport_ == "rs485" && device.rfind("/dev/", 0) == 0 &&
+        access(device.c_str(), R_OK | W_OK) != 0) {
+      throw std::system_error(errno, std::generic_category(), "Cannot access serial device");
+    }
     const auto* metadata = find_product_config(product);
     if (!metadata) throw std::invalid_argument("Unknown product_name");
     const auto mode = parse_hand_control_mode(parameter(params, "control_mode", "position"));
@@ -61,7 +90,6 @@ bool SdkSession::init(const Params& params) {
       : transport_ == "rs485" ? ghand::CommType::RS485 : ghand::CommType::CANFD;
     const int node = integer(params, "node_id", 0);
     if (node < 0 || node > 255) throw std::invalid_argument("node_id must be 0..255");
-    const auto device = parameter(params, transport_ == "ethercat" ? "ifname" : "device", "auto");
     master_ = ghand::Master::Create(metadata->lite1() ? ghand::ProductType::GHandLite1
                                                   : ghand::ProductType::GHand5, type);
     if (!master_) throw std::runtime_error("SDK Master::Create failed");
@@ -79,7 +107,6 @@ bool SdkSession::init(const Params& params) {
       connection = master_->Connect(device);
     }
     if (!checked(connection, "Connect")) { close(); return false; }
-    const auto side = parameter(params, "hand_side", "");
     if (side == "left" || side == "right") {
       hand_ = master_->hand(side == "left" ? ghand::HandType::LEFT_HAND : ghand::HandType::RIGHT_HAND);
     } else if (params.count("slave_index")) {
@@ -89,7 +116,10 @@ bool SdkSession::init(const Params& params) {
     } else if (connection.value.size() == 1) {
       hand_ = connection.value.front();
     }
-    if (!hand_) throw std::runtime_error("Select hand_side or slave_index when the SDK discovers multiple hands");
+    if (!hand_) {
+      throw std::runtime_error("Could not select hand from " +
+          std::to_string(connection.value.size()) + " discovered device(s)");
+    }
     feedback_ = std::make_shared<Feedback>();
     const std::weak_ptr<Feedback> weak = feedback_;
     const auto expected = metadata->joints;
@@ -123,7 +153,7 @@ bool SdkSession::init(const Params& params) {
     });
     return true;
   } catch (const std::exception& error) {
-    RCLCPP_ERROR(rclcpp::get_logger("GHandSdk"), "SDK configuration failed: %s", error.what());
+    RCLCPP_ERROR(logger_, "SDK configuration failed (%s): %s", connection_context_.c_str(), error.what());
     close();
     return false;
   }

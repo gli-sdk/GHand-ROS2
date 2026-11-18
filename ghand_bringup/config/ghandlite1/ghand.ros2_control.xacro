@@ -54,14 +54,14 @@
   </xacro:macro>
 
   <xacro:macro name="ghand_ros2_control"
-      params="use_gazebo:=false prefix:='' system_name:='ghand_hardware'
+      params="use_gazebo:=false mock:=false model_side:=auto prefix:='' system_name:='ghand_hardware'
               profile_file:='' communication_type:='' device:='' baud_rate:='' dbit_rate:='' slave_id:='' ifname:=''">
     <xacro:property name="gazebo" value="${str(use_gazebo) in ['1', 'true', 'True']}"/>
     <xacro:property name="product_file" value="$(find ghand_description)/config/ghandlite1.yaml"/>
     <xacro:property name="product" value="${xacro.load_yaml(product_file)}"/>
     <xacro:property name="counts" value="${product['tactile_region_counts']}"/>
     <ros2_control name="${system_name}" type="system">
-      <xacro:ghand_hardware_plugin use_gazebo="${gazebo}"
+      <xacro:ghand_hardware_plugin mock="${mock}" model_side="${model_side}" use_gazebo="${gazebo}"
           product_name="ghandlite1" tactile_region_counts="${','.join([str(n) for n in counts])}"
           profile_file="${profile_file}" communication_type="${communication_type}"
           device="${device}" baud_rate="${baud_rate}" dbit_rate="${dbit_rate}"

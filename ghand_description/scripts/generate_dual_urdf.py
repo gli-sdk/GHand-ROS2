@@ -27,7 +27,7 @@ def prefix_hand(robot, prefix):
     return children
 
 
-def mount_joint(side, x_offset):
+def mount_joint(side, root_link, x_offset):
     """Create a fixed mount that keeps both palms at the same height.
 
     The Gazebo launch rotates the complete hand model before placing it above
@@ -39,7 +39,7 @@ def mount_joint(side, x_offset):
     joint = ET.Element("joint", name=f"{side}_mount_joint", type="fixed")
     ET.SubElement(joint, "origin", xyz=f"{x_offset} 0 0", rpy="0 0 0")
     ET.SubElement(joint, "parent", link="world")
-    ET.SubElement(joint, "child", link=f"{side}_base_link")
+    ET.SubElement(joint, "child", link=f"{side}_{root_link}")
     return joint
 
 
@@ -64,8 +64,13 @@ def main():
     for element in prefix_hand(right_robot, "right_"):
         dual.append(element)
 
-    dual.append(mount_joint("left", half_separation))
-    dual.append(mount_joint("right", -half_separation))
+    for side, model, offset in (
+        ("left", left_robot, half_separation), ("right", right_robot, -half_separation),
+    ):
+        children = {child.attrib["link"] for child in model.findall("joint/child")}
+        root_link, = (link.attrib["name"] for link in model.findall("link")
+                      if link.attrib["name"] not in children)
+        dual.append(mount_joint(side, root_link, offset))
 
     ET.indent(dual, space="  ")
     ET.ElementTree(dual).write(

@@ -22,6 +22,7 @@ The initial pose comes from `config/<product_name>/initial_positions.yaml`.
 ## Planning and execution
 
 ```bash
+ros2 launch ghand_bringup start.launch.py backend:=mock planning:=true
 ros2 launch ghand_bringup start.launch.py backend:=gazebo planning:=true
 ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=true profile:=rs485_right device:=/dev/ttyUSB0
 ```

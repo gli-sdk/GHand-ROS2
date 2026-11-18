@@ -1,6 +1,6 @@
 # GHand-ROS2
 
-[简体中文](README_CN.md) · [Installation](docs/INSTALLATION_EN.md) · [Interface reference](docs/ROS2_INTERFACE_REFERENCE.md)
+[简体中文](README.zh.md) · [Installation](docs/INSTALLATION_EN.md) · [Interface reference](docs/ROS2_INTERFACE_REFERENCE.md)
 
 ROS 2 Humble control stack for GHand5 and Lite1, with single-hand and same-product dual-hand configurations.
 Choose **MoveIt planning preview, Gazebo physics simulation, or physical hardware control**.
@@ -15,8 +15,10 @@ Follow the [installation guide](docs/INSTALLATION_EN.md) to clone the source and
 
 | Product | `product_name` | Feedback / active joints | Control capabilities |
 | --- | --- | --- | --- |
-| GHand5 | `ghand5` (default) | 18 / 13 | See [hardware interface](ghand_hardware/ghand_hardware_interface/README.md) |
-| Lite1 | `ghandlite1` | 11 / 6 | Semi-closed control; no closed-loop, MIT or kp/kd interfaces |
+| GHand5 | `ghand5` (default) | 18 / 13 | Position, velocity, torque, MIT, and custom modes |
+| GHandLite1 | `ghandlite1` | 11 / 6 | Position, velocity, torque, and custom modes |
+
+GHandLite1 uses semi-closed control and does not provide closed-loop, MIT, or kp/kd interfaces. In ROS, velocity mode takes velocity percentage commands (`velocity_percent`), not rad/s. Torque mode takes current percentage commands (`current_percent`), not torque commands in Nm. See the [hardware interface](ghand_hardware/ghand_hardware_interface/README.md) for details.
 
 Both products provide single/dual, Gazebo and MoveIt configurations. Configuration availability does not imply hardware validation.
 Lite1 tactile resources follow current SDK metadata; actual support requires device/firmware confirmation and hardware validation.
@@ -32,11 +34,12 @@ Lite1 tactile resources follow current SDK metadata; actual support requires dev
 Use `ghand_bringup start.launch.py` for all scenarios. Defaults: Gazebo, right hand, MoveIt enabled.
 Run one scene at a time; exit with Ctrl+C before switching to avoid duplicate nodes and controllers.
 
-Load the environment in each terminal:
+After building, go to the workspace root and load the environment in each new terminal. Replace `<workspace>` with your actual workspace path:
 
 ```bash
+cd <workspace>
 source /opt/ros/humble/setup.bash
-source <workspace>/install/setup.bash
+source install/setup.bash
 ```
 
 ### 1. MoveIt planning preview
@@ -89,6 +92,7 @@ ros2 topic echo /joint_status --once
 
 Confirm that the hardware and trajectory controller are `active` and feedback is valid before sending motion commands.
 See the [hardware guide](docs/HARDWARE_EN.md) for CANFD and EtherCAT.
+For EtherCAT, grant `cap_net_raw,cap_net_admin=ep` to `ros2_control_node` as shown in the guide.
 
 ## Products, left/right and dual hands
 

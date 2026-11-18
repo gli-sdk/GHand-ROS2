@@ -29,7 +29,7 @@ ros2 launch ghand_bringup start.launch.py backend:=gazebo planning:=false
 
 `planning:=true` (default) starts MoveIt and its RViz view. With
 `planning:=false`, only simulation, controllers and optional model RViz start;
-use the trajectory Topic/Action directly. `use_rviz:=false` suppresses RViz.
+use the trajectory Topic/Action directly. `use_rviz:=false` suppresses RViz. Pass `headless:=true` to run Gazebo without its GUI.
 The simulation plugin owns the controller manager; do not separately launch hardware bringup.
 The clock bridge supplies simulation time. Exit with Ctrl+C before changing scenes.
 

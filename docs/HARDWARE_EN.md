@@ -34,7 +34,7 @@ ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false \
   hand:=left profile:=canfd_left device:=/dev/ttyACM0:0
 
 # EtherCAT; replace enp3s0 with the dedicated adapter
-sudo setcap cap_net_raw+ep \
+sudo setcap cap_net_raw,cap_net_admin=ep \
   /opt/ros/humble/lib/controller_manager/ros2_control_node
 ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false \
   hand:=right profile:=ethercat_default ifname:=enp3s0

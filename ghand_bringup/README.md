@@ -6,13 +6,14 @@ Public scene orchestration and physical hardware control.
 
 ```bash
 ros2 launch ghand_bringup start.launch.py backend:=preview
+ros2 launch ghand_bringup start.launch.py backend:=mock use_rviz:=false
 ros2 launch ghand_bringup start.launch.py backend:=gazebo
 ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false profile:=rs485_right device:=/dev/ttyUSB0
 ```
 
 | Argument | Default | Meaning |
 | --- | --- | --- |
-| `backend` | `gazebo` | `preview`, `gazebo`, `hardware` |
+| `backend` | `gazebo` | `preview`, `mock`, `gazebo`, `hardware` |
 | `product_name` | `ghand5` | `ghand5`, `ghandlite1` |
 | `hand` | `right` | `left`, `right`, `dual` |
 | `planning` | `true` | Enable MoveIt; preview requires true |
@@ -22,12 +23,24 @@ ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false prof
 | `left_profile`, `right_profile` | `rs485_left`, `rs485_dual_right` | Dual hardware connections |
 | `left_device`, `right_device` | empty | Dual device overrides |
 | `left_ifname`, `right_ifname` | empty | Dual EtherCAT interface overrides |
+| `headless` | `false` | Run only the Gazebo server |
+| `log_level` | `info` | ROS node log level |
+| `sdk_log_level` | `info` | GHand SDK console log level |
 | `world` | empty | Gazebo world override; empty uses the Gazebo package default |
 
 `profile` and connection overrides apply only to hardware. `world` applies only to Gazebo.
 Dual-hand hardware uses the per-hand connection arguments. Each dual launch uses one product.
 
 Preview starts kinematic state publication and planning, with execution disabled.
+Mock runs the trajectory controllers using ros2_control GenericSystem so a
+`FollowJointTrajectory` goal can be tested without a physical hand or Gazebo.
+MoveIt execution starts after the required hardware or simulation, controllers,
+and trajectory actions are ready.
+
+Open `log/latest_build` for colcon build logs. Launch prints the runtime log
+directory at startup. Set `ROS_LOG_DIR` to choose it, or use the default under
+`~/.ros/log`. A hardware configuration error includes the active profile and
+connection settings.
 Gazebo owns its control manager through its simulation plugin. Physical hardware
 uses the bringup control manager. MoveIt never starts a second controller manager.
 Only Gazebo uses simulation time.
@@ -36,7 +49,7 @@ Only Gazebo uses simulation time.
 
 - `ghand.launch.py`: physical single hand; `hand_side:=left/right`.
 - `dual_hand.launch.py`: physical dual hands.
-- Both start the state publisher, controllers and optional RViz, without MoveIt.
+- Both start the state publisher, controllers and optional RViz. Pass `planning:=true` to start MoveIt after activation.
 - The lower-level single-hand default profile remains `ethercat_default`;
   the public entry resolves its default profile by hand side.
 - `use_mock_hardware` and the old MoveIt `use_sim` argument have been removed.

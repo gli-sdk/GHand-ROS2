@@ -64,8 +64,7 @@ EtherCAT：
 
 ```bash
 # SOEM 需要原始网络套接字权限；每次重新安装 ros2_control 后需重新设置
-sudo setcap cap_net_raw+ep \
-  /opt/ros/humble/lib/controller_manager/ros2_control_node
+sudo setcap cap_net_raw,cap_net_admin=ep   /opt/ros/humble/lib/controller_manager/ros2_control_node
 
 # 将 enp3s0 替换为直连灵巧手的网卡；该网卡不要配置普通网络业务
 ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false \

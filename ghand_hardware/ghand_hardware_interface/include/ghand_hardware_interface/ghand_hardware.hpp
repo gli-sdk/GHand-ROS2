@@ -5,6 +5,7 @@
 #define GHAND_HARDWARE_INTERFACE_GHAND_HARDWARE_HPP_
 
 #include <array>
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <string>
@@ -16,6 +17,7 @@
 #include "hardware_interface/hardware_info.hpp"
 #include "hardware_interface/system_interface.hpp"
 #include "hardware_interface/types/hardware_interface_return_values.hpp"
+#include "rclcpp/logger.hpp"
 #include "rclcpp/macros.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 
@@ -84,6 +86,9 @@ class GHandHardwareInterface : public hardware_interface::SystemInterface {
   std::vector<JointCommand> hw_joint_commands_;
   std::vector<FingerTactileData> hw_finger_tactile_data_;
 
+  std::chrono::steady_clock::time_point next_feedback_error_log_{};
+  rclcpp::Logger logger_ = rclcpp::get_logger("GHandHardwareInterface");
+  std::vector<ghand_comm::JointCommand> sdk_commands_;
   std::unique_ptr<ghand_comm::CommunicationBase> comm_;
   std::vector<ghand_comm::JointId> joint_id_map_;
   std::vector<size_t> command_joint_indices_;
@@ -94,7 +99,7 @@ class GHandHardwareInterface : public hardware_interface::SystemInterface {
   static constexpr double kDefaultReadTimeoutMs = 500.0;
   double read_timeout_ms_ = kDefaultReadTimeoutMs;
   bool active_ = false;
-  std::chrono::steady_clock::time_point feedback_wait_started_{};
+  std::chrono::steady_clock::time_point last_feedback_received_{};
 };
 
 }  // namespace ghand_hardware

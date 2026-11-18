@@ -2,6 +2,7 @@
 #pragma once
 #include <ghand/ghand.h>
 #include <mutex>
+#include "rclcpp/logger.hpp"
 #include "ghand_hardware_interface/communication/communication.hpp"
 
 namespace ghand_comm {
@@ -23,7 +24,10 @@ class SdkSession final : public CommunicationBase {
     std::chrono::steady_clock::time_point hand_received{};
     std::chrono::steady_clock::time_point tactile_received{};
   };
+  bool checked(const ghand::Result& result, const char* operation) const;
   std::string transport_;
+  rclcpp::Logger logger_ = rclcpp::get_logger("GHandSdk");
+  std::string connection_context_;
   std::unique_ptr<ghand::Master> master_;
   ghand::GHand* hand_ = nullptr;  // Owned by master_; cleared before disconnect.
   std::shared_ptr<Feedback> feedback_;

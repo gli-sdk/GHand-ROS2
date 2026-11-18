@@ -4,7 +4,7 @@
   <xacro:include filename="$(find ghand_bringup)/config/common/ghand_hardware_plugin.xacro"/>
 
   <xacro:macro name="ghand_ros2_control"
-               params="use_gazebo:=false
+               params="use_gazebo:=false mock:=false model_side:=auto
                        prefix:=''
                        system_name:='ghand_hardware'
                        profile_file:=''
@@ -18,7 +18,7 @@
     <xacro:property name="_use_gazebo" scope="local"
                     value="${str(use_gazebo) in ['1', 'true', 'True']}"/>
     <ros2_control name="${system_name}" type="system">
-      <xacro:ghand_hardware_plugin use_gazebo="${_use_gazebo}"
+      <xacro:ghand_hardware_plugin mock="${mock}" model_side="${model_side}" use_gazebo="${_use_gazebo}"
         profile_file="${profile_file}" communication_type="${communication_type}"
         device="${device}" baud_rate="${baud_rate}" dbit_rate="${dbit_rate}"
         slave_id="${slave_id}" ifname="${ifname}"

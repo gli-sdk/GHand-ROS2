@@ -18,7 +18,7 @@
     </xacro:if>
   </xacro:macro>
 
-  <xacro:macro name="ghand_hardware_plugin" params="use_gazebo:=false
+  <xacro:macro name="ghand_hardware_plugin" params="use_gazebo:=false mock:=false model_side:=auto
                        profile_file:=''
                        communication_type:=''
                        device:=''
@@ -30,7 +30,10 @@
         <xacro:if value="${use_gazebo}">
           <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </xacro:if>
-        <xacro:unless value="${use_gazebo}">
+        <xacro:if value="${mock}">
+          <plugin>mock_components/GenericSystem</plugin>
+        </xacro:if>
+        <xacro:unless value="${use_gazebo or mock}">
           <xacro:property name="profile" scope="local"
                           value="${xacro.load_yaml(profile_file)['hardware']}"/>
 
@@ -50,6 +53,8 @@
 
           <plugin>ghand_hardware_interface/GHandHardwareInterface</plugin>
           <param name="product_name">${product_name}</param>
+          <param name="profile_file">${profile_file}</param>
+          <param name="model_side">${model_side}</param>
 
           <xacro:if value="${_communication_type != ''}">
             <param name="communication_type">${_communication_type}</param>

@@ -1,5 +1,7 @@
 # GHand-ROS2 Interface Reference
 
+[简体中文](ROS2_INTERFACE_REFERENCE_CN.md)
+
 This document freezes the public ROS 2 API exposed by the core
 `GHand-ROS2` repository. Demos and downstream applications should depend on
 these names instead of controller-private defaults or README-only examples.
@@ -28,10 +30,6 @@ Recommended public entry: `ros2 launch ghand_bringup start.launch.py`.
 - `planning:=true/false` (default true); preview requires true.
 - `use_rviz:=true/false` (default true).
 - Hardware connection options and migration: [bringup guide](../ghand_bringup/README.md).
-
-Removed `use_mock_hardware` and MoveIt `use_sim` arguments produce an error.
-`use_sim_time` remains an internal clock setting, enabled only in Gazebo.
-
 
 Physical hardware (these entries connect to devices):
 

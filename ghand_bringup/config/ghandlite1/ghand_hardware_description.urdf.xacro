@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghandlite1-$(arg hand_side)">
+  <xacro:arg name="mock" default="false"/>
   <xacro:arg name="hand_side" default="right"/>
   <xacro:arg name="profile_file" default=""/>
   <xacro:arg name="communication_type" default=""/>
@@ -20,7 +21,7 @@
 
   <!-- Real-hardware ros2_control configuration -->
   <xacro:include filename="$(find ghand_bringup)/config/ghandlite1/ghand.ros2_control.xacro"/>
-  <xacro:ghand_ros2_control
+  <xacro:ghand_ros2_control mock="$(arg mock)" model_side="$(arg hand_side)"
     profile_file="$(arg profile_file)"
     communication_type="$(arg communication_type)"
     device="$(arg device)"
