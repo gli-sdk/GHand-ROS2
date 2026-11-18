@@ -8,23 +8,37 @@ these names instead of controller-private defaults or README-only examples.
 
 - `ghand_description`: URDF generation and mesh installation.
 - `ghand_hardware_interface`: shared `ros2_control` hardware plugin.
-- `ghand_bringup`: real/mock launch files, controller configuration and communication profiles.
+- `ghand_bringup`: scene orchestration and hardware launch files, controller configuration and communication profiles.
 - `ghand_controllers`: GHand-specific status and tactile broadcasters.
 - `ghand_msgs`: custom GHand status and tactile message definitions.
 - `ghand_moveit_config`: MoveIt 2 configuration.
-- `ghand_gazebo`: Gazebo Harmonic simulation integration.
+- `ghand_gazebo`: Gazebo Fortress simulation integration.
 
 `ghand_controllers` and `ghand_msgs` are the public package names for GHand
 custom broadcasters and messages.
 
 ## Launch Files
 
-Hardware and mock:
+Recommended public entry: `ros2 launch ghand_bringup start.launch.py`.
+
+- `backend:=preview`: planning/display only; execution disabled, no controller manager.
+- `backend:=gazebo` (default): physics and controllers, optional MoveIt.
+- `backend:=hardware`: physical controllers, optional MoveIt.
+- `hand:=left/right/dual`, `product_name:=ghand5/ghandlite1`.
+- `planning:=true/false` (default true); preview requires true.
+- `use_rviz:=true/false` (default true).
+- Hardware connection options and migration: [bringup guide](../ghand_bringup/README.md).
+
+Removed `use_mock_hardware` and MoveIt `use_sim` arguments produce an error.
+`use_sim_time` remains an internal clock setting, enabled only in Gazebo.
+
+
+Physical hardware (these entries connect to devices):
 
 - Single hand: `ros2 launch ghand_bringup ghand.launch.py`
 - Dual hand: `ros2 launch ghand_bringup dual_hand.launch.py`
 
-MoveIt:
+MoveIt planning preview (no execution; `mode:=attached` connects to existing physical bringup):
 
 - Single hand: `ros2 launch ghand_moveit_config moveit.launch.py`
 - Dual hand: `ros2 launch ghand_moveit_config dual_moveit.launch.py`
@@ -36,7 +50,7 @@ Gazebo:
 
 ## Launch Arguments
 
-All six entry points accept `product_name`, default `ghand5`. Available choices
+All entry points accept `product_name`, default `ghand5`. Available choices
 come from installed `ghand_bringup/config/<product_name>/controllers.yaml` files.
 Configured products are `ghand5` and `ghandlite1`. Both hands in a dual launch
 use the selected product. Communication profiles remain independent of product
@@ -59,7 +73,7 @@ unchanged. Rebuild into a fresh install directory to avoid stale old-path files.
 Single-hand hardware arguments:
 
 - `hand_side`: `left` or `right`; default `right`.
-- `use_mock_hardware`: `true` or `false`; default `false`.
+- `use_rviz`: `true` or `false`; default `true`.
 - `profile`: profile file stem under `ghand_bringup/config/profiles`; default `ethercat_default`.
 - `communication_type`: optional profile override: `ethercat`, `rs485`, or `canfd`.
 - `device`: optional serial/CAN device override.
@@ -70,7 +84,6 @@ Single-hand hardware arguments:
 
 Dual-hand hardware arguments:
 
-- `use_mock_hardware`: `true` or `false`; default `true`.
 - `use_rviz`: `true` or `false`; default `true`.
 - `left_profile`: default `rs485_left`.
 - `right_profile`: default `rs485_dual_right`.
@@ -86,8 +99,8 @@ Single-hand controllers:
 - `tactile_broadcaster`
 - `joint_trajectory_controller`
 - `position_controller` inactive by default.
-- `velocity_controller` inactive by default.
-- `effort_controller` inactive by default.
+- `velocity_percent_controller` inactive by default.
+- `current_percent_controller` inactive by default.
 
 Dual-hand controllers:
 
@@ -191,20 +204,24 @@ Single-hand tactile sensor names are `thumb`, `index`, `middle`, `ring`, and
 ## Units
 
 - ROS joint position: radians.
-- ROS joint velocity: radians per second.
-- ROS effort: backend-specific effort command exposed through `ros2_control`.
+- Real hardware velocity: `velocity_percent` in percent; no estimated standard velocity is published.
+- Real hardware current: `current_percent` in percent; no physical effort/torque is inferred.
 - HardwareInterface owns ROS-to-SDK unit conversion.
 
 ## Description Reproducibility
 
 `ghand_description` sources URDF and mesh assets from the `ghand_assets`
-repository imported by `ghand.repos`. The current asset revision is pinned to
-`V1.0.0`.
+repository. Clone its default branch from either Gitee or GitHub into the
+workspace as `ghand_assets`.
 
 ```bash
 cd <workspace>/src
-git clone https://gitee.com/glitech/ghand-ros2.git
-vcs import . < ghand-ros2/ghand.repos --recursive --skip-existing
+git clone -b humble https://gitee.com/glitech/ghand-ros2.git
+git clone --depth 1 \
+  https://gitee.com/glitech/ghand-assets.git ghand_assets
+# GitHub alternative:
+# git clone --depth 1 \
+#   https://github.com/gli-sdk/GHand-Assets.git ghand_assets
 cd <workspace>
 rosdep install --from-paths src --ignore-src -r -y
 colcon build --symlink-install
@@ -212,7 +229,7 @@ colcon build --symlink-install
 
 ## Smoke Test
 
-After launching hardware, mock hardware, or Gazebo:
+After launching hardware or Gazebo:
 
 ```bash
 ros2 control list_controllers

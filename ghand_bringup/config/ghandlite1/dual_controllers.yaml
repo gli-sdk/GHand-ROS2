@@ -92,12 +92,10 @@ left_joint_trajectory_controller:
     - position
     state_interfaces:
     - position
-    - velocity
     allow_partial_joints_goal: true
     open_loop_control: false
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01
 right_joint_trajectory_controller:
   ros__parameters:
     joints:
@@ -111,9 +109,7 @@ right_joint_trajectory_controller:
     - position
     state_interfaces:
     - position
-    - velocity
     allow_partial_joints_goal: true
     open_loop_control: false
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01

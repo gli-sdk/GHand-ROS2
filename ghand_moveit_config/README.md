@@ -1,63 +1,66 @@
 # ghand_moveit_config
 
-MoveIt 2 configuration for the GHand dexterous hand.
+MoveIt 2 planning for GHand5 and Lite1. Product-specific SRDF, limits,
+kinematics and controller mappings live in `config/<product_name>/`.
+Lite1 plans over six active joints and preserves vendor mimic coupling;
+its underactuated finger groups have no generic KDL IK solver.
 
-One package serves all products. Product data is under `config/<product_name>/`;
-planning pipeline settings at `config/` root are shared. Both launch files accept
-`product_name:=ghand5` (the default) or `product_name:=ghandlite1`. Lite1 plans
-in the joint space of six active joints; its underactuated finger groups do not
-configure a generic KDL IK solver. The vendor mimic coupling is preserved.
-
-## Contents
-
-- `config/ghand5/ghand5_left.srdf`, `config/ghand5/ghand5_right.srdf` — semantic robot descriptions.
-- `config/ghand5/kinematics.yaml` — kinematics solver configuration.
-- `config/ompl_planning.yaml`, `config/chomp_planning.yaml` — planning pipeline
-  settings.
-- `config/ghand5/joint_limits.yaml` — velocity and acceleration limits.
-- `config/ghand5/moveit_controllers.yaml` — controller manager mapping.
-- `config/ghand5/moveit.rviz` — RViz configuration.
-- `launch/moveit.launch.py` — top-level MoveIt launch file.
-
-## Usage
+## Planning preview
 
 ```bash
-ros2 launch ghand_moveit_config moveit.launch.py
+ros2 launch ghand_bringup start.launch.py backend:=preview
+ros2 launch ghand_bringup start.launch.py backend:=preview hand:=dual product_name:=ghandlite1
 ```
 
-The right hand is selected by default. Use `hand_side:=left` to launch the
-left-hand model:
+RViz **Plan** displays a trajectory. Preview publishes fixed initial joint
+states using `joint_state_publisher`, and starts `robot_state_publisher`,
+`move_group` and optionally RViz. There is no controller manager, hardware
+plugin or trajectory execution backend. `allow_trajectory_execution` is false.
+Execute and Plan & Execute are unavailable for this scene; use Plan.
+The initial pose comes from `config/<product_name>/initial_positions.yaml`.
+
+## Planning and execution
 
 ```bash
+ros2 launch ghand_bringup start.launch.py backend:=gazebo planning:=true
+ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=true profile:=rs485_right device:=/dev/ttyUSB0
+```
+
+Gazebo simulates motion and contact. Hardware executes on the physical hand.
+These scenes use actual joint feedback and the existing trajectory Action.
+Preview is kinematic planning, not a dynamics simulation.
+
+## Lower-level planning attachment
+
+```bash
+# Preview only
 ros2 launch ghand_moveit_config moveit.launch.py hand_side:=left
+ros2 launch ghand_moveit_config dual_moveit.launch.py
+
+# Attach to an already running physical bringup, with its RViz disabled
+ros2 launch ghand_moveit_config moveit.launch.py mode:=attached hand_side:=right
 ```
 
-Launch the combined dual-hand model and both controllers with:
+Arguments: `product_name` (default `ghand5`), `hand_side` (`left`, `right`,
+`dual`; default `right`), `mode` (`preview`, `attached`; default `preview`),
+`use_rviz` (default true).
+The dual wrapper fixes `hand_side` to `dual`.
+Attached mode starts only planning and optional RViz. It expects matching
+product/hand joint feedback and controllers from physical bringup.
+Use the Gazebo scene entry for simulation, which supplies its own description and clock.
 
-```bash
-# Mock hardware
-ros2 launch ghand_moveit_config dual_moveit.launch.py use_sim:=true
+The dual SRDF provides `left_hand`, `right_hand`, `dual_hands`, and combined
+`open`/`fist` named states. The old `use_sim` argument is no longer supported.
 
-# Real hardware using two serial devices
-ros2 launch ghand_moveit_config dual_moveit.launch.py \
-  use_sim:=false left_device:=/dev/ttyUSB0 right_device:=/dev/ttyUSB1
-```
+## Validation status
 
-The dual SRDF provides `left_hand`, `right_hand`, and `dual_hands` planning
-groups plus combined `open` and `fist` named states.
+The four description/bringup/MoveIt/Gazebo packages build on this Humble workspace.
+Scene construction checks cover both products, single/dual preview and hardware
+planning attachment, plus Gazebo with planning enabled/disabled. Removed launch
+arguments are no longer supported.
 
-## Dependencies
-
-- `moveit_ros_move_group`
-- `moveit_kinematics`
-- `moveit_planners`
-- `moveit_simple_controller_manager`
-- `moveit_configs_utils`
-- `moveit_ros_visualization`
-- `robot_state_publisher`
-- `controller_manager`
-- `joint_trajectory_controller`
-- `joint_state_broadcaster`
-- `rviz2`
-- `xacro`
-- `ghand_description`
+A headless preview started the model publisher, joint state publisher and
+`move_group` in this environment. During the timed SIGINT shutdown, the installed
+MoveIt 2.5.10 process reported a segmentation fault in trajectory execution
+manager destruction; the cause remains unresolved. Full planning-service probes,
+Gazebo runtime/GUI execution and physical motion have not been validated in this change.

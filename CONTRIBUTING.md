@@ -11,7 +11,7 @@ Before opening a new issue, please search existing issues to avoid duplicates. W
 - Steps to reproduce the problem
 - Expected behavior and actual behavior
 - Relevant logs or error messages
-- Whether you are running mock hardware or real hardware
+- Whether you are running Gazebo or real hardware
 
 ## Proposing Changes
 
@@ -24,7 +24,7 @@ For large changes, please open an issue first to discuss the design. This helps 
 3. Follow the existing code style:
    - C++: Google C++ Style Guide, formatted with the provided `.clang-format`
    - Python: Google Python Style Guide
-4. Ensure `colcon build` succeeds in mock mode without new warnings.
+4. Ensure `colcon build` succeeds for Gazebo development without new warnings.
 5. Update relevant documentation (README, package README, CHANGELOG) if the change is user-visible.
 6. Submit the pull request with a clear description and link to any related issue.
 

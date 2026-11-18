@@ -4,16 +4,13 @@
 
 """Launch two prefixed GHands under one ros2_control manager."""
 
-import os
 from pathlib import Path
 
-from ament_index_python.packages import (
-    get_package_prefix,
-    get_package_share_directory,
-)
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import AppendEnvironmentVariable, DeclareLaunchArgument
-from launch.conditions import IfCondition, UnlessCondition
+from launch.events import Shutdown
+from launch.actions import DeclareLaunchArgument, EmitEvent
+from launch.conditions import IfCondition
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -26,7 +23,6 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     product_name = LaunchConfiguration("product_name")
-    use_mock = LaunchConfiguration("use_mock_hardware")
     use_rviz = LaunchConfiguration("use_rviz")
 
     declared_args = [
@@ -40,13 +36,6 @@ def generate_launch_description():
             ),
             description="Product configuration directory (default: ghand5).",
         ),
-        DeclareLaunchArgument(
-            "use_mock_hardware",
-            default_value="true",
-            description=(
-                "Use two mock hardware systems instead of physical hands."
-            ),
-        ),
         DeclareLaunchArgument("use_rviz", default_value="true"),
         DeclareLaunchArgument("left_profile", default_value="rs485_left"),
         DeclareLaunchArgument(
@@ -57,18 +46,6 @@ def generate_launch_description():
         DeclareLaunchArgument("left_ifname", default_value=""),
         DeclareLaunchArgument("right_ifname", default_value=""),
     ]
-
-    rviz_ogre_lib = os.path.join(
-        get_package_prefix("rviz_ogre_vendor"),
-        "opt",
-        "rviz_ogre_vendor",
-        "lib",
-    )
-    env_actions = []
-    if os.path.isdir(rviz_ogre_lib):
-        env_actions.append(
-            AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
-        )
 
     profile_dir = PathJoinSubstitution(
         [FindPackageShare("ghand_bringup"), "config", "profiles"]
@@ -86,8 +63,6 @@ def generate_launch_description():
             ),
             " product_name:=",
             product_name,
-            " use_mock_hardware:=",
-            use_mock,
             " left_profile_file:=",
             PathJoinSubstitution(
                 [profile_dir, [LaunchConfiguration("left_profile"), ".yaml"]]
@@ -112,11 +87,12 @@ def generate_launch_description():
         package="robot_state_publisher",
         executable="robot_state_publisher",
         parameters=[robot_description],
-        output="both",
+        output="screen",
     )
     controller_manager = Node(
         package="controller_manager",
         executable="ros2_control_node",
+        on_exit=[EmitEvent(event=Shutdown(reason="GHand controller manager exited"))],
         parameters=[
             robot_description,
             PathJoinSubstitution(
@@ -128,7 +104,7 @@ def generate_launch_description():
                 ]
             ),
         ],
-        output="both",
+        output="screen",
     )
 
     def spawner(name, condition=None):
@@ -137,7 +113,7 @@ def generate_launch_description():
             executable="spawner",
             arguments=[name, "--controller-manager", "/controller_manager"],
             condition=condition,
-            output="both",
+            output="screen",
         )
 
     controllers = [
@@ -146,19 +122,15 @@ def generate_launch_description():
         spawner("right_joint_trajectory_controller"),
         spawner(
             "left_joint_status_broadcaster",
-            condition=UnlessCondition(use_mock),
         ),
         spawner(
             "right_joint_status_broadcaster",
-            condition=UnlessCondition(use_mock),
         ),
         spawner(
             "left_tactile_broadcaster",
-            condition=UnlessCondition(use_mock),
         ),
         spawner(
             "right_tactile_broadcaster",
-            condition=UnlessCondition(use_mock),
         ),
     ]
 
@@ -177,12 +149,11 @@ def generate_launch_description():
             ),
         ],
         condition=IfCondition(use_rviz),
-        output="both",
+        output="screen",
     )
 
     return LaunchDescription(
         declared_args
-        + env_actions
         + [rsp, controller_manager]
         + controllers
         + [rviz]

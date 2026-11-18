@@ -17,7 +17,7 @@ double safe_state_value(const hardware_interface::LoanedStateInterface* iface) {
   if (iface == nullptr) {
     return 0.0;
   }
-  const double value = iface->get_optional().value_or(0.0);
+  const double value = iface->get_value();
   return std::isnan(value) ? 0.0 : value;
 }
 
@@ -26,12 +26,12 @@ double safe_state_value(const hardware_interface::LoanedStateInterface* iface) {
 namespace ghand_controllers {
 
 controller_interface::CallbackReturn TactileBroadcaster::on_init() {
-  get_node()->declare_parameter<std::vector<std::string>>(
+  auto_declare<std::vector<std::string>>(
       "fingers", std::vector<std::string>());
-  get_node()->declare_parameter<std::vector<int64_t>>("point_counts",
+  auto_declare<std::vector<int64_t>>("point_counts",
                                                       std::vector<int64_t>());
-  get_node()->declare_parameter<double>("publish_rate", 100.0);
-  get_node()->declare_parameter<std::string>("topic", "/tactile_data");
+  auto_declare<double>("publish_rate", 100.0);
+  auto_declare<std::string>("topic", "/tactile_data");
   return controller_interface::CallbackReturn::SUCCESS;
 }
 

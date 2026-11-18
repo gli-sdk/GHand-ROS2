@@ -1,62 +1,38 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-BUILD_TYPE="Debug"
-ENABLE_CANFD="OFF"
-ENABLE_ETHERCAT="OFF"
-
+BUILD_TYPE=Release
+SIMULATION_ONLY=false
+GHAND_PROJECT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 usage() {
-  cat <<EOF
-Usage: $0 [OPTIONS]
-
-Build the GHand-ROS2 workspace with colcon.
-
-Options:
-  --canfd      Enable CANFD backend (requires ZLG CAN vendor libraries)
-  --ethercat   Enable EtherCAT backend (requires SOEM)
-  --release    Build in Release mode
-  --help, -h   Show this help message
-
-By default the script builds in Debug mode with both CANFD and EtherCAT
-disabled, which is suitable for mock-hardware development and CI.
-EOF
+  cat <<'HELP'
+Usage: ./src/ghand-ros2/build.sh [OPTIONS]
+Run from the ROS workspace root after sourcing ROS 2 Humble.
+  --simulation        Build preview/Gazebo/bringup without hardware SDK
+  Hardware builds use the bundled ghand_sdk_vendor dynamic library.
+  --release           Release build (default)
+  --debug             Debug build
+  --help              Show this help
+Transport support is owned by the SDK; no per-transport ROS build flags are needed.
+HELP
 }
-
-while [[ $# -gt 0 ]]; do
+while (($#)); do
   case "$1" in
-    --canfd)
-      ENABLE_CANFD="ON"
-      shift
-      ;;
-    --ethercat)
-      ENABLE_ETHERCAT="ON"
-      shift
-      ;;
-    --release)
-      BUILD_TYPE="Release"
-      shift
-      ;;
-    --help|-h)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1"
-      usage
-      exit 1
-      ;;
+    --simulation) SIMULATION_ONLY=true; shift ;;
+    --release) BUILD_TYPE=Release; shift ;;
+    --debug) BUILD_TYPE=Debug; shift ;;
+    --canfd|--ethercat)
+      echo "$1 is obsolete: transport support is supplied by GHandSDK." >&2; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
-
-CMAKE_ARGS=(
-  "-DCMAKE_BUILD_TYPE=${BUILD_TYPE}"
-  "-DGHAND_ENABLE_CANFD=${ENABLE_CANFD}"
-  "-DGHAND_ENABLE_ETHERCAT=${ENABLE_ETHERCAT}"
-)
-
-echo "Building GHand-ROS2..."
-echo "  Build type: ${BUILD_TYPE}"
-echo "  CANFD:      ${ENABLE_CANFD}"
-echo "  EtherCAT:   ${ENABLE_ETHERCAT}"
-
-colcon build --symlink-install --cmake-args "${CMAKE_ARGS[@]}"
+if [[ ! -d src ]]; then echo 'Run this script from the workspace root (containing src/).' >&2; exit 2; fi
+if [[ ${ROS_DISTRO:-} != humble ]]; then echo 'Source /opt/ros/humble/setup.bash first.' >&2; exit 2; fi
+if $SIMULATION_ONLY; then
+  colcon build --base-paths "$GHAND_PROJECT_DIR" --symlink-install --packages-select ghand_description \
+    ghand_bringup ghand_moveit_config ghand_gazebo \
+    --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DBUILD_TESTING=OFF"
+  exit
+fi
+colcon build --base-paths "$GHAND_PROJECT_DIR" --symlink-install --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" -DBUILD_TESTING=OFF

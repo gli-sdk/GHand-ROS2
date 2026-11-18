@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="lite1_sim_joints" params="names prefix product">
+    <xacro:if value="${len(names) > 0}">
+      <xacro:property name="joint_name" value="${names[0]}"/>
+      <joint name="${prefix}${joint_name}">
+        <xacro:if value="${joint_name in product['active_joints']}">
+          <command_interface name="position"/>
+        </xacro:if>
+        <state_interface name="position"><param name="initial_value">${product['initial_positions'][joint_name]}</param></state_interface>
+        <state_interface name="velocity"/><state_interface name="effort"/>
+      </joint>
+      <xacro:lite1_sim_joints names="${names[1:]}" prefix="${prefix}" product="${product}"/>
+    </xacro:if>
+  </xacro:macro>
+  <xacro:macro name="ghand_ros2_control" params="prefix system_name use_gazebo:=true">
+    <xacro:property name="product" value="${xacro.load_yaml('$(find ghand_description)/config/ghandlite1.yaml')}"/>
+    <ros2_control name="${system_name}" type="system">
+      <hardware><plugin>gz_ros2_control/GazeboSimSystem</plugin></hardware>
+      <xacro:lite1_sim_joints names="${product['joints']}" prefix="${prefix}" product="${product}"/>
+    </ros2_control>
+  </xacro:macro>
+</robot>

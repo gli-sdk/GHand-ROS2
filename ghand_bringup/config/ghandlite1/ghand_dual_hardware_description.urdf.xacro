@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghandlite1-dual">
-  <xacro:arg name="use_mock_hardware" default="true"/>
   <xacro:arg name="left_profile_file" default=""/>
   <xacro:arg name="right_profile_file" default=""/>
   <xacro:arg name="left_device" default=""/>
@@ -17,14 +16,12 @@
   <xacro:ghand_ros2_control
     prefix="left_"
     system_name="left_ghand_hardware"
-    use_mock_hardware="$(arg use_mock_hardware)"
     profile_file="$(arg left_profile_file)"
     device="$(arg left_device)"
     ifname="$(arg left_ifname)"/>
   <xacro:ghand_ros2_control
     prefix="right_"
     system_name="right_ghand_hardware"
-    use_mock_hardware="$(arg use_mock_hardware)"
     profile_file="$(arg right_profile_file)"
     device="$(arg right_device)"
     ifname="$(arg right_ifname)"/>

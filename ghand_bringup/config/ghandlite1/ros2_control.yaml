@@ -11,12 +11,12 @@ ghand_hardware:
     - LF_MCP
     command_interfaces:
     - position
-    - velocity
-    - effort
+    - velocity_percent
+    - current_percent
     state_interfaces:
     - position
-    - velocity
-    - effort
+    - velocity_percent
+    - current_percent
     - state
     - error
     tactile_region_counts: 38,31,31,31,31

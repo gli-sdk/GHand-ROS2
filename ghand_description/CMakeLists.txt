@@ -7,9 +7,8 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 # --------------------------------------------------------------------------
 # Source assets
 #
-# The URDF and meshes live in the ghand_assets repository, which is fetched
-# via `vcs import . < ghand-ros2/ghand.repos` into the sibling
-# ghand_assets checkout under the workspace src directory.
+# The URDF and meshes live in the ghand_assets repository, cloned as the
+# sibling ghand_assets checkout under the workspace src directory.
 # ghand_assets is a raw asset repository (no package.xml), so this package
 # turns the G5 left- and right-hand descriptions into a standard ROS 2
 # description package: it installs the meshes under share/ and rewrites the URDF's bare
@@ -27,8 +26,9 @@ foreach(_hand_side IN ITEMS left right)
     message(FATAL_ERROR
       "GHand ${_hand_side}-hand assets not found at:\n"
       "  ${_source_urdf}\n"
-      "Fetch them with `vcs import . < ghand-ros2/ghand.repos` from the "
-      "workspace src directory before building, or pass -DGHAND_ASSETS_DIR=<path>.")
+      "Clone ghand_assets from Gitee or GitHub into the workspace src "
+      "directory as ghand_assets, or pass "
+      "-DGHAND_ASSETS_DIR=<path>.")
   endif()
 
   # Rewrite bare mesh paths (ghand5_system/meshes/...) into package:// URIs.
@@ -78,7 +78,7 @@ file(MAKE_DIRECTORY "${_lite1_urdf_dir}")
 foreach(_hand_side IN ITEMS left right)
   set(_source_urdf "${GHAND_LITE1_ASSETS_DIR}/urdf/glite1_${_hand_side}.urdf")
   if(NOT EXISTS "${_source_urdf}")
-    message(FATAL_ERROR "Lite1 assets missing at ${_source_urdf}. Fetch ghand.repos or set GHAND_LITE1_ASSETS_DIR.")
+    message(FATAL_ERROR "Lite1 assets missing at ${_source_urdf}. Add the product asset bundle under ghand_assets/ghand_lite1_system or set GHAND_LITE1_ASSETS_DIR.")
   endif()
   execute_process(
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/prepare_lite1_urdf.py"

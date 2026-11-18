@@ -1,8 +1,8 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="ghandlite1-dual">
   <xacro:include filename="$(find ghand_description)/urdf/ghandlite1/ghandlite1_dual_description.urdf" />
   <xacro:include filename="$(find ghand_gazebo)/config/common/ghand.gazebo.xacro" />
-  <xacro:include filename="$(find ghand_bringup)/config/ghandlite1/ghand.ros2_control.xacro" />
-  <xacro:ghand_gazebo_ros2_control_plugin ros2_control_params="$(find ghand_bringup)/config/ghandlite1/dual_controllers.yaml" controllers_params="$(find ghand_bringup)/config/ghandlite1/dual_controllers.yaml" />
+  <xacro:include filename="$(find ghand_gazebo)/config/ghandlite1/ghand.ros2_control.xacro" />
+  <xacro:ghand_gazebo_ros2_control_plugin ros2_control_params="$(find ghand_gazebo)/config/ghandlite1/dual_controllers.yaml" controllers_params="$(find ghand_gazebo)/config/ghandlite1/dual_controllers.yaml" />
   <xacro:ghand_gazebo_disable_gravity link_name="left_base_link" />
   <xacro:ghand_gazebo_link_properties link_name="left_base_link" />
   <xacro:ghand_gazebo_disable_gravity link_name="left_THUMB_TMC_AA_link" />

@@ -11,10 +11,10 @@ controller_manager:
       type: joint_trajectory_controller/JointTrajectoryController
     position_controller:
       type: position_controllers/JointGroupPositionController
-    velocity_controller:
-      type: velocity_controllers/JointGroupVelocityController
-    effort_controller:
-      type: effort_controllers/JointGroupEffortController
+    velocity_percent_controller:
+      type: forward_command_controller/ForwardCommandController
+    current_percent_controller:
+      type: forward_command_controller/ForwardCommandController
 joint_status_broadcaster:
   ros__parameters:
     joints:
@@ -56,10 +56,8 @@ joint_trajectory_controller:
     - LF_MCP
     command_interfaces:
     - position
-    - velocity
     state_interfaces:
     - position
-    - velocity
     open_loop_control: false
     allow_partial_joints_goal: true
     gains:
@@ -89,7 +87,6 @@ joint_trajectory_controller:
         d: 10.0
     constraints:
       goal_time: 2.0
-      stopped_velocity_tolerance: 0.01
       THUMB_TMC_FE:
         goal: 0.1
         trajectory: 0.5
@@ -121,8 +118,7 @@ position_controller:
     - position
     state_interfaces:
     - position
-    - velocity
-velocity_controller:
+velocity_percent_controller:
   ros__parameters:
     joints:
     - THUMB_TMC_FE
@@ -131,12 +127,8 @@ velocity_controller:
     - MF_MCP
     - RF_MCP
     - LF_MCP
-    command_interfaces:
-    - velocity
-    state_interfaces:
-    - position
-    - velocity
-effort_controller:
+    interface_name: velocity_percent
+current_percent_controller:
   ros__parameters:
     joints:
     - THUMB_TMC_FE
@@ -145,9 +137,4 @@ effort_controller:
     - MF_MCP
     - RF_MCP
     - LF_MCP
-    command_interfaces:
-    - effort
-    state_interfaces:
-    - position
-    - velocity
-    - effort
+    interface_name: current_percent

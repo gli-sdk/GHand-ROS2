@@ -18,7 +18,9 @@ from ament_index_python.packages import (
     get_package_share_directory,
 )
 from launch import LaunchDescription
+from launch.events import Shutdown
 from launch.actions import (
+    EmitEvent,
     OpaqueFunction,
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
@@ -37,7 +39,6 @@ from launch.substitutions import (
 )
 from launch_ros.actions import Node, SetParameter
 from launch_ros.substitutions import FindPackageShare
-from moveit_configs_utils import MoveItConfigsBuilder
 
 
 def launch_setup(context):
@@ -47,9 +48,9 @@ def launch_setup(context):
     world = LaunchConfiguration("world")
     limit_tolerance = LaunchConfiguration("limit_tolerance")
 
-    # --- Environment setup for Gazebo Sim (gz) ---
-    # 1. Resource path: gz resolves mesh URIs
-    #    (package://ghand_description/...) against GZ_SIM_RESOURCE_PATH.
+    # --- Environment setup for Gazebo Fortress (Ignition Gazebo 6) ---
+    # 1. Resource path: Fortress resolves mesh URIs
+    #    (package://ghand_description/...) against IGN_GAZEBO_RESOURCE_PATH.
     #    Point it at the parent of ghand_description's share dir so
     #    model://ghand_description resolves to the installed meshes.
     # 2. System plugin path: gz_ros2_control-system lives in the ROS lib dir.
@@ -61,25 +62,16 @@ def launch_setup(context):
     ros_lib_multiarch = os.path.join(
         get_package_prefix("moveit_ros_move_group"), "lib", "x86_64-linux-gnu"
     )
-    rviz_ogre_lib = os.path.join(
-        get_package_prefix("rviz_ogre_vendor"), "opt", "rviz_ogre_vendor", "lib"
-    )
-
     env_actions = [
         AppendEnvironmentVariable(
-            "GZ_SIM_RESOURCE_PATH", ghand_desc_share_parent
+            "IGN_GAZEBO_RESOURCE_PATH", ghand_desc_share_parent
         ),
-        AppendEnvironmentVariable("GZ_SIM_SYSTEM_PLUGIN_PATH", ros_lib),
+        AppendEnvironmentVariable("IGN_GAZEBO_SYSTEM_PLUGIN_PATH", ros_lib),
     ]
     if os.path.isdir(ros_lib_multiarch):
         env_actions.append(
             AppendEnvironmentVariable("LD_LIBRARY_PATH", ros_lib_multiarch)
         )
-    if os.path.isdir(rviz_ogre_lib):
-        env_actions.append(
-            AppendEnvironmentVariable("LD_LIBRARY_PATH", rviz_ogre_lib)
-        )
-
     # NVIDIA PRIME workaround: gz's OGRE2 render engine picks the mesa EGL
     # vendor by default and segfaults on hybrid NVIDIA setups. Force the NVIDIA
     # EGL/GLX vendor. Only applied when the NVIDIA glvnd config is present, so
@@ -141,16 +133,19 @@ def launch_setup(context):
     rsp = Node(
         package="robot_state_publisher",
         executable="robot_state_publisher",
-        output="both",
+        output="screen",
         parameters=[robot_description],
     )
 
-    # Start Gazebo (Harmonic / gz-sim).
+    # Start Gazebo Fortress. Humble's supported simulator uses the legacy
+    # `ign gazebo` command even though the ROS integration packages use the
+    # ros_gz / gz_ros2_control names.
     # The -r flag runs simulation on startup.
     gazebo = ExecuteProcess(
+        on_exit=[EmitEvent(event=Shutdown(reason="Gazebo exited"))],
         cmd=[
-            "gz",
-            "sim",
+            "ign",
+            "gazebo",
             "-r",
             world,
         ],
@@ -187,7 +182,7 @@ def launch_setup(context):
     clock_bridge = Node(
         package="ros_gz_bridge",
         executable="parameter_bridge",
-        arguments=["/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock"],
+        arguments=["/clock@rosgraph_msgs/msg/Clock[ignition.msgs.Clock"],
         output="screen",
     )
     clock_bridge_starter = RegisterEventHandler(
@@ -199,6 +194,7 @@ def launch_setup(context):
     jtc_spawner = Node(
         package="controller_manager",
         executable="spawner",
+        output="screen",
         arguments=[
             "joint_trajectory_controller",
             "--controller-manager",
@@ -208,6 +204,7 @@ def launch_setup(context):
     jsb_spawner = Node(
         package="controller_manager",
         executable="spawner",
+        output="screen",
         arguments=[
             "joint_state_broadcaster",
             "--controller-manager",
@@ -215,77 +212,20 @@ def launch_setup(context):
         ],
     )
 
-    # Build one conditioned MoveIt/RViz pair for each concrete SRDF name.
     moveit_nodes = []
-    for side in ("left", "right"):
-        moveit_config = (
-            MoveItConfigsBuilder(
-                f"{product_name}-{side}", package_name="ghand_moveit_config"
-            )
-            .robot_description_semantic(
-                file_path=f"config/{product_name}/{product_name}_{side}.srdf"
-            )
-            .trajectory_execution(
-                file_path=f"config/{product_name}/moveit_controllers.yaml"
-            )
-            .joint_limits(file_path=f"config/{product_name}/joint_limits.yaml")
-            .robot_description_kinematics(
-                file_path=f"config/{product_name}/kinematics.yaml"
-            )
-            .to_moveit_configs()
-        )
-        moveit_config.robot_description = {
-            "robot_description": robot_description_content
-        }
-        side_condition = IfCondition(
-            PythonExpression(["'", hand_side, f"' == '{side}'"])
-        )
-        rviz_condition = IfCondition(
-            PythonExpression(
-                [
-                    "'",
-                    use_rviz,
-                    "' == 'true' and '",
-                    hand_side,
-                    f"' == '{side}'",
-                ]
-            )
-        )
-        moveit_nodes.extend(
-            [
-                Node(
-                    package="moveit_ros_move_group",
-                    executable="move_group",
-                    output="screen",
-                    parameters=[moveit_config.to_dict()],
-                    condition=side_condition,
-                    additional_env={
-                        "DISPLAY": os.environ.get("DISPLAY", ""),
-                    },
-                ),
-                Node(
-                    package="rviz2",
-                    executable="rviz2",
-                    arguments=[
-                        "-d",
-                        PathJoinSubstitution(
-                            [
-                                FindPackageShare("ghand_moveit_config"),
-                                "config",
-                                product_name,
-                                "moveit.rviz",
-                            ]
-                        ),
-                    ],
-                    parameters=[moveit_config.to_dict()],
-                    condition=rviz_condition,
-                    output="both",
-                    additional_env={
-                        "DISPLAY": os.environ.get("DISPLAY", "")
-                    },
-                ),
-            ]
-        )
+    if LaunchConfiguration("planning").perform(context) == "true":
+        from ghand_moveit_launch import planning_nodes
+        moveit_nodes = planning_nodes(product_name, hand_side.perform(context), robot_description,
+                                     use_rviz, use_sim_time=True)
+
+    model_rviz = Node(
+        package="rviz2", executable="rviz2",
+        arguments=["-d", PathJoinSubstitution([
+            FindPackageShare("ghand_description"), "config", product_name, "ghand.rviz"
+        ])],
+        parameters=[{"robot_description": robot_description_content}],
+        condition=IfCondition(use_rviz), output="screen",
+    )
 
     return (
         env_actions
@@ -298,19 +238,20 @@ def launch_setup(context):
             jsb_spawner,
             jtc_spawner,
         ]
-        + moveit_nodes
+        + (moveit_nodes if LaunchConfiguration("planning").perform(context) == "true" else [model_rviz])
     )
 
 
 def generate_launch_description():
     declared_args = [
+        DeclareLaunchArgument("planning", default_value="true", choices=["true", "false"]),
         DeclareLaunchArgument(
             "product_name", default_value="ghand5",
             choices=sorted(
                 path.parent.name
                 for path in (
-                    Path(get_package_share_directory("ghand_bringup")) / "config"
-                ).glob("*/controllers.yaml")
+                    Path(get_package_share_directory("ghand_description")) / "urdf"
+                ).glob("*/*_right_description.urdf")
             ),
             description="Product configuration directory (default: ghand5).",
         ),

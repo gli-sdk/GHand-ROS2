@@ -7,7 +7,7 @@ description helper loads `config/<product_name>/mimic_joints.yaml`: GHand5 adds
 its DIP coupling, while Lite1 preserves the coupling already in the vendor URDF.
 Shared Gazebo macros are under `config/common/`.
 
-Gazebo Harmonic simulation for the GHand dexterous hand.
+Gazebo Fortress simulation for the GHand dexterous hand on ROS 2 Humble.
 
 ## Contents
 
@@ -18,6 +18,22 @@ Gazebo Harmonic simulation for the GHand dexterous hand.
   Gazebo-specific robot description into `robot_state_publisher`.
 
 ## Usage
+
+Recommended public entry:
+
+```bash
+ros2 launch ghand_bringup start.launch.py backend:=gazebo
+ros2 launch ghand_bringup start.launch.py backend:=gazebo hand:=dual
+ros2 launch ghand_bringup start.launch.py backend:=gazebo planning:=false
+```
+
+`planning:=true` (default) starts MoveIt and its RViz view. With
+`planning:=false`, only simulation, controllers and optional model RViz start;
+use the trajectory Topic/Action directly. `use_rviz:=false` suppresses RViz.
+The simulation plugin owns the controller manager; do not separately launch hardware bringup.
+The clock bridge supplies simulation time. Exit with Ctrl+C before changing scenes.
+
+Lower-level entries:
 
 ```bash
 ros2 launch ghand_gazebo ghand_gazebo.launch.py

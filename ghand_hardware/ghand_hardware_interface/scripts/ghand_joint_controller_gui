@@ -2,13 +2,11 @@
 # Copyright (c) 2026 GHand ROS2 Maintainers
 # SPDX-License-Identifier: Apache-2.0
 
-"""Launch the joint trajectory controller GUI with Jazzy compatibility.
+"""Launch the joint trajectory controller GUI with Humble compatibility.
 
-Recent controller_manager releases removed the
-``reload_controller_libraries`` service.  Older released versions of
-rqt_joint_trajectory_controller still require that service while discovering
-controller managers, which leaves both selector boxes empty even though the
-manager and controllers are active.
+Controller-manager and RQT releases do not always expose the same discovery
+service set. Remove the obsolete service from RQT's discovery requirements so
+the selector boxes can still be populated.
 
 Keep the workaround local to this launcher instead of modifying the ROS
 installation under /opt/ros.

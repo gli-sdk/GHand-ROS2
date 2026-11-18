@@ -1,0 +1,12 @@
+// SPDX-FileCopyrightText: 2025-2026 GLITech
+// SPDX-License-Identifier: GPL-3.0-only
+
+#ifndef INCLUDE_GHAND_VERSION_H_
+#define INCLUDE_GHAND_VERSION_H_
+
+#define GHAND_VERSION_MAJOR 3
+#define GHAND_VERSION_MINOR 1
+#define GHAND_VERSION_PATCH 0
+#define GHAND_VERSION_STRING "3.1.0"
+
+#endif  // INCLUDE_GHAND_VERSION_H_

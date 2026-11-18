@@ -1,32 +1,61 @@
 # ghand_bringup
 
-Launch and runtime configuration for single and dual GHands.
+Public scene orchestration and physical hardware control.
+
+## Public entry point
 
 ```bash
-ros2 launch ghand_bringup ghand.launch.py use_mock_hardware:=true
-ros2 launch ghand_bringup ghand.launch.py profile:=ethercat_default ifname:=enx000000000000
-ros2 launch ghand_bringup dual_hand.launch.py use_mock_hardware:=true
+ros2 launch ghand_bringup start.launch.py backend:=preview
+ros2 launch ghand_bringup start.launch.py backend:=gazebo
+ros2 launch ghand_bringup start.launch.py backend:=hardware planning:=false profile:=rs485_right device:=/dev/ttyUSB0
 ```
 
-`launch/` starts the state publisher, controller manager, controllers and RViz.
-`config/ghand5/` contains GHand5 controller YAML, RViz settings and joint/sensor
-resource Xacros. `config/common/` contains the shared hardware plugin and
-connection macros. The top-level description Xacros select the product directory.
-Existing launch arguments and defaults are retained.
+| Argument | Default | Meaning |
+| --- | --- | --- |
+| `backend` | `gazebo` | `preview`, `gazebo`, `hardware` |
+| `product_name` | `ghand5` | `ghand5`, `ghandlite1` |
+| `hand` | `right` | `left`, `right`, `dual` |
+| `planning` | `true` | Enable MoveIt; preview requires true |
+| `use_rviz` | `true` | Show RViz |
+| `profile` | empty | Hardware connection; resolves to `rs485_<hand>` for a single hand |
+| `device`, `ifname` | empty | Override serial/CAN device or EtherCAT interface |
+| `left_profile`, `right_profile` | `rs485_left`, `rs485_dual_right` | Dual hardware connections |
+| `left_device`, `right_device` | empty | Dual device overrides |
+| `left_ifname`, `right_ifname` | empty | Dual EtherCAT interface overrides |
+| `world` | empty | Gazebo world override; empty uses the Gazebo package default |
 
-Launch files previously provided by `ghand_hardware_interface` are now launched
-from `ghand_bringup`. Communication profiles are under `config/profiles/`.
-Gazebo and MoveIt keep their own launch files and specialized configuration.
+`profile` and connection overrides apply only to hardware. `world` applies only to Gazebo.
+Dual-hand hardware uses the per-hand connection arguments. Each dual launch uses one product.
+
+Preview starts kinematic state publication and planning, with execution disabled.
+Gazebo owns its control manager through its simulation plugin. Physical hardware
+uses the bringup control manager. MoveIt never starts a second controller manager.
+Only Gazebo uses simulation time.
+
+## Lower-level entries and migration
+
+- `ghand.launch.py`: physical single hand; `hand_side:=left/right`.
+- `dual_hand.launch.py`: physical dual hands.
+- Both start the state publisher, controllers and optional RViz, without MoveIt.
+- The lower-level single-hand default profile remains `ethercat_default`;
+  the public entry resolves its default profile by hand side.
+- `use_mock_hardware` and the old MoveIt `use_sim` argument have been removed.
+  These arguments are no longer supported. Choose an explicit scene.
+- `moveit.launch.py` and `dual_moveit.launch.py` now default to planning preview.
+  Use the public hardware entry with `planning:=true` for hardware planning/execution.
+- Stop the current launch before starting another scene.
+
+Hardware connection instructions: [中文](../docs/HARDWARE_CN.md) / [English](../docs/HARDWARE_EN.md).
 
 ## Product selection
 
-All six hardware, MoveIt and Gazebo launch entry points accept `product_name`.
+All hardware, MoveIt and Gazebo launch entry points accept `product_name`.
 The default is `ghand5`; choices are discovered from installed
 `config/<product_name>/controllers.yaml` files in this package.
 
 ```bash
-ros2 launch ghand_bringup ghand.launch.py product_name:=ghand5 use_mock_hardware:=true
-ros2 launch ghand_moveit_config dual_moveit.launch.py product_name:=ghand5 use_sim:=true
+ros2 launch ghand_bringup ghand.launch.py product_name:=ghand5 profile:=rs485_right
+ros2 launch ghand_moveit_config dual_moveit.launch.py product_name:=ghand5
 ```
 
 `profile` (or `left_profile`/`right_profile`) selects a connection independently
@@ -45,11 +74,11 @@ Lite1 has 11 feedback joints and six commanded joints. Its vendor mimic ratios
 are preserved; `THUMB_MCP` and the four `*_IP` joints are passive.
 
 ```bash
-ros2 launch ghand_bringup ghand.launch.py product_name:=ghandlite1 use_mock_hardware:=true
+ros2 launch ghand_bringup ghand.launch.py product_name:=ghandlite1 profile:=rs485_right
 ros2 launch ghand_bringup ghand.launch.py product_name:=ghandlite1 profile:=ethercat_default ifname:=enx000000000000
-ros2 launch ghand_moveit_config moveit.launch.py product_name:=ghandlite1 use_sim:=true
+ros2 launch ghand_moveit_config moveit.launch.py product_name:=ghandlite1
 ros2 launch ghand_gazebo ghand_gazebo.launch.py product_name:=ghandlite1
-ros2 launch ghand_moveit_config dual_moveit.launch.py product_name:=ghandlite1 use_sim:=true
+ros2 launch ghand_moveit_config dual_moveit.launch.py product_name:=ghandlite1
 ```
 
 The Lite1 protocol baseline is GHand-Cpp-SDK commit `6651e46`: six four-register
@@ -74,17 +103,22 @@ Description install paths are now `ghand_description/urdf/<product_name>/` and
 update them; the public launch filenames remain unchanged. Use a fresh install
 directory when migrating so obsolete installed configuration files cannot linger.
 
-Offline configuration checks (Python, PyYAML and xacro required):
-
-```bash
-python3 -m unittest discover -s tests -v
-```
-
-The xacro checks use fixture geometry. They do not replace a ROS 2 build,
-Gazebo/MoveIt launch checks or device tests.
+Runtime development checks use the built ROS workspace: start planning preview,
+then Gazebo for control/physics, and finally the selected hardware backend.
+Verify controller activation and feedback before sending physical motion commands.
 
 To compare Lite1 metadata with a selected SDK checkout:
 
 ```bash
 python3 tests/check_lite1_sdk_config.py --sdk-dir /path/to/GHand-Cpp-SDK
 ```
+
+## SDK adapter architecture
+
+Physical scenes require the separately built `ghand_hardware_interface`,
+`ghand_msgs` and `ghand_controllers` packages. Build these with the validated
+GHand C++ SDK dynamic library bundled in `ghand_sdk_vendor` using `build.sh`. No local SDK checkout is required. The bringup package
+itself can be installed for preview/Gazebo without those optional packages.
+SDK owns the device transports and protocols; ROS owns lifecycle, unit conversion
+and controller interfaces. Launch files use standard ROS logging and native process-exit shutdown events.
+Product choices for planning/simulation are discovered from `ghand_description`.

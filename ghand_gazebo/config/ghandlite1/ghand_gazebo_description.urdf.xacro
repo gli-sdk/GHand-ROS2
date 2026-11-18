@@ -2,7 +2,7 @@
   <xacro:arg name="hand_side" default="right" />
   <xacro:include filename="$(find ghand_description)/urdf/ghandlite1/ghandlite1_$(arg hand_side)_description.urdf" />
   <xacro:include filename="$(find ghand_gazebo)/config/common/ghand.gazebo.xacro" />
-  <xacro:include filename="$(find ghand_bringup)/config/ghandlite1/ghand.ros2_control.xacro" />
+  <xacro:include filename="$(find ghand_gazebo)/config/ghandlite1/ghand.ros2_control.xacro" />
   <xacro:ghand_world_fixed_joint x="0.35" y="-0.08" z="0.95" roll="-1.57079632679" pitch="3.14159265359" yaw="1.57079632679" />
   <xacro:ghand_gazebo_ros2_control_plugin ros2_control_params="$(find ghand_gazebo)/config/ghandlite1/ghand_gazebo_controllers.yaml" controllers_params="$(find ghand_gazebo)/config/ghandlite1/ghand_gazebo_controllers.yaml" />
   <xacro:ghand_gazebo_disable_gravity link_name="base_link" />

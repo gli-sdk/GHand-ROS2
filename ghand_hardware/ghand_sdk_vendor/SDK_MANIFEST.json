@@ -1,0 +1,97 @@
+{
+  "version": "3.1.0",
+  "platform": "linux-x86_64",
+  "source_commit": "c34d9131ddeb465fb9bebac75416d2b6c1b7c40b",
+  "files": {
+    "CHANGELOG.md": {
+      "sha256": "5ddd5683bd33e1572830efa254d6f375224da05d3a493843c86a91ee4b811edc"
+    },
+    "LICENSE": {
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    "LICENSES/GPL-3.0-only.txt": {
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+    },
+    "LICENSES/LGPL-2.1-or-later.txt": {
+      "sha256": "20e50fe7aae3e56378ebf0417d9de904f55a0e61e4df315333e632a4d3555d95"
+    },
+    "LICENSES/SOEM-LICENSE.md": {
+      "sha256": "0306d58f23257e4dac88de3a1604827a3990fbfe61f5889afbbaaa9d938b7d59"
+    },
+    "LICENSES/WinPcap.txt": {
+      "sha256": "dc11bc2687c6fab7e82c3a7073096747ebaa486e1b58abd651452c93df307a26"
+    },
+    "LICENSES/libmodbus-NOTICE.txt": {
+      "sha256": "da115643dc349c6ddb43dcfec6aa109e7252593d70d7d908ffa6f20a4df6bf86"
+    },
+    "LICENSES/nlohmann-json-MIT.txt": {
+      "sha256": "d64d1b4d948aa7751cfb613c02dc246aab7b358d760053e6580f01affe946906"
+    },
+    "README.md": {
+      "sha256": "86a684bd784d9224811a9a14e9704af7ceace3419d925cbaed1d4416440e1703"
+    },
+    "README.zh.md": {
+      "sha256": "9281244c74da09987cca528b6b63fe874ee572bd8a92ef12450c677750068f91"
+    },
+    "THIRD_PARTY_NOTICES.md": {
+      "sha256": "c2c9aecd3c229b3380a2c840acd1245da4241e40f18a74dbd23ad5d41a3306b0"
+    },
+    "deps/SOEM_BUILD_INFO.md": {
+      "sha256": "6f1128e6d8b4813cd6bd333f91d777674e375cd36b537f911c16f88ee565ae6a"
+    },
+    "include/ghand/export.h": {
+      "sha256": "d5cf57c2aedde22053dcc0af80ebbf7aa3f6abc06ac640a48dba2a11b72ec5d9"
+    },
+    "include/ghand/ghand.h": {
+      "sha256": "055e57a6da18d1ab64b686fd357f8293e4522a52c24d12558dd5627713fee7d7"
+    },
+    "include/ghand/logging.h": {
+      "sha256": "a906f1370de3318c154b7059538a2b12feca903a02f27980561ce19e4103b258"
+    },
+    "include/ghand/result.h": {
+      "sha256": "f7f302593211691c579ea724f716162757b1c4bf32f47a0bc65e05f538d6f2cf"
+    },
+    "include/ghand/types/data.h": {
+      "sha256": "903e94d9d82b3653d3eed32e0b555d20ade331409db7f1b75d5644994908e622"
+    },
+    "include/ghand/types/enums.h": {
+      "sha256": "f3cd291986d90b6e4a0a2867803a3925ceb29311b28346f1fe81286dbed8fe42"
+    },
+    "include/ghand/types/errors.h": {
+      "sha256": "7c22c4ac234e44477c01e04f395cceb28ee96df3a68902cc75cc485a56d5033c"
+    },
+    "include/ghand/types.h": {
+      "sha256": "4d662765f227a12e4493975c798fce9990e0257c7f0a866791fa1bd17e5f4626"
+    },
+    "include/ghand/version.h": {
+      "sha256": "6b77b46d1a8d1a3a8f117301b31bd57bae5bd567f0ec0dcee66b9e6305526bfe"
+    },
+    "lib/cmake/GHandSDK/GHandSDKConfig.cmake": {
+      "sha256": "2164a8ca82b37d77bb41f3a16a4bc71fb2abcd71bf69501850680cef5c4b32ea"
+    },
+    "lib/cmake/GHandSDK/GHandSDKConfigVersion.cmake": {
+      "sha256": "8c2db3a8e3c43a510e4616fc6727f8a66a7f340d971040bde5ef6e7c72902a50"
+    },
+    "lib/cmake/GHandSDK/GHandSDKTargets-release.cmake": {
+      "sha256": "6b20da1ffd8e9ce1c19131618284f033191877ba926f4c531cfe2f48e3e7309f"
+    },
+    "lib/cmake/GHandSDK/GHandSDKTargets.cmake": {
+      "sha256": "25432a32cb854940997ad9234177f3c2879338cbf8d8cc8b5c930ec650e4ef96"
+    },
+    "lib/libghand.so": {
+      "symlink": "libghand.so.3"
+    },
+    "lib/libghand.so.3": {
+      "symlink": "libghand.so.3.1.0"
+    },
+    "lib/libghand.so.3.1.0": {
+      "sha256": "2b7425695aacf0f5a0361527bf742de36a94e8f3d710b5f90b06410a645b9839"
+    },
+    "share/ghand-sdk/config/ghand5.json": {
+      "sha256": "7baf93dec3a1428d9f01f7cb6fc847cf17e1972e85a25ff0c78198a2ef214896"
+    },
+    "share/ghand-sdk/config/ghandlite1.json": {
+      "sha256": "d00fcc024ddba5d1d76e0c903c93d8c0d61ae98a752463c56e56e6b91af2c367"
+    }
+  }
+}

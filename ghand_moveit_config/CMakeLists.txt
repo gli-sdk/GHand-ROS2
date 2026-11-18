@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.8)
 project(ghand_moveit_config)
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
+ament_python_install_package(ghand_moveit_launch)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 file(GLOB _product_config_dirs LIST_DIRECTORIES true "${CMAKE_CURRENT_SOURCE_DIR}/config/*")
